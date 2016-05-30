@@ -18,7 +18,7 @@ import org.apache.kafka.common.config.SslConfigs;
  */
 public class HopsKafkaProperties {
 
-    private static final Logger logger = Logger.getLogger(HopsKafkaProperties.class.getName());
+  private static final Logger logger = Logger.getLogger(HopsKafkaProperties.class.getName());
   
   public static final String TOPIC = "sics1";
   public static final String KAFKA_SERVER_URL = "localhost";

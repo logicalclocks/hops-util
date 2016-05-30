@@ -1,16 +1,10 @@
 package io.hops.kafka;
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-
+import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import java.util.Properties;
-import javax.ws.rs.core.Response;
+import java.util.logging.Logger;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -20,6 +14,8 @@ import org.apache.kafka.common.config.SslConfigs;
  * @author misdess
  */
 public class HopsKafkaUtil {
+
+    private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.getName());
 
     static String jSessionId;
     static Integer projectId;
@@ -55,7 +51,6 @@ public class HopsKafkaUtil {
             String trustStore) {
 
       //validate arguments first
-
         return new HopsKafkaUtil(jSessionId, projectId, topicName, brokerEndpoint,
                 restEndpoint, keyStore, trustStore);
     }
@@ -63,7 +58,6 @@ public class HopsKafkaUtil {
     public static HopsKafkaUtil create(String jSessionId, Integer projectId, String topicName,
             String brokerEndpoint, String restEndpoint) {
 
-        
         return new HopsKafkaUtil(jSessionId, projectId, topicName, brokerEndpoint,
                 restEndpoint);
     }
@@ -88,7 +82,7 @@ public class HopsKafkaUtil {
     }
 
     public static Properties getConsumerConfig() {
-        
+
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
@@ -106,14 +100,20 @@ public class HopsKafkaUtil {
             props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStore);
             props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "pass:adminpw");
         }
-        
+
         return props;
     }
 
     public static String getSchema() {
+        return getSchema(-1);
+    }
 
+    public static String getSchema(int versionId) {
+        
         String uri = restEndpoint + projectId + "/kafka/schema/" + topicName;
-
+        if (versionId > 0) {
+            uri += "/" + versionId;
+        }
         Client client = Client.create();
         WebResource resource = client.resource(uri);
         WebResource.Builder builder = resource.getRequestBuilder();
@@ -126,24 +126,6 @@ public class HopsKafkaUtil {
         }
 
         return response.getEntity(String.class);
-    }
 
-    public static String getSchema(int versionId){
-
-        String uri = restEndpoint + projectId + "/kafka/schema/" + topicName+"/"+versionId;
-
-
-        Client client = Client.create();
-        WebResource resource = client.resource(uri);
-        WebResource.Builder builder = resource.getRequestBuilder();
-        builder.header("Authorization", jSessionId);
-
-        ClientResponse response = builder.accept("application/json").get(ClientResponse.class);
-
-        if (response.getStatus() != 200) {
-           ;
-        }
-
-        return response.getEntity(String.class);
     }
 }
