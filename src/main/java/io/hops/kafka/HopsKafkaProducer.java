@@ -5,10 +5,12 @@
  */
 package io.hops.kafka;
 
-/**
- *
- * @author misdess
- */
+import org.apache.avro.Schema;
+import com.twitter.bijection.Injection;
+import com.twitter.bijection.avro.GenericAvroCodecs;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericData;
+
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -16,97 +18,104 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.common.config.SslConfigs;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ *
+ * @author misdess
+ */
 public class HopsKafkaProducer extends Thread {
 
-  private final KafkaProducer<Integer, String> producer;
-  private final String topic;
-  private final Boolean isAsync;
+    private static final Logger logger = Logger.
+            getLogger(HopsKafkaProducer.class.getName());
 
-  //Kakfa certificate
-  public static final String KAFKA_K_CERTIFICATE = "kafka_k_certificate";
-  public static final String KAFKA_T_CERTIFICATE = "kafka_t_certificate";
+    private final KafkaProducer<Integer, byte[]> producer;
+    private final String topic;
+    private final Boolean isAsync;
+    private final Schema schema;
+    private final Injection<GenericRecord, byte[]> recordInjection;
+    //Kakfa certificate
+    public static final String KAFKA_K_CERTIFICATE = "kafka_k_certificate";
+    public static final String KAFKA_T_CERTIFICATE = "kafka_t_certificate";
 
-  public static String KAFKA_K_CERTIFICATE_LOCATION = "";
-  public static String KAFKA_T_CERTIFICATE_LOCATION = "";
+    public static String KAFKA_K_CERTIFICATE_LOCATION = "";
+    public static String KAFKA_T_CERTIFICATE_LOCATION = "";
 
-  public HopsKafkaProducer(String topic, Boolean isAsync) {
+    public HopsKafkaProducer(String topic, Boolean isAsync, String schemaText) {
 
-//    Properties props = new Properties();
-//    props.put("bootstrap.servers", "10.0.2.15:9092");
-//    props.put("key.serializer", "org.apache.kafka.common.serialization.IntegerSerializer");
-//    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-//
-//    //configure the ssl parameters
-//    props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-//    props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "pass:adminpw");
-//    props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, HopsKafkaProperties.TRUSTSTORE_PWD);
-//    props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, Settings.KAFKA_K_CERTIFICATE_LOCATION);
-//    props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "pass:adminpw");
-//
-    Properties props = HopsKafkaProperties.defaultProps();
-    props.put("client.id", "HopsProducer");
+        Properties props = HopsKafkaProperties.defaultProps();
+        props.put("client.id", "HopsProducer");
 
-    producer = new KafkaProducer<>(props);
-    this.topic = topic;
-    this.isAsync = isAsync;
-  }
-
-  public void run() {
-    int messageNo = 1;
-    while (messageNo < 20) {
-      String messageStr = "Message_" + messageNo;
-      long startTime = System.currentTimeMillis();
-      if (isAsync) { // Send asynchronously
-        producer.send(new ProducerRecord<>(topic,
-          messageNo,
-          messageStr), new DemoCallBack(startTime, messageNo, messageStr));
-      } else { // Send synchronously
-        try {
-          producer.send(new ProducerRecord<>(topic,
-            messageNo,
-            messageStr)).get();
-          System.out.println("Sent message: (" + messageNo + ", " + messageStr + ")");
-        } catch (InterruptedException | ExecutionException e) {
-          e.printStackTrace();
-        }
-      }
-      ++messageNo;
+        producer = new KafkaProducer<>(props);
+        this.topic = topic;
+        this.isAsync = isAsync;
+        Schema.Parser parser = new Schema.Parser();
+        schema = parser.parse(schemaText);
+        recordInjection = GenericAvroCodecs.toBinary(schema);
     }
-  }
+
+    public void run() {
+        int messageNo = 1;
+        while (messageNo < 20) {
+            //this is the bare text message
+            String messageStr = "Message_" + messageNo;
+            //create the avro message
+            GenericData.Record avroRecord = new GenericData.Record(schema);
+            avroRecord.put("msg", messageStr);
+            byte[] bytes = recordInjection.apply(avroRecord);
+
+            long startTime = System.currentTimeMillis();
+            if (isAsync) { // Send asynchronously
+                producer.send(new ProducerRecord<>(topic, messageNo, bytes),
+                        new DemoCallBack(startTime, messageNo, messageStr));
+            } else { // Send synchronously
+                try {
+                    producer.send(new ProducerRecord<>(topic, messageNo, bytes)).get();
+                    logger.log(Level.SEVERE, "Sent message {0}, {1}",
+                            new Object[]{messageNo, messageStr});
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+            ++messageNo;
+        }
+    }
 }
 
 class DemoCallBack implements Callback {
+    
+   private static final Logger logger = Logger.
+            getLogger(DemoCallBack.class.getName());
 
-  private final long startTime;
-  private final int key;
-  private final String message;
+    private final long startTime;
+    private final int key;
+    private final String message;
 
-  public DemoCallBack(long startTime, int key, String message) {
-    this.startTime = startTime;
-    this.key = key;
-    this.message = message;
-  }
-
-  /**
-   * A callback method the user can implement to provide asynchronous handling of request completion. This method will
-   * be called when the record sent to the server has been acknowledged. Exactly one of the arguments will be non-null.
-   *
-   * @param metadata The metadata for the record that was sent (i.e. the partition and offset). Null if an error
-   * occurred.
-   * @param exception The exception thrown during processing of this record. Null if no error occurred.
-   */
-  public void onCompletion(RecordMetadata metadata, Exception exception) {
-    long elapsedTime = System.currentTimeMillis() - startTime;
-    if (metadata != null) {
-      System.out.println(
-        "message(" + key + ", " + message + ") sent to partition(" + metadata.partition()
-        + "), "
-        + "offset(" + metadata.offset() + ") in " + elapsedTime + " ms");
-    } else {
-      exception.printStackTrace();
+    public DemoCallBack(long startTime, int key, String message) {
+        this.startTime = startTime;
+        this.key = key;
+        this.message = message;
     }
-  }
+
+    /**
+     * A callback method the user can implement to provide asynchronous handling
+     * of request completion. This method will be called when the record sent to
+     * the server has been acknowledged. Exactly one of the arguments will be
+     * non-null.
+     *
+     * @param metadata The metadata for the record that was sent (i.e. the
+     * partition and offset). Null if an error occurred.
+     * @param exception The exception thrown during processing of this record.
+     * Null if no error occurred.
+     */
+    public void onCompletion(RecordMetadata metadata, Exception exception) {
+        
+        if (metadata != null) {
+            logger.log(Level.SEVERE, "Message {0} is sent",
+                    new Object[]{message});
+        } else {
+            exception.printStackTrace();
+        }
+    }
 }

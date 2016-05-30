@@ -1,6 +1,13 @@
 package io.hops.kafka;
 
 import com.sun.jersey.api.client.Client;
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import java.util.Properties;
@@ -51,6 +58,7 @@ public class HopsKafkaUtil {
             String trustStore) {
 
       //validate arguments first
+
         return new HopsKafkaUtil(jSessionId, projectId, topicName, brokerEndpoint,
                 restEndpoint, keyStore, trustStore);
     }
@@ -58,6 +66,7 @@ public class HopsKafkaUtil {
     public static HopsKafkaUtil create(String jSessionId, Integer projectId, String topicName,
             String brokerEndpoint, String restEndpoint) {
 
+        
         return new HopsKafkaUtil(jSessionId, projectId, topicName, brokerEndpoint,
                 restEndpoint);
     }
