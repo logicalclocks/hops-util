@@ -1,15 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package io.hops.kafka;
 
-import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Logger;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 
 /**
@@ -31,8 +24,9 @@ public class HopsKafkaProperties {
   public static String KAFKA_CONNECTSTR = "";
   public static String TRUSTSTORE_PWD = "";
   public static String KEYSTORE_PWD = "";
+  public static String KAFKA_T_CERTIFICATE_LOCATION = "";
+  public static String KAFKA_K_CERTIFICATE_LOCATION = "";
 
-  
   static {
     try {
        KAFKA_CONNECTSTR = System.getenv("KAFKA_CONNECTSTR");
@@ -57,10 +51,10 @@ public class HopsKafkaProperties {
         
         //configure the ssl parameters
         props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-        props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsKafkaProducer.KAFKA_T_CERTIFICATE_LOCATION);
-        props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, HopsKafkaProperties.TRUSTSTORE_PWD);
-        props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaProducer.KAFKA_K_CERTIFICATE_LOCATION);
-        props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, HopsKafkaProperties.KEYSTORE_PWD);    
+        props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, KAFKA_T_CERTIFICATE_LOCATION);
+        props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PWD);
+        props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KAFKA_K_CERTIFICATE_LOCATION);
+        props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PWD);    
 
         return props;
   }

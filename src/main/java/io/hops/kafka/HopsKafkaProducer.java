@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package io.hops.kafka;
 
 import org.apache.avro.Schema;
@@ -35,14 +30,8 @@ public class HopsKafkaProducer extends Thread {
     private final Boolean isAsync;
     private final Schema schema;
     private final Injection<GenericRecord, byte[]> recordInjection;
-    //Kakfa certificate
-    public static final String KAFKA_K_CERTIFICATE = "kafka_k_certificate";
-    public static final String KAFKA_T_CERTIFICATE = "kafka_t_certificate";
-
-    public static String KAFKA_K_CERTIFICATE_LOCATION = "";
-    public static String KAFKA_T_CERTIFICATE_LOCATION = "";
-
-    public HopsKafkaProducer(String topic, Boolean isAsync, String schemaText) {
+    
+    public HopsKafkaProducer(String topic, Boolean isAsync) {
 
         Properties props = HopsKafkaProperties.defaultProps();
         props.put("client.id", "HopsProducer");
@@ -51,10 +40,11 @@ public class HopsKafkaProducer extends Thread {
         this.topic = topic;
         this.isAsync = isAsync;
         Schema.Parser parser = new Schema.Parser();
-        schema = parser.parse(schemaText);
+        schema = parser.parse(HopsKafkaUtil.getInstance().getSchema());
         recordInjection = GenericAvroCodecs.toBinary(schema);
     }
 
+    @Override
     public void run() {
         int messageNo = 1;
         while (messageNo < 20) {
