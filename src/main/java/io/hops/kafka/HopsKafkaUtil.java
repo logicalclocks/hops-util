@@ -106,7 +106,8 @@ public class HopsKafkaUtil {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
 
         //configure the ssl parameters
-        if (!(keyStore.isEmpty() && keyStore == null)) {
+        if (trustStore != null && !trustStore.isEmpty() 
+                && keyStore != null && !keyStore.isEmpty()) {
             props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
             props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStore);
             props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "pass:adminpw");
