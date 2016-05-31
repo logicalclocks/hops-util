@@ -27,7 +27,7 @@ public class HopsKafkaConsumer extends ShutdownableThread {
     public HopsKafkaConsumer(String topic) {
         super("KafkaConsumerExample", false);
         //Get Consumer properties
-        Properties props = HopsKafkaUtil.getConsumerConfig();        
+        Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();        
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
     }

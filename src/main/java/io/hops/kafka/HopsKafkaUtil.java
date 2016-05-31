@@ -1,12 +1,6 @@
 package io.hops.kafka;
 
 import com.sun.jersey.api.client.Client;
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import java.util.Properties;
@@ -25,13 +19,13 @@ public class HopsKafkaUtil {
 
     private static HopsKafkaUtil instance = null;
 
-    public static String jSessionId;
-    public static Integer projectId;
-    public static String topicName;
-    public static String brokerEndpoint;
-    public static String restEndpoint;// = "https://bbc1.sics.se:14004/hopsworks/api/project/";
-    public static String keyStore;
-    public static String trustStore;
+    public String jSessionId;
+    public Integer projectId;
+    public String topicName;
+    public String brokerEndpoint;
+    public String restEndpoint;// = "https://bbc1.sics.se:14004/hopsworks/api/project/";
+    public String keyStore;
+    public String trustStore;
 
     private HopsKafkaUtil(){
         
@@ -47,16 +41,17 @@ public class HopsKafkaUtil {
      * @param keyStore
      * @param trustStore 
      */
-    public static void setup(String jSessionId, Integer projectId, String topicName,
+    public void setup(String jSessionId, Integer projectId, String topicName,
             String brokerEndpoint, String restEndpoint, String keyStore,
             String trustStore) {
-        HopsKafkaUtil.jSessionId = jSessionId;
-        HopsKafkaUtil.projectId = projectId;
-        HopsKafkaUtil.topicName = topicName;
-        HopsKafkaUtil.brokerEndpoint = brokerEndpoint;
-        HopsKafkaUtil.restEndpoint = restEndpoint;
-        HopsKafkaUtil.keyStore = keyStore;
-        HopsKafkaUtil.trustStore = trustStore;
+        //validate arguments first
+        this.jSessionId = jSessionId;
+        this.projectId = projectId;
+        this.topicName = topicName;
+        this.brokerEndpoint = brokerEndpoint;
+        this.restEndpoint = restEndpoint;
+        this.keyStore = keyStore;
+        this.trustStore = trustStore;
     }
 
     /**
@@ -67,13 +62,10 @@ public class HopsKafkaUtil {
      * @param brokerEndpoint
      * @param restEndpoint 
      */
-    public static void setup(String jSessionId, Integer projectId, String topicName,
+    public void setup(String jSessionId, Integer projectId, String topicName,
             String brokerEndpoint, String restEndpoint) {
-        HopsKafkaUtil.jSessionId = jSessionId;
-        HopsKafkaUtil.projectId = projectId;
-        HopsKafkaUtil.topicName = topicName;
-        HopsKafkaUtil.brokerEndpoint = brokerEndpoint;
-        HopsKafkaUtil.restEndpoint = restEndpoint;
+       setup(jSessionId, projectId, topicName, brokerEndpoint, restEndpoint, 
+               null, null);
     }
 
     public static HopsKafkaUtil getInstance() {
@@ -83,24 +75,7 @@ public class HopsKafkaUtil {
         return instance;
     }
 
-    //    public static HopsKafkaUtil setup(String jSessionId, Integer projectId, String topicName,
-    //            String brokerEndpoint, String restEndpoint, String keyStore,
-    //            String trustStore) {
-    //
-    //      //validate arguments first
-    //
-    //        return new HopsKafkaUtil(jSessionId, projectId, topicName, brokerEndpoint,
-    //                restEndpoint, keyStore, trustStore);
-    //    }
-    //
-    //    public static HopsKafkaUtil setup(String jSessionId, Integer projectId, String topicName,
-    //            String brokerEndpoint, String restEndpoint) {
-    //
-    //        
-    //        return new HopsKafkaUtil(jSessionId, projectId, topicName, brokerEndpoint,
-    //                restEndpoint);
-    //    }
-    public static Properties getProducerConfig() {
+    public Properties getProducerConfig() {
 
         Properties props = new Properties();
         props.put("bootstrap.servers", brokerEndpoint);
@@ -119,7 +94,7 @@ public class HopsKafkaUtil {
         return props;
     }
 
-    public static Properties getConsumerConfig() {
+    public Properties getConsumerConfig() {
 
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
@@ -142,11 +117,11 @@ public class HopsKafkaUtil {
         return props;
     }
 
-    public static String getSchema() {
-        return getSchema(-1);
+    public String getSchema() {
+        return getSchema(Integer.MIN_VALUE);
     }
 
-    public static String getSchema(int versionId) {
+    public String getSchema(int versionId) {
 
         String uri = restEndpoint + projectId + "/kafka/schema/" + topicName;
         if (versionId > 0) {
@@ -160,6 +135,7 @@ public class HopsKafkaUtil {
         ClientResponse response = builder.accept("application/json").get(ClientResponse.class);
 
         if (response.getStatus() != 200) {
+            //TODO: Implement and throw SchemaNotFound exception
             ;
         }
 
