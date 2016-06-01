@@ -33,39 +33,20 @@ public class HopsKafkaUtil {
     
     /**
      * Setup the Kafka instance.
-     * @param jSessionId
-     * @param projectId
      * @param topicName
-     * @param brokerEndpoint
-     * @param restEndpoint
-     * @param keyStore
-     * @param trustStore 
      */
-    public void setup(String jSessionId, Integer projectId, String topicName,
-            String brokerEndpoint, String restEndpoint, String keyStore,
-            String trustStore) {
-        //validate arguments first
-        this.jSessionId = jSessionId;
-        this.projectId = projectId;
-        this.topicName = topicName;
-        this.brokerEndpoint = brokerEndpoint;
-        this.restEndpoint = restEndpoint;
-        this.keyStore = keyStore;
-        this.trustStore = trustStore;
-    }
+    public void setup(String topicName) {
+        Properties sysProps = System.getProperties();
 
-    /**
-     * Setup the Kafka instance.
-     * @param jSessionId
-     * @param projectId
-     * @param topicName
-     * @param brokerEndpoint
-     * @param restEndpoint 
-     */
-    public void setup(String jSessionId, Integer projectId, String topicName,
-            String brokerEndpoint, String restEndpoint) {
-       setup(jSessionId, projectId, topicName, brokerEndpoint, restEndpoint, 
-               null, null);
+        //validate arguments first
+        this.jSessionId = sysProps.getProperty("kafka.sessionid");
+        this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
+        this.topicName = topicName;
+        this.brokerEndpoint = "0.0.0.0:9092";
+        this.restEndpoint = "https://bbc1.sics.se:14004/hopsworks/api/project/";
+        this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
+        this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");;
+        
     }
 
     public static HopsKafkaUtil getInstance() {

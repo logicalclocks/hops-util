@@ -22,21 +22,12 @@ public class HopsKafkaProperties {
   public static final String TOPIC3 = "topic3";
   public static final String CLIENT_ID = "SimpleConsumerDemoClient";
   public static String KAFKA_CONNECTSTR = "";
-  public static String TRUSTSTORE_PWD = "";
-  public static String KEYSTORE_PWD = "";
+  public static String TRUSTSTORE_PWD = "adminpw";
+  public static String KEYSTORE_PWD = "adminpw";
   public static String KAFKA_T_CERTIFICATE_LOCATION = "";
   public static String KAFKA_K_CERTIFICATE_LOCATION = "";
 
-  static {
-    try {
-       KAFKA_CONNECTSTR = System.getenv("KAFKA_CONNECTSTR");
-       TRUSTSTORE_PWD = "adminpw";//System.getenv("TRUSTSTORE_PWD");
-       KEYSTORE_PWD = "adminpw";//System.getenv("KEYSTORE_PWD");
-    } catch (SecurityException ex) {
-      logger.warning("Could not find environment variable - kafka connectstr or truststore/keystore password.");
-    }
-  };
-
+  
   private HopsKafkaProperties() {
   }
   

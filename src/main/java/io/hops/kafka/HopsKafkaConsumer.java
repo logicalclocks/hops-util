@@ -4,7 +4,6 @@ package io.hops.kafka;
  *
  * @author misdess
  */
-
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import java.util.ArrayList;
@@ -21,53 +20,47 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
 public class HopsKafkaConsumer extends Thread {
+
     private static final Logger logger = Logger.getLogger(HopsKafkaConsumer.class.getName());
-    
+
     private final KafkaConsumer<Integer, String> consumer;
     private final String topic;
-    private final List<String> kafkaRecords = Collections.synchronizedList(new ArrayList<String>()); 
+    private final List<String> kafkaRecords = Collections.synchronizedList(new ArrayList<String>());
     HopsKafkaUtil hopsKafkaUtil = HopsKafkaUtil.getInstance();
+
     public HopsKafkaConsumer(String topic) {
-        //super("KafkaConsumerExample", false);
-        //Get Consumer properties
-        Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();      
         
+        //Get Consumer properties
+        Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();
+
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
     }
 
     @Override
     public void run() {
-        logger.log(Level.INFO, "**** Consumer checkpoint 0");
+        //Subscribe to the Kafka topic
         consumer.subscribe(Collections.singletonList(this.topic));
-        logger.log(Level.INFO, "**** Consumer checkpoint 0.1");
-        while(true){
+        while (true) {
             ConsumerRecords<Integer, String> records = consumer.poll(1000);
-        //synchronized(kafkaRecords){
+            //synchronized(kafkaRecords){
+            //Get the records
             for (ConsumerRecord<Integer, String> record : records) {
-                 Schema.Parser parser = new Schema.Parser();
-                 logger.log(Level.INFO, "**** Consumer checkpoint 1");
-                 Schema schema = parser.parse(hopsKafkaUtil.getSchema());
-                 logger.log(Level.INFO, "**** Consumer checkpoint 2");
+                Schema.Parser parser = new Schema.Parser();
+                Schema schema = parser.parse(hopsKafkaUtil.getSchema());
 
-                 Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.toBinary(schema);
-                 logger.log(Level.INFO, "**** Consumer checkpoint 3");
-                 logger.log(Level.INFO, "**** ConsumerRecord key:{0}",record.key());
-                 logger.log(Level.INFO, "**** ConsumerRecord value:{0}",record.value());
-                 GenericRecord genericRecord = recordInjection.invert(record.value().getBytes()).get();
-                 logger.log(Level.INFO, "**** Consumer checkpoint 4");
+                //Convert the record using the schema
+                Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.toBinary(schema);
+                GenericRecord genericRecord = recordInjection.invert(record.value().getBytes()).get();
 
-                 System.out.println("str1= " + genericRecord.get("str1")
-                        + ", str2= " + genericRecord.get("str2"));
-                 logger.log(Level.INFO, "Received message: {0}", record.value()); 
-                 System.out.println("***Received message:"+record.value());
+                System.out.println("Consumer received message:" + genericRecord);
 //                 
-                 //kafkaRecords.add((String) genericRecord.get("str1"));
+                //kafkaRecords.add((String) genericRecord.get("str1"));
             }
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ex) {
-                Logger.getLogger(HopsKafkaConsumer.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, "Error while consuming records", ex);
             }
         }
     }
@@ -75,6 +68,5 @@ public class HopsKafkaConsumer extends Thread {
     public List<String> getKafkaRecords() {
         return kafkaRecords;
     }
-       
-   
+
 }

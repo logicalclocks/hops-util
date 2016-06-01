@@ -10,7 +10,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,7 +17,7 @@ import java.util.logging.Logger;
  *
  * @author misdess
  */
-public class HopsKafkaProducer /*extends Thread*/ {
+public class HopsKafkaProducer {
 
     private static final Logger logger = Logger.
             getLogger(HopsKafkaProducer.class.getName());
@@ -28,8 +27,8 @@ public class HopsKafkaProducer /*extends Thread*/ {
     private final Boolean isAsync;
     private final Schema schema;
     private final Injection<GenericRecord, byte[]> recordInjection;
-    
-    public HopsKafkaProducer(String topic, Boolean isAsync) {
+    private final int numberOfMessages; //How many messages to produce
+    public HopsKafkaProducer(String topic, Boolean isAsync, int numberOfMessages) {
 
         Properties props = HopsKafkaProperties.defaultProps();
         props.put("client.id", "HopsProducer");
@@ -37,6 +36,7 @@ public class HopsKafkaProducer /*extends Thread*/ {
         producer = new KafkaProducer<>(props);
         this.topic = topic;
         this.isAsync = isAsync;
+        this.numberOfMessages = numberOfMessages;
         Schema.Parser parser = new Schema.Parser();
         schema = parser.parse(HopsKafkaUtil.getInstance().getSchema());
         recordInjection = GenericAvroCodecs.toBinary(schema);
@@ -45,7 +45,7 @@ public class HopsKafkaProducer /*extends Thread*/ {
     //@Override
     public void run() {
         int messageNo = 0;
-        while (messageNo < 20) {
+        while (messageNo < numberOfMessages) {
             //this is the bare text message
             String messageStr = "Message_" + messageNo;
             //create the avro message
@@ -62,14 +62,10 @@ public class HopsKafkaProducer /*extends Thread*/ {
                 ex.printStackTrace();
             }
            
-            System.out.println("******Sent message: "+messageNo+","+messageStr);
-            logger.log(Level.INFO, "Sent message {0}, {1}",
-                    new Object[]{messageNo, messageStr});
-             messageNo++;
+            System.out.println("Sent message:"+ messageStr);
+            messageNo++;
         }
            
-           
-        //}
     }
 }
 
