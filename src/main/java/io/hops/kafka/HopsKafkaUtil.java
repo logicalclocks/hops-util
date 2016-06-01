@@ -87,9 +87,9 @@ public class HopsKafkaUtil {
         if (!(keyStore.isEmpty() && keyStore == null)) {
             props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
             props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStore);
-            props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "pass:adminpw");
+            props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
             props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStore);
-            props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "pass:adminpw");
+            props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
         }
         return props;
     }
@@ -104,22 +104,31 @@ public class HopsKafkaUtil {
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.IntegerDeserializer");
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-
         //configure the ssl parameters
         if (trustStore != null && !trustStore.isEmpty() 
                 && keyStore != null && !keyStore.isEmpty()) {
             props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
             props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStore);
-            props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "pass:adminpw");
+            props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
             props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStore);
-            props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "pass:adminpw");
+            props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
         }
 
         return props;
     }
 
     public String getSchema() {
-        return getSchema(Integer.MIN_VALUE);
+        String schema = "{\n" +
+"    \"fields\": [\n" +
+"        { \"name\": \"str1\", \"type\": \"string\" },\n" +
+"        { \"name\": \"str2\", \"type\": \"string\" }\n" +
+"    ],\n" +
+"    \"name\": \"myrecord\",\n" +
+"    \"type\": \"record\"\n" +
+"}\n" +
+"";
+        return schema;
+//return getSchema(Integer.MIN_VALUE);
     }
 
     public String getSchema(int versionId) {
@@ -128,11 +137,12 @@ public class HopsKafkaUtil {
         if (versionId > 0) {
             uri += "/" + versionId;
         }
+        System.out.println("Kafka.uri - "+uri);
         Client client = Client.create();
         WebResource resource = client.resource(uri);
         WebResource.Builder builder = resource.getRequestBuilder();
         builder.header("Authorization", jSessionId);
-
+        System.out.println("Kafka.SessionId - "+jSessionId);
         ClientResponse response = builder.accept("application/json").get(ClientResponse.class);
 
         if (response.getStatus() != 200) {
@@ -143,4 +153,38 @@ public class HopsKafkaUtil {
         return response.getEntity(String.class);
 
     }
+
+    public String getBrokerEndpoint() {
+        return brokerEndpoint;
+    }
+
+    public static Logger getLogger() {
+        return logger;
+    }
+
+    public String getjSessionId() {
+        return jSessionId;
+    }
+
+    public Integer getProjectId() {
+        return projectId;
+    }
+
+    public String getTopicName() {
+        return topicName;
+    }
+
+    public String getRestEndpoint() {
+        return restEndpoint;
+    }
+
+    public String getKeyStore() {
+        return keyStore;
+    }
+
+    public String getTrustStore() {
+        return trustStore;
+    }
+    
+    
 }

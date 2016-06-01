@@ -6,10 +6,8 @@ import com.twitter.bijection.avro.GenericAvroCodecs;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericData;
 
-import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -20,12 +18,12 @@ import java.util.logging.Logger;
  *
  * @author misdess
  */
-public class HopsKafkaProducer extends Thread {
+public class HopsKafkaProducer /*extends Thread*/ {
 
     private static final Logger logger = Logger.
             getLogger(HopsKafkaProducer.class.getName());
 
-    private final KafkaProducer<Integer, byte[]> producer;
+    private final KafkaProducer<String ,byte[]> producer;
     private final String topic;
     private final Boolean isAsync;
     private final Schema schema;
@@ -44,36 +42,38 @@ public class HopsKafkaProducer extends Thread {
         recordInjection = GenericAvroCodecs.toBinary(schema);
     }
 
-    @Override
+    //@Override
     public void run() {
-        int messageNo = 1;
+        int messageNo = 0;
         while (messageNo < 20) {
             //this is the bare text message
             String messageStr = "Message_" + messageNo;
             //create the avro message
             GenericData.Record avroRecord = new GenericData.Record(schema);
-            avroRecord.put("msg", messageStr);
+            avroRecord.put("str1", "My Message1");
+            avroRecord.put("str2", "My Message2");
             byte[] bytes = recordInjection.apply(avroRecord);
 
-            long startTime = System.currentTimeMillis();
-            if (isAsync) { // Send asynchronously
-                producer.send(new ProducerRecord<>(topic, messageNo, bytes),
-                        new DemoCallBack(startTime, messageNo, messageStr));
-            } else { // Send synchronously
-                try {
-                    producer.send(new ProducerRecord<>(topic, messageNo, bytes)).get();
-                    logger.log(Level.SEVERE, "Sent message {0}, {1}",
-                            new Object[]{messageNo, messageStr});
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
+            ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
+            producer.send(record);
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
             }
-            ++messageNo;
+           
+            System.out.println("******Sent message: "+messageNo+","+messageStr);
+            logger.log(Level.INFO, "Sent message {0}, {1}",
+                    new Object[]{messageNo, messageStr});
+             messageNo++;
         }
+           
+           
+        //}
     }
 }
 
-class DemoCallBack implements Callback {
+/*class DemoCallBack implements Callback {
     
    private static final Logger logger = Logger.
             getLogger(DemoCallBack.class.getName());
@@ -87,7 +87,7 @@ class DemoCallBack implements Callback {
         this.key = key;
         this.message = message;
     }
-
+*/
     /**
      * A callback method the user can implement to provide asynchronous handling
      * of request completion. This method will be called when the record sent to
@@ -99,7 +99,7 @@ class DemoCallBack implements Callback {
      * @param exception The exception thrown during processing of this record.
      * Null if no error occurred.
      */
-    public void onCompletion(RecordMetadata metadata, Exception exception) {
+    /*public void onCompletion(RecordMetadata metadata, Exception exception) {
         
         if (metadata != null) {
             logger.log(Level.SEVERE, "Message {0} is sent",
@@ -108,4 +108,4 @@ class DemoCallBack implements Callback {
             exception.printStackTrace();
         }
     }
-}
+}*/

@@ -30,8 +30,8 @@ public class HopsKafkaProperties {
   static {
     try {
        KAFKA_CONNECTSTR = System.getenv("KAFKA_CONNECTSTR");
-       TRUSTSTORE_PWD = System.getenv("TRUSTSTORE_PWD");
-       KEYSTORE_PWD = System.getenv("KEYSTORE_PWD");
+       TRUSTSTORE_PWD = "adminpw";//System.getenv("TRUSTSTORE_PWD");
+       KEYSTORE_PWD = "adminpw";//System.getenv("KEYSTORE_PWD");
     } catch (SecurityException ex) {
       logger.warning("Could not find environment variable - kafka connectstr or truststore/keystore password.");
     }
@@ -44,16 +44,15 @@ public class HopsKafkaProperties {
   public static Properties defaultProps() {
     
         Properties props = new Properties();
-        props.put("bootstrap.servers", HopsKafkaProperties.KAFKA_CONNECTSTR);
-
-        props.put("key.serializer", "org.apache.kafka.common.serialization.IntegerSerializer");
-        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.setProperty("bootstrap.servers", HopsKafkaUtil.getInstance().getBrokerEndpoint());
+        props.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.setProperty("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         
         //configure the ssl parameters
         props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-        props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, KAFKA_T_CERTIFICATE_LOCATION);
+        props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsKafkaUtil.getInstance().getTrustStore());
         props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PWD);
-        props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KAFKA_K_CERTIFICATE_LOCATION);
+        props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaUtil.getInstance().getKeyStore());
         props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PWD);    
 
         return props;
