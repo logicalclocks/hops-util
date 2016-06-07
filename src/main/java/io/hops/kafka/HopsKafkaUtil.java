@@ -13,6 +13,7 @@ import org.apache.kafka.common.config.SslConfigs;
  *
  * @author misdess
  */
+
 public class HopsKafkaUtil {
 
     private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.getName());
@@ -98,21 +99,21 @@ public class HopsKafkaUtil {
         return props;
     }
 
-    public String getSchema() {
-        String schema = "{\n" +
-"    \"fields\": [\n" +
-"        { \"name\": \"str1\", \"type\": \"string\" },\n" +
-"        { \"name\": \"str2\", \"type\": \"string\" }\n" +
-"    ],\n" +
-"    \"name\": \"myrecord\",\n" +
-"    \"type\": \"record\"\n" +
-"}\n" +
-"";
-        return schema;
-//return getSchema(Integer.MIN_VALUE);
+    public String getSchema() throws SchemaNotFoundException {
+//        String schema = "{\n" +
+//"    \"fields\": [\n" +
+//"        { \"name\": \"str1\", \"type\": \"string\" },\n" +
+//"        { \"name\": \"str2\", \"type\": \"string\" }\n" +
+//"    ],\n" +
+//"    \"name\": \"myrecord\",\n" +
+//"    \"type\": \"record\"\n" +
+//"}\n" +
+//"";
+//        return schema;
+    return getSchema(Integer.MIN_VALUE);
     }
 
-    public String getSchema(int versionId) {
+    public String getSchema(int versionId) throws SchemaNotFoundException {
 
         String uri = restEndpoint + projectId + "/kafka/schema/" + topicName;
         if (versionId > 0) {
@@ -127,8 +128,8 @@ public class HopsKafkaUtil {
         ClientResponse response = builder.accept("application/json").get(ClientResponse.class);
 
         if (response.getStatus() != 200) {
-            //TODO: Implement and throw SchemaNotFound exception
-            ;
+            throw new SchemaNotFoundException(ClientResponse.Status.NOT_FOUND.getStatusCode(),
+                    "Schema is not found");
         }
 
         return response.getEntity(String.class);
