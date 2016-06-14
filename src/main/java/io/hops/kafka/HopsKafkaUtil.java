@@ -54,7 +54,7 @@ public class HopsKafkaUtil {
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
     this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");//"10.0.2.15:9091";
-    this.restEndpoint = "http://tkak2.sics.se:8080/hopsworks/api/project";
+    this.restEndpoint = "http://hops.site/hopsworks/api/project";
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
     this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");;
     logger.log(Level.INFO, "brokerEndpoint:{0}", brokerEndpoint);
@@ -129,7 +129,7 @@ public class HopsKafkaUtil {
     //Client client = Client.create();
     BasicCookieStore cookieStore = new BasicCookieStore();
     BasicClientCookie cookie = new BasicClientCookie("SESSIONID", jSessionId);
-    cookie.setDomain("tkak2.sics.se");
+    cookie.setDomain("hops.site");
     cookie.setPath("/");
     cookieStore.addCookie(cookie);
     HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(
@@ -143,7 +143,7 @@ public class HopsKafkaUtil {
     } catch (IOException ex) {
       logger.log(Level.SEVERE, ex.getMessage());
     }
-    logger.log(Level.INFO, "Response:{0}", response.toString());
+    //logger.log(Level.INFO, "Response:{0}", response.toString());
     if (response.getStatusLine().getStatusCode() != 200) {
       throw new SchemaNotFoundException(response.getStatusLine().getStatusCode(),
               "Schema is not found");
@@ -177,7 +177,7 @@ public class HopsKafkaUtil {
     JSONObject json = new JSONObject(malformedJSON);
     String schema = json.getString("contents");
 
-    logger.log(Level.INFO, "Result:{0}", result.toString());
+    //logger.log(Level.INFO, "Result:{0}", result.toString());
     return schema;
 
   }
