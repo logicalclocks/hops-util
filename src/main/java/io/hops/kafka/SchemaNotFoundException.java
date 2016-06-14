@@ -1,4 +1,3 @@
-
 package io.hops.kafka;
 
 /**

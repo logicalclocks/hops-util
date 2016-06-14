@@ -28,7 +28,7 @@ public class HopsKafkaProducer {
     private final Schema schema;
     private final Injection<GenericRecord, byte[]> recordInjection;
     private final int numberOfMessages; //How many messages to produce
-    public HopsKafkaProducer(String topic, Boolean isAsync, int numberOfMessages) {
+    public HopsKafkaProducer(String topic, Boolean isAsync, int numberOfMessages) throws SchemaNotFoundException {
 
         Properties props = HopsKafkaProperties.defaultProps();
         props.put("client.id", "HopsProducer");
@@ -38,7 +38,12 @@ public class HopsKafkaProducer {
         this.isAsync = isAsync;
         this.numberOfMessages = numberOfMessages;
         Schema.Parser parser = new Schema.Parser();
-        schema = parser.parse(HopsKafkaUtil.getInstance().getSchema());
+        logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
+        String avroSchema = HopsKafkaUtil.getInstance().getSchema();
+        
+        logger.log(Level.INFO, "Avro schema for topic:{0}", avroSchema);
+        schema = parser.parse(avroSchema);
+        logger.log(Level.INFO, "Got schema:{0}", schema);
         recordInjection = GenericAvroCodecs.toBinary(schema);
     }
 
@@ -62,7 +67,9 @@ public class HopsKafkaProducer {
                 ex.printStackTrace();
             }
            
-            System.out.println("Sent message:"+ messageStr);
+            System.out.println("Producer sent message:"+ messageStr);
+            System.out.println("Producer sent message record:"+ record);
+
             messageNo++;
         }
            
