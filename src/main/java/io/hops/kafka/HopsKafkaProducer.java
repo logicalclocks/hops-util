@@ -61,7 +61,6 @@ public class HopsKafkaProducer {
    * @param messageFields
    */
   public void produce(Map<String, Object> messageFields) {
-    int messageNo = 0;
     //create the avro message
     GenericData.Record avroRecord = new GenericData.Record(schema);
     for (Map.Entry<String, Object> message : messageFields.entrySet()) {
@@ -73,9 +72,7 @@ public class HopsKafkaProducer {
     ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
     producer.send(record);
 
-    System.out.println("Producer sent message:<" + record.key() + "," + String.
-            valueOf(record.value())
-            + ">");
+    System.out.println("Producer sent message:" + messageFields);
   }
 }
 

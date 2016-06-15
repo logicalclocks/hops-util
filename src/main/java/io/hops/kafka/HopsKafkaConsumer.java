@@ -48,16 +48,13 @@ public class HopsKafkaConsumer extends Thread {
                 Schema.Parser parser = new Schema.Parser();
                 Schema schema;
                 try {
-                  logger.log(Level.INFO,"Consumer getting schema");
                   schema = parser.parse(hopsKafkaUtil.getSchema());
-                  
+                    
                   //Convert the record using the schema
                   Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.toBinary(schema);
                   GenericRecord genericRecord = recordInjection.invert(record.value().getBytes()).get();
 
                   System.out.println("Consumer received message:" + genericRecord);
-                  System.err.println("Consumer.err received message:" + genericRecord);
-                  //kafkaRecords.add((String) genericRecord.get("str1"));
                 } catch (SchemaNotFoundException ex) {
                   logger.log(Level.SEVERE, ex.getMessage());
                 }
