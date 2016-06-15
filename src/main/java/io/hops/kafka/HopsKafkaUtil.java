@@ -20,7 +20,7 @@ import org.json.JSONObject;
 /**
  * Hops utility class to be used by applications that want to communicate
  * with Kafka.
- *  
+ * <p>
  */
 public class HopsKafkaUtil {
 
@@ -43,7 +43,7 @@ public class HopsKafkaUtil {
 
   /**
    * Setup the Kafka instance.
-   * 
+   * <p>
    * @param topicName
    */
   public void setup(String topicName) {
@@ -54,12 +54,10 @@ public class HopsKafkaUtil {
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
     this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");//"10.0.2.15:9091";
-    this.restEndpoint = "http://hops.site/hopsworks/api/project";
+    this.restEndpoint = "https://hops.site:443/hopsworks/api/project";
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
     this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");;
-    logger.log(Level.INFO, "brokerEndpoint:{0}", brokerEndpoint);
-    logger.log(Level.INFO, "trustStore:{0}", trustStore);
-    logger.log(Level.INFO, "keyStore:{0}", keyStore);
+
   }
 
   public static HopsKafkaUtil getInstance() {
@@ -102,7 +100,7 @@ public class HopsKafkaUtil {
             "org.apache.kafka.common.serialization.IntegerDeserializer");
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
             "org.apache.kafka.common.serialization.StringDeserializer");
-    
+
     //configure the ssl parameters
     if (trustStore != null && !trustStore.isEmpty()
             && keyStore != null && !keyStore.isEmpty()) {
@@ -126,7 +124,8 @@ public class HopsKafkaUtil {
     if (versionId > 0) {
       uri += "/" + versionId;
     }
-    //Client client = Client.create();
+    
+    //Setup the REST client to retrieve the schema
     BasicCookieStore cookieStore = new BasicCookieStore();
     BasicClientCookie cookie = new BasicClientCookie("SESSIONID", jSessionId);
     cookie.setDomain("hops.site");
@@ -143,11 +142,13 @@ public class HopsKafkaUtil {
     } catch (IOException ex) {
       logger.log(Level.SEVERE, ex.getMessage());
     }
-    //logger.log(Level.INFO, "Response:{0}", response.toString());
-    if (response.getStatusLine().getStatusCode() != 200) {
+    if (response == null) {
+      throw new SchemaNotFoundException("Could not reach schema endpoint");
+    } else if (response.getStatusLine().getStatusCode() != 200) {
       throw new SchemaNotFoundException(response.getStatusLine().getStatusCode(),
               "Schema is not found");
     }
+    //logger.log(Level.INFO, "Response:{0}", response.toString());
     StringBuilder result = new StringBuilder();
     try {
       BufferedReader rd = new BufferedReader(
@@ -161,23 +162,10 @@ public class HopsKafkaUtil {
       logger.log(Level.SEVERE, ex.getMessage());
     }
 
-    //Result is a json object with information about the schema. Extract the 
-    //schema and return it.
-    //Remove "[" and "]" characters
-    String malformedJSON = result.toString();
-    if(malformedJSON != null){
-      if(malformedJSON.startsWith("[")){
-        malformedJSON = malformedJSON.substring(1);
-      }
-      if(malformedJSON.endsWith("]")){
-        malformedJSON = malformedJSON.substring(0, malformedJSON.length()-1);
-      }
-    }
-    
-    JSONObject json = new JSONObject(malformedJSON);
+    //Extract fields from json
+    JSONObject json = new JSONObject(result.toString());
     String schema = json.getString("contents");
 
-    //logger.log(Level.INFO, "Result:{0}", result.toString());
     return schema;
 
   }

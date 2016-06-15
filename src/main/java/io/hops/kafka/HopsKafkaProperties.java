@@ -1,7 +1,6 @@
 package io.hops.kafka;
 
 import java.util.Properties;
-import java.util.logging.Logger;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 
@@ -11,8 +10,6 @@ import org.apache.kafka.common.config.SslConfigs;
  */
 public class HopsKafkaProperties {
 
-  private static final Logger logger = Logger.getLogger(HopsKafkaProperties.class.getName());
-  
   public static final String TOPIC = "sics1";
   public static final String KAFKA_SERVER_URL = "localhost";
   public static final int KAFKA_SERVER_PORT = 9096;
@@ -27,25 +24,28 @@ public class HopsKafkaProperties {
   public static String KAFKA_T_CERTIFICATE_LOCATION = "";
   public static String KAFKA_K_CERTIFICATE_LOCATION = "";
 
-  
   private HopsKafkaProperties() {
   }
-  
-  
-  public static Properties defaultProps() {
-    
-        Properties props = new Properties();
-        props.setProperty("bootstrap.servers", HopsKafkaUtil.getInstance().getBrokerEndpoint());
-        props.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        props.setProperty("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
-        
-        //configure the ssl parameters
-        props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-        props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsKafkaUtil.getInstance().getTrustStore());
-        props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PWD);
-        props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaUtil.getInstance().getKeyStore());
-        props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PWD);    
 
-        return props;
+  public static Properties defaultProps() {
+
+    Properties props = new Properties();
+    props.setProperty("bootstrap.servers", HopsKafkaUtil.getInstance().
+            getBrokerEndpoint());
+    props.setProperty("key.serializer",
+            "org.apache.kafka.common.serialization.StringSerializer");
+    props.setProperty("value.serializer",
+            "org.apache.kafka.common.serialization.ByteArraySerializer");
+
+    //configure the ssl parameters
+    props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+    props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsKafkaUtil.
+            getInstance().getTrustStore());
+    props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PWD);
+    props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaUtil.
+            getInstance().getKeyStore());
+    props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PWD);
+
+    return props;
   }
 }

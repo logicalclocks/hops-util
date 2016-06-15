@@ -1,8 +1,8 @@
 package io.hops.kafka;
 
 /**
- *
- * @author misdess
+ * Utility class to consume messages from the Kafka service.
+ * 
  */
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
@@ -32,10 +32,8 @@ public class HopsKafkaConsumer extends Thread {
         
         //Get Consumer properties
         Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();
-
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
-        logger.info("topic:"+topic);
     }
 
     @Override
@@ -50,13 +48,15 @@ public class HopsKafkaConsumer extends Thread {
                 Schema.Parser parser = new Schema.Parser();
                 Schema schema;
                 try {
+                  logger.log(Level.INFO,"Consumer getting schema");
                   schema = parser.parse(hopsKafkaUtil.getSchema());
+                  
                   //Convert the record using the schema
                   Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.toBinary(schema);
                   GenericRecord genericRecord = recordInjection.invert(record.value().getBytes()).get();
 
                   System.out.println("Consumer received message:" + genericRecord);
-
+                  System.err.println("Consumer.err received message:" + genericRecord);
                   //kafkaRecords.add((String) genericRecord.get("str1"));
                 } catch (SchemaNotFoundException ex) {
                   logger.log(Level.SEVERE, ex.getMessage());

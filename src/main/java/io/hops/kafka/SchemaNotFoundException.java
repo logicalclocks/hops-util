@@ -8,6 +8,10 @@ public class SchemaNotFoundException extends Exception {
 
     Integer status;
 
+    public SchemaNotFoundException(String message) {
+        super(message);
+    }
+    
     public SchemaNotFoundException(Integer status, String message) {
         super(message);
         this.status = status;
