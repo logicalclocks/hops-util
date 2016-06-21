@@ -29,13 +29,14 @@ public class HopsKafkaUtil {
 
   private static HopsKafkaUtil instance = null;
 
-  public String jSessionId;
-  public Integer projectId;
-  public String topicName;
-  public String brokerEndpoint;
-  public String restEndpoint;
-  public String keyStore;
-  public String trustStore;
+  private String jSessionId;
+  private Integer projectId;
+  private String topicName;
+  private String brokerEndpoint;
+  private String restEndpoint;
+  private String domain;
+  private String keyStore;
+  private String trustStore;
 
   private HopsKafkaUtil() {
 
@@ -55,8 +56,36 @@ public class HopsKafkaUtil {
     this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");//"10.0.2.15:9091";
     this.restEndpoint = "https://hops.site:443/hopsworks/api/project";
+    this.domain = "hops.site";
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
-    this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");;
+    this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");
+  }
+  
+  /**
+   * Setup the Kafka instance. 
+   * Endpoint is where the REST API listens for requests. I.e.
+   * http://localhost:8080/. Similarly set domain to "localhost"
+   * KeyStore and TrustStore locations should on the local machine. 
+   * 
+   * @param topicName
+   * @param endpoint
+   * @param keyStore
+   * @param trustStore
+   * @param domain
+   */
+  public void setup(String topicName, String endpoint, String keyStore, 
+          String trustStore, String domain) {
+    Properties sysProps = System.getProperties();
+
+    //validate arguments first
+    this.jSessionId = sysProps.getProperty("kafka.sessionid");
+    this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
+    this.topicName = topicName;
+    this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
+    this.restEndpoint = endpoint + "/hopsworks/api/project"; 
+    this.domain = domain;
+    this.keyStore = keyStore;
+    this.trustStore = trustStore;
 
   }
 
@@ -128,7 +157,7 @@ public class HopsKafkaUtil {
     //Setup the REST client to retrieve the schema
     BasicCookieStore cookieStore = new BasicCookieStore();
     BasicClientCookie cookie = new BasicClientCookie("SESSIONID", jSessionId);
-    cookie.setDomain("hops.site");
+    cookie.setDomain(domain);
     cookie.setPath("/");
     cookieStore.addCookie(cookie);
     HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(
