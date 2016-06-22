@@ -62,6 +62,29 @@ public class HopsKafkaUtil {
   }
   
   /**
+   * Setup the Kafka instance.
+   * Endpoint is where the REST API listens for requests. I.e.
+   * http://localhost:8080/. Similarly set domain to "localhost"
+   * <p>
+   * @param topicName
+   * @param endpoint
+   * @param domain
+   */
+  public void setup(String topicName, String endpoint, String domain) {
+    Properties sysProps = System.getProperties();
+
+    //validate arguments first
+    this.jSessionId = sysProps.getProperty("kafka.sessionid");
+    this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
+    this.topicName = topicName;
+    this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
+    this.restEndpoint = endpoint + "/hopsworks/api/project"; 
+    this.domain = domain;
+    this.keyStore = "kafka_k_certificate";
+    this.trustStore = "kafka_t_certificate";
+  }
+  
+  /**
    * Setup the Kafka instance. 
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
@@ -96,6 +119,9 @@ public class HopsKafkaUtil {
     return instance;
   }
 
+  /*
+   * @Deprecated.
+   */
   public Properties getProducerConfig() {
 
     Properties props = new Properties();
@@ -117,6 +143,10 @@ public class HopsKafkaUtil {
     return props;
   }
 
+  /**
+   * @Deprecated.
+   * @return 
+   */
   public Properties getConsumerConfig() {
 
     Properties props = new Properties();

@@ -25,18 +25,18 @@ public class HopsKafkaProducer {
 
   private final KafkaProducer<String, byte[]> producer;
   private final String topic;
-  private final Boolean isAsync;
+  //private final Boolean isAsync;
   private final Schema schema;
   private final Injection<GenericRecord, byte[]> recordInjection;
 
   /**
    *
    * @param topic
-   * @param isAsync
+   //* @param isAsync
    * @param numberOfMessages
    * @throws SchemaNotFoundException
    */
-  public HopsKafkaProducer(String topic, Boolean isAsync, int numberOfMessages)
+  public HopsKafkaProducer(String topic, /*Boolean isAsync,*/ int numberOfMessages)
           throws SchemaNotFoundException {
 
     Properties props = HopsKafkaProperties.defaultProps();
@@ -44,7 +44,7 @@ public class HopsKafkaProducer {
 
     producer = new KafkaProducer<>(props);
     this.topic = topic;
-    this.isAsync = isAsync;
+    //this.isAsync = isAsync;
     Schema.Parser parser = new Schema.Parser();
     logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
     String avroSchema = HopsKafkaUtil.getInstance().getSchema();

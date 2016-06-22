@@ -10,19 +10,8 @@ import org.apache.kafka.common.config.SslConfigs;
  */
 public class HopsKafkaProperties {
 
-  public static final String TOPIC = "sics1";
-  public static final String KAFKA_SERVER_URL = "localhost";
-  public static final int KAFKA_SERVER_PORT = 9096;
-  public static final int KAFKA_PRODUCER_BUFFER_SIZE = 64 * 1024;
-  public static final int CONNECTION_TIMEOUT = 100000;
-  public static final String TOPIC2 = "topic2";
-  public static final String TOPIC3 = "topic3";
-  public static final String CLIENT_ID = "SimpleConsumerDemoClient";
-  public static String KAFKA_CONNECTSTR = "";
   public static String TRUSTSTORE_PWD = "adminpw";
   public static String KEYSTORE_PWD = "adminpw";
-  public static String KAFKA_T_CERTIFICATE_LOCATION = "";
-  public static String KAFKA_K_CERTIFICATE_LOCATION = "";
 
   private HopsKafkaProperties() {
   }
