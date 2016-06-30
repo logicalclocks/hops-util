@@ -1,4 +1,4 @@
-package io.hops.kafka;
+package io.hops.kafkautil;
 
 import org.apache.avro.Schema;
 import com.twitter.bijection.Injection;
@@ -32,11 +32,10 @@ public class HopsKafkaProducer {
   /**
    *
    * @param topic
-   //* @param isAsync
    * @param numberOfMessages
    * @throws SchemaNotFoundException
    */
-  public HopsKafkaProducer(String topic, /*Boolean isAsync,*/ int numberOfMessages)
+  public HopsKafkaProducer(String topic, int numberOfMessages)
           throws SchemaNotFoundException {
 
     Properties props = HopsKafkaProperties.defaultProps();
@@ -67,7 +66,7 @@ public class HopsKafkaProducer {
       //TODO: Check that messageFields are in avro record
       avroRecord.put(message.getKey(), message.getValue());
     }
-    
+
     byte[] bytes = recordInjection.apply(avroRecord);
     ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
     producer.send(record);

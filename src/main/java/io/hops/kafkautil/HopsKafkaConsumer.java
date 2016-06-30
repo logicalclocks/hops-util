@@ -1,4 +1,4 @@
-package io.hops.kafka;
+package io.hops.kafkautil;
 
 /**
  * Utility class to consume messages from the Kafka service.

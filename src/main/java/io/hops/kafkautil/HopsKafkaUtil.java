@@ -1,4 +1,4 @@
-package io.hops.kafka;
+package io.hops.kafkautil;
 
 import java.io.BufferedReader;
 import java.io.IOException;

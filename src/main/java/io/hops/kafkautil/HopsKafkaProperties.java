@@ -1,4 +1,4 @@
-package io.hops.kafka;
+package io.hops.kafkautil;
 
 import java.util.Properties;
 import org.apache.kafka.clients.CommonClientConfigs;
