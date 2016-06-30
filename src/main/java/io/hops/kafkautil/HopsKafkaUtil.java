@@ -44,59 +44,54 @@ public class HopsKafkaUtil {
 
   /**
    * Setup the Kafka instance.
-   * <p>
-   * @param topicName
    */
-  public void setup(String topicName) {
+  public void setup() {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
     this.jSessionId = sysProps.getProperty("kafka.sessionid");
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
-    this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");//"10.0.2.15:9091";
     this.restEndpoint = "https://hops.site:443/hopsworks/api/project";
     this.domain = "hops.site";
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
     this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");
   }
-  
+
   /**
    * Setup the Kafka instance.
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
    * <p>
-   * @param topicName
    * @param endpoint
    * @param domain
    */
-  public void setup(String topicName, String endpoint, String domain) {
+  public void setup(String endpoint, String domain) {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
     this.jSessionId = sysProps.getProperty("kafka.sessionid");
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
-    this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
-    this.restEndpoint = endpoint + "/hopsworks/api/project"; 
+    this.restEndpoint = endpoint + "/hopsworks/api/project";
     this.domain = domain;
     this.keyStore = "kafka_k_certificate";
     this.trustStore = "kafka_t_certificate";
   }
-  
+
   /**
-   * Setup the Kafka instance. 
+   * Setup the Kafka instance.
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
-   * KeyStore and TrustStore locations should on the local machine. 
-   * 
+   * KeyStore and TrustStore locations should on the local machine.
+   *
    * @param topicName
    * @param endpoint
    * @param keyStore
    * @param trustStore
    * @param domain
    */
-  public void setup(String topicName, String endpoint, String keyStore, 
+  public void setup(String topicName, String endpoint, String keyStore,
           String trustStore, String domain) {
     Properties sysProps = System.getProperties();
 
@@ -105,7 +100,7 @@ public class HopsKafkaUtil {
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
     this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
-    this.restEndpoint = endpoint + "/hopsworks/api/project"; 
+    this.restEndpoint = endpoint + "/hopsworks/api/project";
     this.domain = domain;
     this.keyStore = keyStore;
     this.trustStore = trustStore;
@@ -118,12 +113,36 @@ public class HopsKafkaUtil {
     }
     return instance;
   }
+//
+//  public static HopsKafkaConsumer getHopsKafkaConsumer(String topicName) {
+//    return new HopsKafkaConsumer(topicName);
+//  }
+//
+//  public static HopsKafkaProducer getHopsKafkaProducer(String topicName) throws
+//          SchemaNotFoundException {
+//    return new HopsKafkaProducer(topicName);
+//  }
 
-  /*
+  public HopsKafkaProcess createKafkaProcess(KafkaProcessType type, String topic) throws SchemaNotFoundException {
+    HopsKafkaProcess kafkaProcess = null;
+    switch (type) {
+      case CONSUMER:
+        kafkaProcess = new HopsKafkaConsumer(topic);
+        break;
+      case PRODUCER:
+        kafkaProcess = new HopsKafkaProducer(topic);
+        break;
+      default:
+        break;
+    }
+    return kafkaProcess;
+  }
+
+  /**
    * @Deprecated.
+   * @return
    */
-  public Properties getProducerConfig() {
-
+  protected Properties getProducerConfig() {
     Properties props = new Properties();
     props.put("bootstrap.servers", brokerEndpoint);
     props.put("client.id", "DemoProducer");
@@ -145,10 +164,9 @@ public class HopsKafkaUtil {
 
   /**
    * @Deprecated.
-   * @return 
+   * @return
    */
-  public Properties getConsumerConfig() {
-
+  protected Properties getConsumerConfig() {
     Properties props = new Properties();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
@@ -183,7 +201,7 @@ public class HopsKafkaUtil {
     if (versionId > 0) {
       uri += "/" + versionId;
     }
-    
+
     //Setup the REST client to retrieve the schema
     BasicCookieStore cookieStore = new BasicCookieStore();
     BasicClientCookie cookie = new BasicClientCookie("SESSIONID", jSessionId);

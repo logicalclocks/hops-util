@@ -18,38 +18,25 @@ import java.util.logging.Logger;
  *
  * Utility class that sends messages to the Kafka service.
  */
-public class HopsKafkaProducer {
+public class HopsKafkaProducer extends HopsKafkaProcess {
 
   private static final Logger logger = Logger.
           getLogger(HopsKafkaProducer.class.getName());
 
   private final KafkaProducer<String, byte[]> producer;
-  private final String topic;
-  //private final Boolean isAsync;
-  private final Schema schema;
   private final Injection<GenericRecord, byte[]> recordInjection;
 
   /**
+   * Create a Producer to stream messages to Kafka.
    *
-   * @param topic
-   * @param numberOfMessages
    * @throws SchemaNotFoundException
    */
-  public HopsKafkaProducer(String topic, int numberOfMessages)
-          throws SchemaNotFoundException {
-
+  HopsKafkaProducer(String topic) throws SchemaNotFoundException {
+    super(KafkaProcessType.PRODUCER, topic);
     Properties props = HopsKafkaProperties.defaultProps();
     props.put("client.id", "HopsProducer");
-
     producer = new KafkaProducer<>(props);
-    this.topic = topic;
-    //this.isAsync = isAsync;
-    Schema.Parser parser = new Schema.Parser();
     logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
-    String avroSchema = HopsKafkaUtil.getInstance().getSchema();
-
-    logger.log(Level.INFO, "Avro schema for topic:{0}", avroSchema);
-    schema = parser.parse(avroSchema);
     logger.log(Level.INFO, "Got schema:{0}", schema);
     recordInjection = GenericAvroCodecs.toBinary(schema);
   }
@@ -71,7 +58,7 @@ public class HopsKafkaProducer {
     ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
     producer.send(record);
 
-    System.out.println("Producer sent message:" + messageFields);
+    logger.log(Level.INFO, "Producer sent message: {0}", messageFields);
   }
 }
 
