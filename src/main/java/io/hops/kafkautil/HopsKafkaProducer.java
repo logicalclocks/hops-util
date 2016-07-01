@@ -1,6 +1,5 @@
 package io.hops.kafkautil;
 
-import org.apache.avro.Schema;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import java.util.Map;

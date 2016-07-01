@@ -113,29 +113,15 @@ public class HopsKafkaUtil {
     }
     return instance;
   }
-//
-//  public static HopsKafkaConsumer getHopsKafkaConsumer(String topicName) {
-//    return new HopsKafkaConsumer(topicName);
-//  }
-//
-//  public static HopsKafkaProducer getHopsKafkaProducer(String topicName) throws
-//          SchemaNotFoundException {
-//    return new HopsKafkaProducer(topicName);
-//  }
 
-  public HopsKafkaProcess createKafkaProcess(KafkaProcessType type, String topic) throws SchemaNotFoundException {
-    HopsKafkaProcess kafkaProcess = null;
-    switch (type) {
-      case CONSUMER:
-        kafkaProcess = new HopsKafkaConsumer(topic);
-        break;
-      case PRODUCER:
-        kafkaProcess = new HopsKafkaProducer(topic);
-        break;
-      default:
-        break;
-    }
-    return kafkaProcess;
+  public HopsKafkaConsumer getHopsKafkaConsumer(String topic) throws
+          SchemaNotFoundException {
+    return new HopsKafkaConsumer(topic);
+  }
+
+  public HopsKafkaProducer getHopsKafkaProducer(String topic) throws
+          SchemaNotFoundException {
+    return new HopsKafkaProducer(topic);
   }
 
   /**
