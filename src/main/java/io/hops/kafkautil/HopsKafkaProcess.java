@@ -1,5 +1,7 @@
 package io.hops.kafkautil;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.avro.Schema;
 
 /**
@@ -8,22 +10,28 @@ import org.apache.avro.Schema;
  */
 public abstract class HopsKafkaProcess {
 
+  private static final Logger logger = Logger.
+          getLogger(HopsKafkaProcess.class.getName());
   public KafkaProcessType type;
   final String topic;
   final Schema schema;
   private final HopsKafkaUtil hopsKafkaUtil = HopsKafkaUtil.getInstance();
-  
+
   /**
-   * 
+   *
    * @param type
    * @param topic
-   * @throws SchemaNotFoundException 
+   * @throws SchemaNotFoundException
    */
-  public HopsKafkaProcess(KafkaProcessType type, String topic) throws SchemaNotFoundException{
+  public HopsKafkaProcess(KafkaProcessType type, String topic) throws
+          SchemaNotFoundException {
     this.topic = topic;
     Schema.Parser parser = new Schema.Parser();
-    schema = parser.parse(hopsKafkaUtil.getSchema());
-    
+    logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
+
+    schema = parser.parse(hopsKafkaUtil.getSchema(topic));
+    logger.log(Level.INFO, "Got schema:{0}", schema);
+
   }
 
 }

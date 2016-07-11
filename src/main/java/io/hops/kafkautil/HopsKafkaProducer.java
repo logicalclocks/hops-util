@@ -35,8 +35,7 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
     Properties props = HopsKafkaProperties.defaultProps();
     props.put("client.id", "HopsProducer");
     producer = new KafkaProducer<>(props);
-    logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
-    logger.log(Level.INFO, "Got schema:{0}", schema);
+   
     recordInjection = GenericAvroCodecs.toBinary(schema);
   }
 

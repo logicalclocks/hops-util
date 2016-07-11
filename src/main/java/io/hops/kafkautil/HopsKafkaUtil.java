@@ -177,11 +177,11 @@ public class HopsKafkaUtil {
     return props;
   }
 
-  public String getSchema() throws SchemaNotFoundException {
-    return getSchema(Integer.MIN_VALUE);
+  public String getSchema(String topicName) throws SchemaNotFoundException {
+    return getSchema(topicName, Integer.MIN_VALUE);
   }
 
-  public String getSchema(int versionId) throws SchemaNotFoundException {
+  public String getSchema(String topicName, int versionId) throws SchemaNotFoundException {
 
     String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
     if (versionId > 0) {
@@ -198,13 +198,16 @@ public class HopsKafkaUtil {
             cookieStore).build();
 
     final HttpGet request = new HttpGet(uri);
-
+    
+    logger.log(Level.INFO, "brokerEndpoint:{0}:",brokerEndpoint);
+    logger.log(Level.INFO, "schema uri:{0}:",uri);
     HttpResponse response = null;
     try {
       response = client.execute(request);
     } catch (IOException ex) {
       logger.log(Level.SEVERE, ex.getMessage());
     }
+    logger.log(Level.INFO, "schema response:",response);
     if (response == null) {
       throw new SchemaNotFoundException("Could not reach schema endpoint");
     } else if (response.getStatusLine().getStatusCode() != 200) {
