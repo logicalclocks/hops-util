@@ -25,12 +25,13 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
   private final KafkaProducer<String, byte[]> producer;
   private final Injection<GenericRecord, byte[]> recordInjection;
 
-  /**
+  /** 
    * Create a Producer to stream messages to Kafka.
    *
+   * @param topic
    * @throws SchemaNotFoundException
    */
-  HopsKafkaProducer(String topic) throws SchemaNotFoundException {
+  public HopsKafkaProducer(String topic) throws SchemaNotFoundException {
     super(KafkaProcessType.PRODUCER, topic);
     Properties props = HopsKafkaProperties.defaultProps();
     props.put("client.id", "HopsProducer");

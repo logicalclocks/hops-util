@@ -1,14 +1,18 @@
 package io.hops.kafkautil;
 
+import io.hops.kafkautil.flink.HopsFlinkKafkaProducer;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
@@ -26,6 +30,12 @@ public class HopsKafkaUtil {
 
   private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.
           getName());
+
+  public final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
+  public final String KAFKA_PROJECTID_ENV_VAR = "kafka.projectid";
+  public final String KAFKA_BROKERADDR_ENV_VAR = "kafka.brokeraddress";
+  public final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
+  public final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
 
   private static HopsKafkaUtil instance = null;
 
@@ -86,12 +96,12 @@ public class HopsKafkaUtil {
    * KeyStore and TrustStore locations should on the local machine.
    *
    * @param topicName
-   * @param endpoint
+   * @param restEndpoint
    * @param keyStore
    * @param trustStore
    * @param domain
    */
-  public void setup(String topicName, String endpoint, String keyStore,
+  public void setup(String topicName, String restEndpoint, String keyStore,
           String trustStore, String domain) {
     Properties sysProps = System.getProperties();
 
@@ -100,11 +110,38 @@ public class HopsKafkaUtil {
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
     this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
-    this.restEndpoint = endpoint + "/hopsworks/api/project";
+    this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.domain = domain;
     this.keyStore = keyStore;
     this.trustStore = trustStore;
+  }
 
+  /**
+   * Setup the Kafka instance.Endpoint is where the REST API listens for
+   * requests. I.e.
+   * http://localhost:8080/. Similarly set domain to "localhost"
+   * KeyStore and TrustStore locations should on the local machine.
+   *
+   * @param jSessionId
+   * @param projectId
+   * @param topicName
+   * @param domain
+   * @param brokerEndpoint
+   * @param restEndpoint
+   * @param keyStore
+   * @param trustStore
+   */
+  public void setup(String jSessionId, int projectId, String topicName,
+          String domain, String brokerEndpoint, String restEndpoint,
+          String keyStore, String trustStore) {
+    this.jSessionId = jSessionId;
+    this.projectId = projectId;
+    this.topicName = topicName;
+    this.domain = domain;
+    this.brokerEndpoint = brokerEndpoint;
+    this.restEndpoint = restEndpoint + "/hopsworks/api/project";
+    this.keyStore = keyStore;
+    this.trustStore = trustStore;
   }
 
   public static HopsKafkaUtil getInstance() {
@@ -122,6 +159,12 @@ public class HopsKafkaUtil {
   public HopsKafkaProducer getHopsKafkaProducer(String topic) throws
           SchemaNotFoundException {
     return new HopsKafkaProducer(topic);
+  }
+
+  public HopsFlinkKafkaProducer getHopsFlinkKafkaProducer(String topic,
+          SerializationSchema serializationSchema) throws
+          SchemaNotFoundException {
+    return new HopsFlinkKafkaProducer<>(topic, serializationSchema);
   }
 
   /**
@@ -181,7 +224,8 @@ public class HopsKafkaUtil {
     return getSchema(topicName, Integer.MIN_VALUE);
   }
 
-  public String getSchema(String topicName, int versionId) throws SchemaNotFoundException {
+  public String getSchema(String topicName, int versionId) throws
+          SchemaNotFoundException {
 
     String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
     if (versionId > 0) {
@@ -190,7 +234,7 @@ public class HopsKafkaUtil {
 
     //Setup the REST client to retrieve the schema
     BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("SESSIONID", jSessionId);
+    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", jSessionId);
     cookie.setDomain(domain);
     cookie.setPath("/");
     cookieStore.addCookie(cookie);
@@ -198,16 +242,16 @@ public class HopsKafkaUtil {
             cookieStore).build();
 
     final HttpGet request = new HttpGet(uri);
-    
-    logger.log(Level.INFO, "brokerEndpoint:{0}:",brokerEndpoint);
-    logger.log(Level.INFO, "schema uri:{0}:",uri);
+
+    logger.log(Level.INFO, "brokerEndpoint:{0}:", brokerEndpoint);
+    logger.log(Level.INFO, "schema uri:{0}:", uri);
     HttpResponse response = null;
     try {
       response = client.execute(request);
     } catch (IOException ex) {
       logger.log(Level.SEVERE, ex.getMessage());
     }
-    logger.log(Level.INFO, "schema response:",response);
+    logger.log(Level.INFO, "schema response:", response);
     if (response == null) {
       throw new SchemaNotFoundException("Could not reach schema endpoint");
     } else if (response.getStatusLine().getStatusCode() != 200) {
@@ -266,6 +310,18 @@ public class HopsKafkaUtil {
 
   public String getTrustStore() {
     return trustStore;
+  }
+  
+  public Map<String, String> getKafkaProps(String propsStr) {
+    propsStr = propsStr.replace("-D", "");
+    propsStr = propsStr.replace("'", "");
+    Map<String, String> props = new HashMap<>();
+    String[] propsArray = propsStr.split(",");
+    for (String kafkaProperty : propsArray) {
+      String[] keyVal = kafkaProperty.split("=");
+      props.put(keyVal[0], keyVal[1]);
+    }
+    return props;
   }
 
 }
