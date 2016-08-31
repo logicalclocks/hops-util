@@ -18,16 +18,17 @@ import java.util.logging.Logger;
  *
  * Utility class that sends messages to the Kafka service.
  */
-public class HopsKafkaProducer extends HopsKafkaProcess implements Serializable{
-  private static final long serialVersionUID = 1L;
+public class HopsKafkaProducer extends HopsKafkaProcess {
+
   private static final Logger logger = Logger.
           getLogger(HopsKafkaProducer.class.getName());
 
   private final KafkaProducer<String, byte[]> producer;
   private final Injection<GenericRecord, byte[]> recordInjection;
-transient GenericData.Record avroRecord;
-transient ProducerRecord<String, byte[]> record;
-  /** 
+  private GenericData.Record avroRecord;
+  private ProducerRecord<String, byte[]> record;
+
+  /**
    * Create a Producer to stream messages to Kafka.
    *
    * @param topic
@@ -38,7 +39,7 @@ transient ProducerRecord<String, byte[]> record;
     Properties props = HopsKafkaProperties.defaultProps();
     props.put("client.id", "HopsProducer");
     producer = new KafkaProducer<>(props);
-   
+
     recordInjection = GenericAvroCodecs.toBinary(schema);
   }
 
@@ -49,7 +50,7 @@ transient ProducerRecord<String, byte[]> record;
    */
   public void produce(Map<String, String> messageFields) {
     //create the avro message
-     avroRecord = new GenericData.Record(schema);
+    avroRecord = new GenericData.Record(schema);
     for (Map.Entry<String, String> message : messageFields.entrySet()) {
       //TODO: Check that messageFields are in avro record
       avroRecord.put(message.getKey(), message.getValue());
@@ -66,8 +67,7 @@ transient ProducerRecord<String, byte[]> record;
   public void close() {
     producer.close();
   }
-  
-  
+
 }
 
 /*

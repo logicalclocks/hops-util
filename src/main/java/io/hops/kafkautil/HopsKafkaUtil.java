@@ -17,7 +17,10 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
+import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
+import org.apache.flink.streaming.util.serialization.KeyedSerializationSchemaWrapper;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
+import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -28,8 +31,9 @@ import org.json.JSONObject;
  * with Kafka.
  * <p>
  */
-public class HopsKafkaUtil implements Serializable{
-private static final long serialVersionUID = 1L;
+public class HopsKafkaUtil implements Serializable {
+
+  private static final long serialVersionUID = 1L;
   private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.
           getName());
 
@@ -163,12 +167,7 @@ private static final long serialVersionUID = 1L;
     return new HopsKafkaProducer(topic);
   }
 
-  public HopsFlinkKafkaProducer getHopsFlinkKafkaProducer(String topic,
-          SerializationSchema serializationSchema) throws
-          SchemaNotFoundException {
-    return new HopsFlinkKafkaProducer<>(topic, serializationSchema);
-  }
-
+  
   /**
    * @Deprecated.
    * @return
@@ -213,11 +212,12 @@ private static final long serialVersionUID = 1L;
     if (trustStore != null && !trustStore.isEmpty()
             && keyStore != null && !keyStore.isEmpty()) {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsKafkaUtil.
-            getInstance().getTrustStore());
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+              HopsKafkaUtil.
+              getInstance().getTrustStore());
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
       props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaUtil.
-            getInstance().getKeyStore());
+              getInstance().getKeyStore());
       props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
     }
 
@@ -230,12 +230,12 @@ private static final long serialVersionUID = 1L;
 
   public String getSchema(String topicName, int versionId) throws
           SchemaNotFoundException {
-
+    System.out.println("kafka.hopsutil.topicName:" + topicName);
     String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
     if (versionId > 0) {
       uri += "/" + versionId;
     }
-    System.out.println("kafka.uri:"+restEndpoint);
+    System.out.println("kafka.hopsutil.uri:" + uri);
 
     //Setup the REST client to retrieve the schema
 //    BasicCookieStore cookieStore = new BasicCookieStore();
@@ -276,15 +276,16 @@ private static final long serialVersionUID = 1L;
 //    } catch (IOException ex) {
 //      logger.log(Level.SEVERE, ex.getMessage());
 //    }
-        ClientConfig config = new DefaultClientConfig();
-        Client client = Client.create(config);
-        WebResource service = client.resource(uri);
-        Cookie cookie=new Cookie("SESSIONID", jSessionId);
-        final ClientResponse blogResponse = service.cookie(cookie).get(ClientResponse.class);
-        final String blog = blogResponse.getEntity(String.class);
-        //Extract fields from json
-        JSONObject json = new JSONObject(blog);
-        String schema = json.getString("contents");
+    ClientConfig config = new DefaultClientConfig();
+    Client client = Client.create(config);
+    WebResource service = client.resource(uri);
+    Cookie cookie = new Cookie("SESSIONID", jSessionId);
+    final ClientResponse blogResponse = service.cookie(cookie).get(
+            ClientResponse.class);
+    final String blog = blogResponse.getEntity(String.class);
+    //Extract fields from json
+    JSONObject json = new JSONObject(blog);
+    String schema = json.getString("contents");
 
     return schema;
 
@@ -321,7 +322,7 @@ private static final long serialVersionUID = 1L;
   public String getTrustStore() {
     return trustStore;
   }
-  
+
   public Map<String, String> getKafkaProps(String propsStr) {
     propsStr = propsStr.replace("-D", "");
     propsStr = propsStr.replace("'", "");
