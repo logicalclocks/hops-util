@@ -5,6 +5,7 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import io.hops.kafkautil.flink.HopsFlinkKafkaConsumer;
 import io.hops.kafkautil.flink.HopsFlinkKafkaProducer;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
+import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchemaWrapper;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
@@ -167,7 +169,11 @@ public class HopsKafkaUtil implements Serializable {
     return new HopsKafkaProducer(topic);
   }
 
-  
+  public HopsFlinkKafkaConsumer getHopsFlinkKafkaConsumer(String topic,
+          DeserializationSchema schema) {
+    return new HopsFlinkKafkaConsumer(topic, schema, getConsumerConfig());
+  }
+
   /**
    * @Deprecated.
    * @return

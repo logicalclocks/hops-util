@@ -34,7 +34,7 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
    * @param topic
    * @throws SchemaNotFoundException
    */
-  public HopsKafkaProducer(String topic) throws SchemaNotFoundException {
+  HopsKafkaProducer(String topic) throws SchemaNotFoundException {
     super(KafkaProcessType.PRODUCER, topic);
     Properties props = HopsKafkaProperties.defaultProps();
     props.put("client.id", "HopsProducer");
