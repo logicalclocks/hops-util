@@ -213,9 +213,11 @@ private static final long serialVersionUID = 1L;
     if (trustStore != null && !trustStore.isEmpty()
             && keyStore != null && !keyStore.isEmpty()) {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStore);
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsKafkaUtil.
+            getInstance().getTrustStore());
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
-      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStore);
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaUtil.
+            getInstance().getKeyStore());
       props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
     }
 
