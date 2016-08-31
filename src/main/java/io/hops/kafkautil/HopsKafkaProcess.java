@@ -1,5 +1,6 @@
 package io.hops.kafkautil;
 
+import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.avro.Schema;
@@ -8,7 +9,7 @@ import org.apache.avro.Schema;
  * Defines the common characteristics of Kafka processes.
  * <p>
  */
-public abstract class HopsKafkaProcess {
+public abstract class HopsKafkaProcess implements Serializable{
 
   private static final Logger logger = Logger.
           getLogger(HopsKafkaProcess.class.getName());
@@ -34,4 +35,8 @@ public abstract class HopsKafkaProcess {
 
   }
 
+  /**
+   * Closes the Kafka process.
+   */
+  public abstract void close();
 }

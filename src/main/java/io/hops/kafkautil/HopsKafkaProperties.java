@@ -1,5 +1,6 @@
 package io.hops.kafkautil;
 
+import java.io.Serializable;
 import java.util.Properties;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SslConfigs;
@@ -8,7 +9,7 @@ import org.apache.kafka.common.config.SslConfigs;
  *
  * @author misdess
  */
-public class HopsKafkaProperties {
+public class HopsKafkaProperties implements Serializable {
 
   public static String TRUSTSTORE_PWD = "adminpw";
   public static String KEYSTORE_PWD = "adminpw";

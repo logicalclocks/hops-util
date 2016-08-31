@@ -2,6 +2,7 @@ package io.hops.kafkautil;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
+import java.io.Serializable;
 import java.util.Map;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericData;
@@ -17,14 +18,15 @@ import java.util.logging.Logger;
  *
  * Utility class that sends messages to the Kafka service.
  */
-public class HopsKafkaProducer extends HopsKafkaProcess {
-
+public class HopsKafkaProducer extends HopsKafkaProcess implements Serializable{
+  private static final long serialVersionUID = 1L;
   private static final Logger logger = Logger.
           getLogger(HopsKafkaProducer.class.getName());
 
   private final KafkaProducer<String, byte[]> producer;
   private final Injection<GenericRecord, byte[]> recordInjection;
-
+transient GenericData.Record avroRecord;
+transient ProducerRecord<String, byte[]> record;
   /** 
    * Create a Producer to stream messages to Kafka.
    *
@@ -45,20 +47,27 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
    * <p>
    * @param messageFields
    */
-  public void produce(Map<String, Object> messageFields) {
+  public void produce(Map<String, String> messageFields) {
     //create the avro message
-    GenericData.Record avroRecord = new GenericData.Record(schema);
-    for (Map.Entry<String, Object> message : messageFields.entrySet()) {
+     avroRecord = new GenericData.Record(schema);
+    for (Map.Entry<String, String> message : messageFields.entrySet()) {
       //TODO: Check that messageFields are in avro record
       avroRecord.put(message.getKey(), message.getValue());
     }
 
     byte[] bytes = recordInjection.apply(avroRecord);
-    ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
+    record = new ProducerRecord<>(topic, bytes);
     producer.send(record);
 
     logger.log(Level.INFO, "Producer sent message: {0}", messageFields);
   }
+
+  @Override
+  public void close() {
+    producer.close();
+  }
+  
+  
 }
 
 /*

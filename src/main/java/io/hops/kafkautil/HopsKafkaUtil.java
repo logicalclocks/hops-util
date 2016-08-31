@@ -1,21 +1,23 @@
 package io.hops.kafkautil;
 
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.kafkautil.flink.HopsFlinkKafkaProducer;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
+
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.ws.rs.core.Cookie;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -26,8 +28,8 @@ import org.json.JSONObject;
  * with Kafka.
  * <p>
  */
-public class HopsKafkaUtil {
-
+public class HopsKafkaUtil implements Serializable{
+private static final long serialVersionUID = 1L;
   private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.
           getName());
 
@@ -231,50 +233,56 @@ public class HopsKafkaUtil {
     if (versionId > 0) {
       uri += "/" + versionId;
     }
+    System.out.println("kafka.uri:"+restEndpoint);
 
     //Setup the REST client to retrieve the schema
-    BasicCookieStore cookieStore = new BasicCookieStore();
-    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", jSessionId);
-    cookie.setDomain(domain);
-    cookie.setPath("/");
-    cookieStore.addCookie(cookie);
-    HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(
-            cookieStore).build();
-
-    final HttpGet request = new HttpGet(uri);
-
-    logger.log(Level.INFO, "brokerEndpoint:{0}:", brokerEndpoint);
-    logger.log(Level.INFO, "schema uri:{0}:", uri);
-    HttpResponse response = null;
-    try {
-      response = client.execute(request);
-    } catch (IOException ex) {
-      logger.log(Level.SEVERE, ex.getMessage());
-    }
-    logger.log(Level.INFO, "schema response:", response);
-    if (response == null) {
-      throw new SchemaNotFoundException("Could not reach schema endpoint");
-    } else if (response.getStatusLine().getStatusCode() != 200) {
-      throw new SchemaNotFoundException(response.getStatusLine().getStatusCode(),
-              "Schema is not found");
-    }
-    //logger.log(Level.INFO, "Response:{0}", response.toString());
-    StringBuilder result = new StringBuilder();
-    try {
-      BufferedReader rd = new BufferedReader(
-              new InputStreamReader(response.getEntity().getContent()));
-
-      String line;
-      while ((line = rd.readLine()) != null) {
-        result.append(line);
-      }
-    } catch (IOException ex) {
-      logger.log(Level.SEVERE, ex.getMessage());
-    }
-
-    //Extract fields from json
-    JSONObject json = new JSONObject(result.toString());
-    String schema = json.getString("contents");
+//    BasicCookieStore cookieStore = new BasicCookieStore();
+//    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", jSessionId);
+//    cookie.setDomain(domain);
+//    cookie.setPath("/");
+//    cookieStore.addCookie(cookie);
+//    HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(
+//            cookieStore).build();
+//
+//    final HttpGet request = new HttpGet(uri);
+//
+//    logger.log(Level.INFO, "brokerEndpoint:{0}:", brokerEndpoint);
+//    logger.log(Level.INFO, "schema uri:{0}:", uri);
+//    HttpResponse response = null;
+//    try {
+//      response = client.execute(request);
+//    } catch (IOException ex) {
+//      logger.log(Level.SEVERE, ex.getMessage());
+//    }
+//    logger.log(Level.INFO, "schema response:", response);
+//    if (response == null) {
+//      throw new SchemaNotFoundException("Could not reach schema endpoint");
+//    } else if (response.getStatusLine().getStatusCode() != 200) {
+//      throw new SchemaNotFoundException(response.getStatusLine().getStatusCode(),
+//              "Schema is not found");
+//    }
+//    //logger.log(Level.INFO, "Response:{0}", response.toString());
+//    StringBuilder result = new StringBuilder();
+//    try {
+//      BufferedReader rd = new BufferedReader(
+//              new InputStreamReader(response.getEntity().getContent()));
+//
+//      String line;
+//      while ((line = rd.readLine()) != null) {
+//        result.append(line);
+//      }
+//    } catch (IOException ex) {
+//      logger.log(Level.SEVERE, ex.getMessage());
+//    }
+        ClientConfig config = new DefaultClientConfig();
+        Client client = Client.create(config);
+        WebResource service = client.resource(uri);
+        Cookie cookie=new Cookie("SESSIONID", jSessionId);
+        final ClientResponse blogResponse = service.cookie(cookie).get(ClientResponse.class);
+        final String blog = blogResponse.getEntity(String.class);
+        //Extract fields from json
+        JSONObject json = new JSONObject(blog);
+        String schema = json.getString("contents");
 
     return schema;
 

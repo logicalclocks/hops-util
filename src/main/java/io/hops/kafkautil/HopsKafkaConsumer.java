@@ -2,12 +2,17 @@ package io.hops.kafkautil;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
+import java.io.IOException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.avro.generic.GenericRecord;
@@ -25,6 +30,9 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
   private final KafkaConsumer<Integer, String> consumer;
   HopsKafkaUtil hopsKafkaUtil = HopsKafkaUtil.getInstance();
   private boolean consume;
+  private BlockingQueue<String> messages;
+  private boolean callback = false;
+  private FSDataOutputStream stream;
 
   HopsKafkaConsumer(String topic) throws SchemaNotFoundException {
     super(KafkaProcessType.CONSUMER, topic);
@@ -35,8 +43,24 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
 
   /**
    * Start thread for consuming Kafka messages.
+   *
+   * @param callback
    */
   public void consume() {
+    consume = true;
+    new Thread(this).start();
+  }
+
+  public void consume(BlockingQueue messages) {
+    this.messages = messages;
+    callback = true;
+    consume = true;
+    new Thread(this).start();
+  }
+
+  public void consume(FSDataOutputStream stream) {
+    this.stream = stream;
+    callback = true;
     consume = true;
     new Thread(this).start();
   }
@@ -50,26 +74,61 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
 
   @Override
   public void run() {
+
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
-    while (consume) {
-      ConsumerRecords<Integer, String> records = consumer.poll(1000);
-      //synchronized(kafkaRecords){
-      //Get the records
-      for (ConsumerRecord<Integer, String> record : records) {
-        //Convert the record using the schema
-        Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                toBinary(schema);
-        GenericRecord genericRecord = recordInjection.invert(record.value().
-                getBytes()).get();
-        System.out.println("Consumer received message:" + genericRecord);
+    if (callback) {
+      while (consume) {
+        ConsumerRecords<Integer, String> records = consumer.poll(1000);
+        //synchronized(kafkaRecords){
+        //Get the records
+        for (ConsumerRecord<Integer, String> record : records) {
+          //Convert the record using the schema
+          Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
+                  toBinary(schema);
+          GenericRecord genericRecord = recordInjection.invert(record.value().
+                  getBytes()).get();
+          System.out.println("Consumer put into queue:" + record.value());
+          try {
+            messages.put(record.value());
+          } catch (InterruptedException ex) {
+            Logger.getLogger(HopsKafkaConsumer.class.getName()).
+                    log(Level.SEVERE, null, ex);
+          }
+          System.out.println("Consumer received message:" + genericRecord);
+        }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ex) {
+          logger.log(Level.SEVERE, "Error while consuming records", ex);
+        }
       }
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException ex) {
-        logger.log(Level.SEVERE, "Error while consuming records", ex);
+    } else {
+      while (consume) {
+        ConsumerRecords<Integer, String> records = consumer.poll(1000);
+        //synchronized(kafkaRecords){
+        //Get the records
+        for (ConsumerRecord<Integer, String> record : records) {
+          //Convert the record using the schema
+          Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
+                  toBinary(schema);
+          GenericRecord genericRecord = recordInjection.invert(record.value().
+                  getBytes()).get();
+          System.out.println("Consumer received message:" + genericRecord);
+        }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ex) {
+          logger.log(Level.SEVERE, "Error while consuming records", ex);
+        }
       }
     }
+  }
+
+  @Override
+  public void close() {
+    consume = false;
+    consumer.close();
   }
 
 }
