@@ -73,13 +73,13 @@
     </dependency>-->
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-shaded-hadoop2</artifactId>
+      <artifactId>flink-connector-kafka-0.9_2.10</artifactId>
       <version>1.0.3</version>
       <type>jar</type>
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-connector-kafka-0.9_2.10</artifactId>
+      <artifactId>flink-shaded-hadoop2</artifactId>
       <version>1.0.3</version>
       <type>jar</type>
     </dependency>
