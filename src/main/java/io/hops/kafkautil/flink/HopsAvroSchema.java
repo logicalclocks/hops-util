@@ -26,17 +26,17 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
 
   private static final long serialVersionUID = 1L;
   private String schemaJson;
-//  transient Schema.Parser parser = new Schema.Parser();
-//  transient Schema schema;
-//  transient Injection<GenericRecord, byte[]> recordInjection
-//          = GenericAvroCodecs.
-//          toBinary(schema);
+  private transient Schema.Parser parser = new Schema.Parser();
+  private transient Schema schema;
+  private transient Injection<GenericRecord, byte[]> recordInjection
+          = GenericAvroCodecs.
+          toBinary(schema);
+  private boolean initialized = false;
 
   public HopsAvroSchema(String topicName) {
     try {
       System.out.println("HopsAvroSchema.getting_schema_for_topic:" + topicName);
       schemaJson = HopsKafkaUtil.getInstance().getSchema(topicName);
-
     } catch (SchemaNotFoundException ex) {
       Logger.getLogger(HopsAvroSchema.class.getName()).log(Level.SEVERE, null,
               ex);
@@ -45,15 +45,8 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
 
   @Override
   public String deserialize(byte[] bytes) throws IOException {
-    Schema.Parser parser = new Schema.Parser();
-    Schema schema = parser.parse(schemaJson);
-    Injection<GenericRecord, byte[]> recordInjection
-            = GenericAvroCodecs.
-            toBinary(schema);
+
     GenericRecord genericRecord = recordInjection.invert(bytes).get();
-    //Object value = genericRecord.get("str1");
-    System.out.println("HopsAvroSchema.deserialize.t:" + genericRecord.
-            toString());
     return genericRecord.toString().replaceAll("\\\\u001A", "");
   }
 
@@ -69,22 +62,17 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
 
   @Override
   public byte[] serialize(Tuple4<String, String, String, String> t) {
-    Schema.Parser parser = new Schema.Parser();
-    Schema schema = parser.parse(schemaJson);
-    Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-            toBinary(schema);
 
-    System.out.println("HopsAvroSchema.serialize.t:" + t);
-    GenericData.Record avroRecord = new GenericData.Record(schema);
-    for(int i=0; i<t.getArity()-1;i+=2){
-      System.out.println("HopsAvroSchema.t.getField(i):"+t.getField(i).toString());
-      System.out.println("HopsAvroSchema.t.getField(i+1):"+t.getField(i+1).toString());
-      avroRecord.put(t.getField(i).toString(), t.getField(i+1).toString());
+    if (!initialized) {
+      parser = new Schema.Parser();
+      schema = parser.parse(schemaJson);
+      recordInjection = GenericAvroCodecs.toBinary(schema);
+      initialized = true;
     }
-    
-//    for (Schema.Field field : schema.getFields()) {
-//      avroRecord.put(field.name(), t);
-//    }
+    GenericData.Record avroRecord = new GenericData.Record(schema);
+    for (int i = 0; i < t.getArity() - 1; i += 2) {
+      avroRecord.put(t.getField(i).toString(), t.getField(i + 1).toString());
+    }
 
     byte[] bytes = recordInjection.apply(avroRecord);
     return bytes;
