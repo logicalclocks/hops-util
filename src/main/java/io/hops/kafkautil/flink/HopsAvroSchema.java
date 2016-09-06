@@ -45,8 +45,16 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
 
   @Override
   public String deserialize(byte[] bytes) throws IOException {
-
+    if (!initialized) {
+      parser = new Schema.Parser();
+      schema = parser.parse(schemaJson);
+      recordInjection = GenericAvroCodecs.toBinary(schema);
+      initialized = true;
+    }
     GenericRecord genericRecord = recordInjection.invert(bytes).get();
+    //Object value = genericRecord.get("str1");
+    System.out.println("HopsAvroSchema.deserialize.t:" + genericRecord.
+            toString());
     return genericRecord.toString().replaceAll("\\\\u001A", "");
   }
 
