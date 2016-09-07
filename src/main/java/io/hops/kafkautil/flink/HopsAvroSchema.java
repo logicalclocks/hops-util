@@ -15,7 +15,6 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
-import org.apache.kafka.clients.producer.ProducerRecord;
 
 /**
  *
@@ -35,7 +34,6 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
 
   public HopsAvroSchema(String topicName) {
     try {
-      System.out.println("HopsAvroSchema.getting_schema_for_topic:" + topicName);
       schemaJson = HopsKafkaUtil.getInstance().getSchema(topicName);
     } catch (SchemaNotFoundException ex) {
       Logger.getLogger(HopsAvroSchema.class.getName()).log(Level.SEVERE, null,
@@ -52,9 +50,6 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
       initialized = true;
     }
     GenericRecord genericRecord = recordInjection.invert(bytes).get();
-    //Object value = genericRecord.get("str1");
-    System.out.println("HopsAvroSchema.deserialize.t:" + genericRecord.
-            toString());
     return genericRecord.toString().replaceAll("\\\\u001A", "");
   }
 

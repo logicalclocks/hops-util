@@ -6,23 +6,14 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.kafkautil.flink.HopsFlinkKafkaConsumer;
-import io.hops.kafkautil.flink.HopsFlinkKafkaProducer;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
-import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
-import org.apache.flink.streaming.util.serialization.KeyedSerializationSchemaWrapper;
-import org.apache.flink.streaming.util.serialization.SerializationSchema;
-import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -330,8 +321,7 @@ public class HopsKafkaUtil implements Serializable {
   }
 
   public Map<String, String> getKafkaProps(String propsStr) {
-    propsStr = propsStr.replace("-D", "");
-    propsStr = propsStr.replace("'", "");
+    propsStr = propsStr.replace("-D", "").replace("\"", "").replace("'", "");
     Map<String, String> props = new HashMap<>();
     String[] propsArray = propsStr.split(",");
     for (String kafkaProperty : propsArray) {

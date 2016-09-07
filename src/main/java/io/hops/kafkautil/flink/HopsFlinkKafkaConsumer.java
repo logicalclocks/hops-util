@@ -10,7 +10,6 @@ import org.apache.flink.streaming.util.serialization.DeserializationSchema;
  */
 public class HopsFlinkKafkaConsumer extends FlinkKafkaConsumer09 {
 
-  //TODO: Remove public to for initialization from hopsKafkaUtil
   public HopsFlinkKafkaConsumer(String topic, DeserializationSchema schema,
           Properties props) {
     super(topic, schema, props);
