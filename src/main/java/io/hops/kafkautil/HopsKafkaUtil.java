@@ -6,7 +6,7 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.kafkautil.flink.HopsFlinkKafkaConsumer;
-import java.io.Serializable;
+import io.hops.kafkautil.flink.HopsFlinkKafkaProducer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,6 +14,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
+import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SslConfigs;
@@ -24,9 +25,8 @@ import org.json.JSONObject;
  * with Kafka.
  * <p>
  */
-public class HopsKafkaUtil implements Serializable {
+public class HopsKafkaUtil {
 
-  private static final long serialVersionUID = 1L;
   private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.
           getName());
 
@@ -36,12 +36,11 @@ public class HopsKafkaUtil implements Serializable {
   public final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
   public final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
   public final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
-  
+
   private static HopsKafkaUtil instance = null;
 
   private String jSessionId;
   private Integer projectId;
-  private String topicName;
   private String brokerEndpoint;
   private String restEndpoint;
   private String domain;
@@ -108,7 +107,6 @@ public class HopsKafkaUtil implements Serializable {
     //validate arguments first
     this.jSessionId = sysProps.getProperty("kafka.sessionid");
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
-    this.topicName = topicName;
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.domain = domain;
@@ -136,13 +134,13 @@ public class HopsKafkaUtil implements Serializable {
           String keyStore, String trustStore) {
     this.jSessionId = jSessionId;
     this.projectId = projectId;
-    this.topicName = topicName;
     this.domain = domain;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
     this.trustStore = trustStore;
   }
+
   /**
    * Setup the Kafka instance.Endpoint is where the REST API listens for
    * requests. I.e.
@@ -162,7 +160,6 @@ public class HopsKafkaUtil implements Serializable {
           String keyStore, String trustStore) {
     this.jSessionId = jSessionId;
     this.projectId = projectId;
-    this.topicName = topicName;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
@@ -187,8 +184,19 @@ public class HopsKafkaUtil implements Serializable {
   }
 
   public HopsFlinkKafkaConsumer getHopsFlinkKafkaConsumer(String topic,
-          DeserializationSchema schema) {
-    return new HopsFlinkKafkaConsumer(topic, schema, getConsumerConfig());
+          DeserializationSchema deserializationSchema) {
+    return new HopsFlinkKafkaConsumer(topic, deserializationSchema,
+            getConsumerConfig());
+  }
+
+  public HopsFlinkKafkaProducer getHopsFlinkKafkaProducer(String topic,
+          SerializationSchema serializationSchema) {
+    return new HopsFlinkKafkaProducer(topic, serializationSchema,
+            HopsKafkaProperties.defaultProps());
+  }
+
+  public HopsAvroSchema getHopsAvroSchema(String topic) {
+    return new HopsAvroSchema(topic);
   }
 
   /**
@@ -328,10 +336,6 @@ public class HopsKafkaUtil implements Serializable {
 
   public Integer getProjectId() {
     return projectId;
-  }
-
-  public String getTopicName() {
-    return topicName;
   }
 
   public String getRestEndpoint() {
