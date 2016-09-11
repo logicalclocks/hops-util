@@ -5,6 +5,13 @@
   <artifactId>kafka-util</artifactId>
   <version>0.1</version>
   <build>
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh-external</artifactId>
+        <version>1.0</version>
+      </extension>
+    </extensions>
     <plugins>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
@@ -28,6 +35,23 @@
       </plugin>
     </plugins>
   </build>
+  <distributionManagement>
+    <repository>
+      <id>sics-release-repository</id>
+      <name>SICS Repository</name>
+      <url>scpexe://kompics.i.sics.se/home/maven/repository</url>
+    </repository>
+    <snapshotRepository>
+      <id>sics-snapshot-repository</id>
+      <name>SICS Snapshot Repository</name>
+      <url>scpexe://kompics.i.sics.se/home/maven/snapshotrepository</url>
+    </snapshotRepository>
+    <site>
+      <id>kompics-site</id>
+      <url>scpexe://kompics.i.sics.se/var/www/kompics/report/trunk</url>
+    </site>
+    <downloadUrl>http://kompics.i.sics.se/maven/repository</downloadUrl>
+  </distributionManagement>
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
