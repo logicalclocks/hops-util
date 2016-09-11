@@ -35,7 +35,8 @@ public class HopsKafkaUtil implements Serializable {
   public final String KAFKA_BROKERADDR_ENV_VAR = "kafka.brokeraddress";
   public final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
   public final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
-
+  public final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
+  
   private static HopsKafkaUtil instance = null;
 
   private String jSessionId;
@@ -137,6 +138,31 @@ public class HopsKafkaUtil implements Serializable {
     this.projectId = projectId;
     this.topicName = topicName;
     this.domain = domain;
+    this.brokerEndpoint = brokerEndpoint;
+    this.restEndpoint = restEndpoint + "/hopsworks/api/project";
+    this.keyStore = keyStore;
+    this.trustStore = trustStore;
+  }
+  /**
+   * Setup the Kafka instance.Endpoint is where the REST API listens for
+   * requests. I.e.
+   * http://localhost:8080/. Similarly set domain to "localhost"
+   * KeyStore and TrustStore locations should on the local machine.
+   *
+   * @param jSessionId
+   * @param projectId
+   * @param topicName
+   * @param brokerEndpoint
+   * @param restEndpoint
+   * @param keyStore
+   * @param trustStore
+   */
+  public void setup(String jSessionId, int projectId, String topicName,
+          String brokerEndpoint, String restEndpoint,
+          String keyStore, String trustStore) {
+    this.jSessionId = jSessionId;
+    this.projectId = projectId;
+    this.topicName = topicName;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
