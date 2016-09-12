@@ -9,14 +9,14 @@ import org.apache.avro.Schema;
  * Defines the common characteristics of Kafka processes.
  * <p>
  */
-public abstract class HopsKafkaProcess implements Serializable{
+public abstract class HopsProcess implements Serializable{
 
   private static final Logger logger = Logger.
-          getLogger(HopsKafkaProcess.class.getName());
-  public KafkaProcessType type;
+          getLogger(HopsProcess.class.getName());
+  public HopsProcessType type;
   final String topic;
   final Schema schema;
-  private final HopsKafkaUtil hopsKafkaUtil = HopsKafkaUtil.getInstance();
+  private final KafkaUtil hopsKafkaUtil = KafkaUtil.getInstance();
 
   /**
    *
@@ -24,7 +24,7 @@ public abstract class HopsKafkaProcess implements Serializable{
    * @param topic
    * @throws SchemaNotFoundException
    */
-  public HopsKafkaProcess(KafkaProcessType type, String topic) throws
+  public HopsProcess(HopsProcessType type, String topic) throws
           SchemaNotFoundException {
     this.topic = topic;
     Schema.Parser parser = new Schema.Parser();

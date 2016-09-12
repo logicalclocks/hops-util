@@ -5,8 +5,8 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
-import io.hops.kafkautil.flink.HopsFlinkKafkaConsumer;
-import io.hops.kafkautil.flink.HopsFlinkKafkaProducer;
+import io.hops.kafkautil.flink.FlinkConsumer;
+import io.hops.kafkautil.flink.FlinkProducer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,9 +25,9 @@ import org.json.JSONObject;
  * with Kafka.
  * <p>
  */
-public class HopsKafkaUtil {
+public class KafkaUtil {
 
-  private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.
+  private static final Logger logger = Logger.getLogger(KafkaUtil.class.
           getName());
 
   public final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
@@ -37,7 +37,7 @@ public class HopsKafkaUtil {
   public final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
   public final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
 
-  private static HopsKafkaUtil instance = null;
+  private static KafkaUtil instance = null;
 
   private String jSessionId;
   private Integer projectId;
@@ -47,7 +47,7 @@ public class HopsKafkaUtil {
   private String keyStore;
   private String trustStore;
 
-  private HopsKafkaUtil() {
+  private KafkaUtil() {
 
   }
 
@@ -166,37 +166,47 @@ public class HopsKafkaUtil {
     this.trustStore = trustStore;
   }
 
-  public static HopsKafkaUtil getInstance() {
+  public static KafkaUtil getInstance() {
     if (instance == null) {
-      instance = new HopsKafkaUtil();
+      instance = new KafkaUtil();
     }
     return instance;
   }
 
-  public HopsKafkaConsumer getHopsKafkaConsumer(String topic) throws
+  public HopsConsumer getHopsConsumer(String topic) throws
           SchemaNotFoundException {
-    return new HopsKafkaConsumer(topic);
+    return new HopsConsumer(topic);
   }
 
-  public HopsKafkaProducer getHopsKafkaProducer(String topic) throws
+  public HopsProducer getHopsProducer(String topic) throws
           SchemaNotFoundException {
-    return new HopsKafkaProducer(topic);
+    return new HopsProducer(topic);
   }
 
-  public HopsFlinkKafkaConsumer getHopsFlinkKafkaConsumer(String topic,
-          DeserializationSchema deserializationSchema) {
-    return new HopsFlinkKafkaConsumer(topic, deserializationSchema,
+  public FlinkConsumer getFlinkConsumer(String topic) {
+    return new FlinkConsumer(topic, new AvroDeserializer(topic),
             getConsumerConfig());
   }
 
-  public HopsFlinkKafkaProducer getHopsFlinkKafkaProducer(String topic,
-          SerializationSchema serializationSchema) {
-    return new HopsFlinkKafkaProducer(topic, serializationSchema,
-            HopsKafkaProperties.defaultProps());
+  public FlinkConsumer getFlinkConsumer(String topic,
+          DeserializationSchema deserializationSchema) {
+    return new FlinkConsumer(topic, deserializationSchema,
+            getConsumerConfig());
   }
 
-  public HopsAvroSchema getHopsAvroSchema(String topic) {
-    return new HopsAvroSchema(topic);
+  public FlinkProducer getFlinkProducer(String topic) {
+    return new FlinkProducer(topic, new AvroDeserializer(topic),
+            KafkaProperties.defaultProps());
+  }
+
+  public FlinkProducer getFlinkProducer(String topic,
+          SerializationSchema serializationSchema) {
+    return new FlinkProducer(topic, serializationSchema,
+            KafkaProperties.defaultProps());
+  }
+
+  public AvroDeserializer getHopsAvroSchema(String topic) {
+    return new AvroDeserializer(topic);
   }
 
   /**
@@ -244,10 +254,10 @@ public class HopsKafkaUtil {
             && keyStore != null && !keyStore.isEmpty()) {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-              HopsKafkaUtil.
+              KafkaUtil.
               getInstance().getTrustStore());
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
-      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsKafkaUtil.
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
               getInstance().getKeyStore());
       props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
     }

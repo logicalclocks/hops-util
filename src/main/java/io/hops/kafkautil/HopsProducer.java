@@ -18,10 +18,10 @@ import java.util.logging.Logger;
  *
  * Utility class that sends messages to the Kafka service.
  */
-public class HopsKafkaProducer extends HopsKafkaProcess {
+public class HopsProducer extends HopsProcess {
 
   private static final Logger logger = Logger.
-          getLogger(HopsKafkaProducer.class.getName());
+          getLogger(HopsProducer.class.getName());
 
   private final KafkaProducer<String, byte[]> producer;
   private final Injection<GenericRecord, byte[]> recordInjection;
@@ -34,9 +34,9 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
    * @param topic
    * @throws SchemaNotFoundException
    */
-  HopsKafkaProducer(String topic) throws SchemaNotFoundException {
-    super(KafkaProcessType.PRODUCER, topic);
-    Properties props = HopsKafkaProperties.defaultProps();
+  HopsProducer(String topic) throws SchemaNotFoundException {
+    super(HopsProcessType.PRODUCER, topic);
+    Properties props = KafkaProperties.defaultProps();
     props.put("client.id", "HopsProducer");
     producer = new KafkaProducer<>(props);
 

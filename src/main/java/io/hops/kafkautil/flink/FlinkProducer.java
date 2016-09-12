@@ -9,9 +9,9 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
  * Wrapper class for FlinkKafkaProducer.
  * <p>
  */
-public class HopsFlinkKafkaProducer extends FlinkKafkaProducer09 {
+public class FlinkProducer extends FlinkKafkaProducer09 {
 
-  public HopsFlinkKafkaProducer(String topic,
+  public FlinkProducer(String topic,
           SerializationSchema serializationSchema,
           Properties props) {
     super(topic, new KeyedSerializationSchemaWrapper<>(serializationSchema),

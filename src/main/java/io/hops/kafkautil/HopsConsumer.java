@@ -25,22 +25,22 @@ import org.apache.hadoop.fs.Path;
  * To begin consuming messages, the user must call the consume method which
  * starts a new thread.
  */
-public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
+public class HopsConsumer extends HopsProcess implements Runnable {
 
-  private static final Logger logger = Logger.getLogger(HopsKafkaConsumer.class.
+  private static final Logger logger = Logger.getLogger(HopsConsumer.class.
           getName());
 
   private KafkaConsumer<Integer, String> consumer;
-  HopsKafkaUtil hopsKafkaUtil = HopsKafkaUtil.getInstance();
+  KafkaUtil hopsKafkaUtil = KafkaUtil.getInstance();
   private boolean consume;
   private BlockingQueue<String> messages;
   private boolean callback = false;
   private StringBuilder consumed = new StringBuilder();
 
-  HopsKafkaConsumer(String topic) throws SchemaNotFoundException {
-    super(KafkaProcessType.CONSUMER, topic);
+  HopsConsumer(String topic) throws SchemaNotFoundException {
+    super(HopsProcessType.CONSUMER, topic);
     //Get Consumer properties
-    //Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();
+    //Properties props = KafkaUtil.getInstance().getConsumerConfig();
     //consumer = new KafkaConsumer<>(props);
   }
 
@@ -52,7 +52,7 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
   public void consume(String path) {
     this.consume = true;
     //new Thread(this).start();
-    Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();
+    Properties props = KafkaUtil.getInstance().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
@@ -71,7 +71,7 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
           try {
             messages.put(record.value());
           } catch (InterruptedException ex) {
-            Logger.getLogger(HopsKafkaConsumer.class.getName()).
+            Logger.getLogger(HopsConsumer.class.getName()).
                     log(Level.SEVERE, null, ex);
           }
           System.out.println("Consumer received message:" + genericRecord);
@@ -114,7 +114,7 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
           stream.close();
 
         } catch (IOException ex) {
-          Logger.getLogger(HopsKafkaConsumer.class.getName()).
+          Logger.getLogger(HopsConsumer.class.getName()).
                   log(Level.SEVERE, null, ex);
         }
       }
@@ -147,7 +147,7 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
 
   @Override
   public void run() {
-    Properties props = HopsKafkaUtil.getInstance().getConsumerConfig();
+    Properties props = KafkaUtil.getInstance().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
@@ -166,7 +166,7 @@ public class HopsKafkaConsumer extends HopsKafkaProcess implements Runnable {
           try {
             messages.put(record.value());
           } catch (InterruptedException ex) {
-            Logger.getLogger(HopsKafkaConsumer.class.getName()).
+            Logger.getLogger(HopsConsumer.class.getName()).
                     log(Level.SEVERE, null, ex);
           }
           System.out.println("Consumer received message:" + genericRecord);

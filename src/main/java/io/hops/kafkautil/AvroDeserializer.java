@@ -19,7 +19,7 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
  * by Kafka.
  * <p>
  */
-public class HopsAvroSchema implements DeserializationSchema<String>,
+public class AvroDeserializer implements DeserializationSchema<String>,
         SerializationSchema<Tuple4<String, String, String, String>> {
 
   private static final long serialVersionUID = 1L;
@@ -31,11 +31,11 @@ public class HopsAvroSchema implements DeserializationSchema<String>,
           toBinary(schema);
   private boolean initialized = false;
 
-  public HopsAvroSchema(String topicName) {
+  public AvroDeserializer(String topicName) {
     try {
-      schemaJson = HopsKafkaUtil.getInstance().getSchema(topicName);
+      schemaJson = KafkaUtil.getInstance().getSchema(topicName);
     } catch (SchemaNotFoundException ex) {
-      Logger.getLogger(HopsAvroSchema.class.getName()).log(Level.SEVERE, null,
+      Logger.getLogger(AvroDeserializer.class.getName()).log(Level.SEVERE, null,
               ex);
     }
   }
