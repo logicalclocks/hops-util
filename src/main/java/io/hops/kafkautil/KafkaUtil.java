@@ -184,8 +184,7 @@ public class KafkaUtil {
   }
 
   public FlinkConsumer getFlinkConsumer(String topic) {
-    return new FlinkConsumer(topic, new AvroDeserializer(topic),
-            getConsumerConfig());
+    return getFlinkConsumer(topic, new AvroDeserializer(topic));
   }
 
   public FlinkConsumer getFlinkConsumer(String topic,
@@ -195,8 +194,7 @@ public class KafkaUtil {
   }
 
   public FlinkProducer getFlinkProducer(String topic) {
-    return new FlinkProducer(topic, new AvroDeserializer(topic),
-            KafkaProperties.defaultProps());
+    return getFlinkProducer(topic, new AvroDeserializer(topic));
   }
 
   public FlinkProducer getFlinkProducer(String topic,
