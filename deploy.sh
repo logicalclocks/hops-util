@@ -3,6 +3,8 @@
 set -e
 git pull
 
+mvn clean install
+
 VERSION=`grep -o -a -m 1 -h -r "version>.*</version" ./pom.xml | head -1 | sed "s/version//g" | sed "s/>//" | sed "s/<\///g"`
 
 echo ""
