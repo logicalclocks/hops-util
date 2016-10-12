@@ -7,24 +7,35 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.kafkautil.flink.FlinkConsumer;
 import io.hops.kafkautil.flink.FlinkProducer;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
+import org.apache.avro.Schema;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 //import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 //import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.BytesDeserializer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.kafka.KafkaUtils;
+import org.apache.spark.streaming.kafka010.ConsumerStrategies;
+import org.apache.spark.streaming.kafka010.KafkaUtils;
+import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.json.JSONObject;
 
 /**
@@ -53,6 +64,7 @@ public class KafkaUtil {
   private String keyStore;
   private String trustStore;
 
+  private final Map<String, Schema> schemas = new HashMap<>();
   private KafkaUtil() {
 
   }
@@ -67,7 +79,7 @@ public class KafkaUtil {
     this.jSessionId = sysProps.getProperty("kafka.sessionid");
     this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
     this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");//"10.0.2.15:9091";
-    this.restEndpoint = sysProps.getProperty("kafka.restendpoint");
+    this.restEndpoint = sysProps.getProperty("kafka.restendpoint")+"/hopsworks/api/project";
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
     this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");
   }
@@ -141,6 +153,13 @@ public class KafkaUtil {
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
     this.trustStore = trustStore;
+     try {
+      Schema.Parser parser = new Schema.Parser();
+      Schema schema = parser.parse(KafkaUtil.getInstance().getSchema(topicName));
+      schemas.put(topicName, schema);
+    } catch (SchemaNotFoundException ex) {
+      Logger.getLogger(KafkaUtil.class.getName()).log(Level.SEVERE, null, ex);
+    }
   }
 
   /**
@@ -171,11 +190,17 @@ public class KafkaUtil {
   public static KafkaUtil getInstance() {
     if (instance == null) {
       instance = new KafkaUtil();
-      instance.setup();
+     
     }
     return instance;
   }
 
+  public Map<String, Schema> getSchemas() {
+    return schemas;
+  }
+
+  
+  
   public HopsConsumer getHopsConsumer(String topic) throws
           SchemaNotFoundException {
     return new HopsConsumer(topic);
@@ -218,21 +243,16 @@ public class KafkaUtil {
   /**
    *
    * @param jsc
-   * @param key
-   * @param value
-   * @param keyDecoder
-   * @param valueDecoder
    * @param topics
    * @return
    */
-  public JavaPairInputDStream<String, String> createDirectStream(
-          JavaStreamingContext jsc, Class key, Class value, Class keyDecoder,
-          Class valueDecoder, Set<String> topics) {
-    Map<String, String> kafkaParams = getSparkConsumerConfigMap();
-    JavaPairInputDStream<String, String> directKafkaStream = KafkaUtils.
-            createDirectStream(jsc, key, value, keyDecoder, valueDecoder,
-                    kafkaParams,
-                    topics);
+  public JavaInputDStream<ConsumerRecord<String, byte[]>> createDirectStream(
+          JavaStreamingContext jsc, Collection<String> topics) {
+    Map<String, Object> kafkaParams = getConsumerConfigMap();
+    JavaInputDStream<ConsumerRecord<String, byte[]>> directKafkaStream
+            = KafkaUtils.
+            createDirectStream(jsc, LocationStrategies.PreferConsistent(),
+                    ConsumerStrategies.Subscribe(topics, kafkaParams));
     return directKafkaStream;
   }
 
@@ -279,9 +299,8 @@ public class KafkaUtil {
    */
   protected Properties getConsumerConfig() {
     Properties props = new Properties();
-    props.put("metadata.broker.list", brokerEndpoint);
-//    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
-//    props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
 //    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 //    props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 //    props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000");
@@ -312,35 +331,35 @@ public class KafkaUtil {
    */
   protected Properties getSparkConsumerConfig() {
     Properties props = new Properties();
-    props.put("metadata.broker.list", "10.0.2.15:9092");
-//    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
-//    props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
-//    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerEndpoint);
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 //    props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 //    props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000");
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-            "org.apache.kafka.common.serialization.IntegerDeserializer");
+            StringDeserializer.class.getCanonicalName());
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-            "org.apache.kafka.common.serialization.StringDeserializer");
+            ByteArrayDeserializer.class.getCanonicalName());
 
 //    //configure the ssl parameters
-//    if (trustStore != null && !trustStore.isEmpty()
-//            && keyStore != null && !keyStore.isEmpty()) {
-//      props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-//      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-//              KafkaUtil.
-//              getInstance().getTrustStore());
-//      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
-//      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
-//              getInstance().getKeyStore());
-//      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
-//    }
+    if (trustStore != null && !trustStore.isEmpty()
+            && keyStore != null && !keyStore.isEmpty()) {
+      props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+              KafkaUtil.
+              getInstance().getTrustStore());
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
+              getInstance().getKeyStore());
+      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
+    }
     return props;
   }
 
-  protected Map<String, String> getSparkConsumerConfigMap() {
+  protected Map<String, Object> getConsumerConfigMap() {
     Properties props = getSparkConsumerConfig();
-    Map<String, String> propsMap = new HashMap<>();
+    Map<String, Object> propsMap = new HashMap<>();
     for (final String name : props.stringPropertyNames()) {
       propsMap.put(name, props.getProperty(name));
     }
