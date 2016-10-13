@@ -2,7 +2,6 @@ package io.hops.kafkautil;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
-import java.io.Serializable;
 import java.util.Map;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericData;
@@ -36,7 +35,8 @@ public class HopsProducer extends HopsProcess {
    */
   HopsProducer(String topic) throws SchemaNotFoundException {
     super(HopsProcessType.PRODUCER, topic);
-    Properties props = KafkaProperties.defaultProps();
+    Properties props = KafkaUtil.getInstance().getKafkaProperties().
+            defaultProps();
     props.put("client.id", "HopsProducer");
     producer = new KafkaProducer<>(props);
 
