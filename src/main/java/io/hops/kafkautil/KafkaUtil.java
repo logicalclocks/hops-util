@@ -5,17 +5,24 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.twitter.bijection.Injection;
+import com.twitter.bijection.avro.GenericAvroCodecs;
 import io.hops.kafkautil.flink.FlinkConsumer;
 import io.hops.kafkautil.flink.FlinkProducer;
 import io.hops.kafkautil.spark.SparkProducer;
 import io.hops.kafkautil.spark.SparkConsumer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
@@ -47,7 +54,7 @@ public class KafkaUtil {
   private String restEndpoint;
   private String keyStore;
   private String trustStore;
-//  private final Map<String, Schema> schemas = new HashMap<>();
+  private List<String> topics;
 
   private KafkaUtil() {
 
@@ -58,6 +65,7 @@ public class KafkaUtil {
    */
   public void setup() {
     Properties sysProps = System.getProperties();
+    System.out.println("SysProps:" + sysProps);
 
     //validate arguments first
     this.jSessionId = sysProps.getProperty("kafka.sessionid");
@@ -68,6 +76,9 @@ public class KafkaUtil {
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
     this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");
     isSetup = true;
+    this.topics = Arrays.asList(sysProps.getProperty(
+            "hopsworks.kafka.job.topics").
+            split(","));
   }
 
   /**
@@ -180,16 +191,16 @@ public class KafkaUtil {
     return instance;
   }
 
-  public KafkaProperties getKafkaProperties() {
+  public static KafkaProperties getKafkaProperties() {
     return new KafkaProperties();
   }
 
-  public HopsConsumer getHopsConsumer(String topic) throws
+  public static HopsConsumer getHopsConsumer(String topic) throws
           SchemaNotFoundException {
     return new HopsConsumer(topic);
   }
 
-  public HopsProducer getHopsProducer(String topic) throws
+  public static HopsProducer getHopsProducer(String topic) throws
           SchemaNotFoundException {
     return new HopsProducer(topic);
   }
@@ -198,27 +209,28 @@ public class KafkaUtil {
     return getFlinkConsumer(topic, new AvroDeserializer(topic));
   }
 
-  public FlinkConsumer getFlinkConsumer(String topic,
+  public static FlinkConsumer getFlinkConsumer(String topic,
           DeserializationSchema deserializationSchema) {
     return new FlinkConsumer(topic, deserializationSchema,
             getKafkaProperties().getConsumerConfig());
   }
 
-  public FlinkProducer getFlinkProducer(String topic) {
+  public static FlinkProducer getFlinkProducer(String topic) {
     return getFlinkProducer(topic, new AvroDeserializer(topic));
   }
 
-  public FlinkProducer getFlinkProducer(String topic,
+  public static FlinkProducer getFlinkProducer(String topic,
           SerializationSchema serializationSchema) {
     return new FlinkProducer(topic, serializationSchema,
             getKafkaProperties().defaultProps());
   }
 
-  public SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException {
+  public static SparkProducer getSparkProducer(String topic) throws
+          SchemaNotFoundException {
     return new SparkProducer(topic);
   }
 
-  public SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
+  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
           Collection<String> topics) {
     return new SparkConsumer(jsc, topics);
   }
@@ -236,6 +248,43 @@ public class KafkaUtil {
     return getSchema(topicName, Integer.MIN_VALUE);
   }
 
+  /**
+   * Get Avro Schema directly using topics extracted from Spark HopsWorks Jobs
+   * UI.
+   *
+   * @return
+   */
+  public Map<String, Schema> getSchemas() {
+    Schema.Parser parser = new Schema.Parser();
+    Map<String, Schema> schemas = new HashMap<>();
+    for (String topic : topics) {
+      try {
+        schemas.put(topic, parser.parse(getSchema(topic)));
+      } catch (SchemaNotFoundException ex) {
+        logger.log(Level.SEVERE, "Could not get schema for topic", ex);
+      }
+    }
+    return schemas;
+  }
+
+  /**
+   * Get record Injections for Avro messages, using topics extracted from Spark
+   * HopsWorks Jobs UI.
+   *
+   * @return
+   */
+  public static Map<String, Injection<GenericRecord, byte[]>> getRecordInjections() {
+    Map<String, Schema> schemas = KafkaUtil.getInstance().getSchemas();
+    Map<String, Injection<GenericRecord, byte[]>> recordInjections
+            = new HashMap<>();
+    for (String topic : KafkaUtil.getInstance().getTopics()) {
+      recordInjections.
+              put(topic, GenericAvroCodecs.toBinary(schemas.get(topic)));
+
+    }
+    return recordInjections;
+  }
+
   public String getSchema(String topicName, int versionId) throws
           SchemaNotFoundException {
     System.out.println("kafka.hopsutil.topicName:" + topicName);
@@ -245,45 +294,6 @@ public class KafkaUtil {
     }
     System.out.println("kafka.hopsutil.uri:" + uri);
 
-    //Setup the REST client to retrieve the schema
-//    BasicCookieStore cookieStore = new BasicCookieStore();
-//    BasicClientCookie cookie = new BasicClientCookie("JSESSIONID", jSessionId);
-//    cookie.setDomain(domain);
-//    cookie.setPath("/");
-//    cookieStore.addCookie(cookie);
-//    HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(
-//            cookieStore).build();
-//
-//    final HttpGet request = new HttpGet(uri);
-//
-//    logger.log(Level.INFO, "brokerEndpoint:{0}:", brokerEndpoint);
-//    logger.log(Level.INFO, "schema uri:{0}:", uri);
-//    HttpResponse response = null;
-//    try {
-//      response = client.execute(request);
-//    } catch (IOException ex) {
-//      logger.log(Level.SEVERE, ex.getMessage());
-//    }
-//    logger.log(Level.INFO, "schema response:", response);
-//    if (response == null) {
-//      throw new SchemaNotFoundException("Could not reach schema endpoint");
-//    } else if (response.getStatusLine().getStatusCode() != 200) {
-//      throw new SchemaNotFoundException(response.getStatusLine().getStatusCode(),
-//              "Schema is not found");
-//    }
-//    //logger.log(Level.INFO, "Response:{0}", response.toString());
-//    StringBuilder result = new StringBuilder();
-//    try {
-//      BufferedReader rd = new BufferedReader(
-//              new InputStreamReader(response.getEntity().getContent()));
-//
-//      String line;
-//      while ((line = rd.readLine()) != null) {
-//        result.append(line);
-//      }
-//    } catch (IOException ex) {
-//      logger.log(Level.SEVERE, ex.getMessage());
-//    }
     ClientConfig config = new DefaultClientConfig();
     Client client = Client.create(config);
     WebResource service = client.resource(uri);
@@ -325,6 +335,10 @@ public class KafkaUtil {
 
   public String getTrustStore() {
     return trustStore;
+  }
+
+  public static List<String> getTopics() {
+    return KafkaUtil.getInstance().topics;
   }
 
   /**
