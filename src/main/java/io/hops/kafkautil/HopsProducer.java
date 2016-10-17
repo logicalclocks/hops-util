@@ -33,7 +33,7 @@ public class HopsProducer extends HopsProcess {
    * @param topic
    * @throws SchemaNotFoundException
    */
-  HopsProducer(String topic) throws SchemaNotFoundException {
+  public HopsProducer(String topic) throws SchemaNotFoundException {
     super(HopsProcessType.PRODUCER, topic);
     Properties props = KafkaUtil.getInstance().getKafkaProperties().
             defaultProps();

@@ -7,6 +7,7 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.kafkautil.flink.FlinkConsumer;
 import io.hops.kafkautil.flink.FlinkProducer;
+import io.hops.kafkautil.spark.SparkProducer;
 import io.hops.kafkautil.spark.SparkConsumer;
 import java.util.Collection;
 import java.util.HashMap;
@@ -211,6 +212,10 @@ public class KafkaUtil {
           SerializationSchema serializationSchema) {
     return new FlinkProducer(topic, serializationSchema,
             getKafkaProperties().defaultProps());
+  }
+
+  public SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException {
+    return new SparkProducer(topic);
   }
 
   public SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
