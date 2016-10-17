@@ -255,10 +255,11 @@ public class KafkaUtil {
    * @return
    */
   public Map<String, Schema> getSchemas() {
-    Schema.Parser parser = new Schema.Parser();
+    
     Map<String, Schema> schemas = new HashMap<>();
     for (String topic : topics) {
       try {
+        Schema.Parser parser = new Schema.Parser();
         schemas.put(topic, parser.parse(getSchema(topic)));
       } catch (SchemaNotFoundException ex) {
         logger.log(Level.SEVERE, "Could not get schema for topic", ex);
