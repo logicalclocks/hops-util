@@ -2,23 +2,16 @@ package io.hops.kafkautil;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
-import java.io.IOException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-import org.apache.hadoop.fs.FSDataOutputStream;
 import java.util.Collections; 
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 /**
  * Utility class to consume messages from the Kafka service.
@@ -103,21 +96,21 @@ public class HopsConsumer extends HopsProcess implements Runnable {
         }
       }
       consumer.close();
-      if (path != null && consumed.length() > 0) {
-        try {
-          Configuration hdConf = new Configuration();
-          Path hdPath = new org.apache.hadoop.fs.Path(path);
-          FileSystem hdfs = hdPath.getFileSystem(hdConf);
-          FSDataOutputStream stream = hdfs.create(hdPath);
-          stream.write(consumed.toString().getBytes());
-          stream.flush();
-          stream.close();
-
-        } catch (IOException ex) {
-          Logger.getLogger(HopsConsumer.class.getName()).
-                  log(Level.SEVERE, null, ex);
-        }
-      }
+//      if (path != null && consumed.length() > 0) {
+//        try {
+//          Configuration hdConf = new Configuration();
+//          Path hdPath = new org.apache.hadoop.fs.Path(path);
+//          FileSystem hdfs = hdPath.getFileSystem(hdConf);
+//          FSDataOutputStream stream = hdfs.create(hdPath);
+//          stream.write(consumed.toString().getBytes());
+//          stream.flush();
+//          stream.close();
+//
+//        } catch (IOException ex) {
+//          Logger.getLogger(HopsConsumer.class.getName()).
+//                  log(Level.SEVERE, null, ex);
+//        }
+//      }
     }
   }
 
