@@ -62,8 +62,10 @@ public class KafkaUtil {
 
   /**
    * Setup the Kafka instance.
+   *
+   * @return
    */
-  public void setup() {
+  public synchronized KafkaUtil setup() {
     Properties sysProps = System.getProperties();
     System.out.println("SysProps:" + sysProps);
 
@@ -79,6 +81,7 @@ public class KafkaUtil {
     this.topics = Arrays.asList(sysProps.getProperty(
             "hopsworks.kafka.job.topics").
             split(","));
+    return this;
   }
 
   /**
@@ -88,8 +91,9 @@ public class KafkaUtil {
    * <p>
    * @param endpoint
    * @param domain
+   * @return
    */
-  public void setup(String endpoint, String domain) {
+  public synchronized KafkaUtil setup(String endpoint, String domain) {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
@@ -100,6 +104,7 @@ public class KafkaUtil {
     this.keyStore = "kafka_k_certificate";
     this.trustStore = "kafka_t_certificate";
     isSetup = true;
+    return this;
   }
 
   /**
@@ -113,8 +118,10 @@ public class KafkaUtil {
    * @param keyStore
    * @param trustStore
    * @param domain
+   * @return
    */
-  public void setup(String topicName, String restEndpoint, String keyStore,
+  public synchronized KafkaUtil setup(String topicName, String restEndpoint,
+          String keyStore,
           String trustStore, String domain) {
     Properties sysProps = System.getProperties();
 
@@ -126,6 +133,7 @@ public class KafkaUtil {
     this.keyStore = keyStore;
     this.trustStore = trustStore;
     isSetup = true;
+    return this;
   }
 
   /**
@@ -142,8 +150,10 @@ public class KafkaUtil {
    * @param restEndpoint
    * @param keyStore
    * @param trustStore
+   * @return
    */
-  public void setup(String jSessionId, int projectId, String topicName,
+  public synchronized KafkaUtil setup(String jSessionId, int projectId,
+          String topicName,
           String domain, String brokerEndpoint, String restEndpoint,
           String keyStore, String trustStore) {
     this.jSessionId = jSessionId;
@@ -153,6 +163,7 @@ public class KafkaUtil {
     this.keyStore = keyStore;
     this.trustStore = trustStore;
     isSetup = true;
+    return this;
   }
 
   /**
@@ -168,8 +179,10 @@ public class KafkaUtil {
    * @param restEndpoint
    * @param keyStore
    * @param trustStore
+   * @return
    */
-  public void setup(String jSessionId, int projectId, String topicName,
+  public synchronized KafkaUtil setup(String jSessionId, int projectId,
+          String topicName,
           String brokerEndpoint, String restEndpoint,
           String keyStore, String trustStore) {
     this.jSessionId = jSessionId;
@@ -179,12 +192,19 @@ public class KafkaUtil {
     this.keyStore = keyStore;
     this.trustStore = trustStore;
     isSetup = true;
+    return this;
   }
 
+  /**
+   * Instantiates and provides a singleton KafkaUtil. Flink application must
+   * then call the setup() method.
+   *
+   * @return
+   */
   public static KafkaUtil getInstance() {
     if (instance == null) {
       instance = new KafkaUtil();
-      if (!isSetup) {
+      if (!isSetup && System.getProperties().containsKey("kafka.sessionid")) {
         instance.setup();
       }
     }
@@ -255,7 +275,7 @@ public class KafkaUtil {
    * @return
    */
   public Map<String, Schema> getSchemas() {
-    
+
     Map<String, Schema> schemas = new HashMap<>();
     for (String topic : topics) {
       try {

@@ -22,23 +22,6 @@
       <artifactId>kafka_2.11</artifactId>
       <version>0.10.0.1</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.yammer.metrics/metrics-core -->
-<!--    <dependency>
-      <groupId>com.yammer.metrics</groupId>
-      <artifactId>metrics-core</artifactId>
-      <version>2.2.0</version>
-    </dependency>-->
-<!--    <dependency>
-      <groupId>com.101tec</groupId>
-      <artifactId>zkclient</artifactId>
-      <version>0.9</version>
-      <type>jar</type>
-    </dependency>-->
-    <!--    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.2</version>
-    </dependency>-->
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
@@ -96,7 +79,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-streaming-java_2.10</artifactId>
+      <artifactId>flink-streaming-java_2.11</artifactId>
       <version>1.0.3</version>
       <type>jar</type>
       <exclusions>
@@ -114,24 +97,12 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <!--    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-connector-kafka-base_2.10</artifactId>
-      <version>1.0.3</version>
-      <type>jar</type>
-    </dependency>-->
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-connector-kafka-0.9_2.10</artifactId>
+      <artifactId>flink-connector-kafka-0.9_2.11</artifactId>
       <version>1.0.3</version>
       <type>jar</type>
     </dependency>
-<!--    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-shaded-hadoop2</artifactId>
-      <version>1.0.3</version>
-      <type>jar</type>
-    </dependency>-->
   </dependencies>
   
   <distributionManagement>
@@ -168,7 +139,6 @@
                 <excludes>
                   <exclude>junit:junit</exclude>
                   <exclude>log4j:log4j:jar:</exclude>
-                  <!--<exclude>org.apache.flink:*:*:*</exclude>-->
                 </excludes>
               </artifactSet>
             </configuration>

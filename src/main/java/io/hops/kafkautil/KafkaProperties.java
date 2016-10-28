@@ -1,9 +1,9 @@
 package io.hops.kafkautil;
 
+import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import joptsimple.internal.Strings;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
