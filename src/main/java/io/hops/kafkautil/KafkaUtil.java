@@ -36,7 +36,7 @@ import org.json.JSONObject;
  */
 public class KafkaUtil {
 
-  private static final Logger logger = Logger.getLogger(KafkaUtil.class.
+  private static final Logger LOG = Logger.getLogger(KafkaUtil.class.
           getName());
 
   public static final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
@@ -69,7 +69,6 @@ public class KafkaUtil {
    */
   public synchronized KafkaUtil setup() {
     Properties sysProps = System.getProperties();
-    System.out.println("SysProps:" + sysProps);
 
     //validate arguments first
     this.jSessionId = sysProps.getProperty("kafka.sessionid");
@@ -192,7 +191,6 @@ public class KafkaUtil {
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
-    System.out.println("topics:"+topics);
     this.topics = Arrays.asList(topics.split(File.pathSeparator));
     this.keyStore = keyStore;
     this.trustStore = trustStore;
@@ -207,15 +205,12 @@ public class KafkaUtil {
    * @return
    */
   public static KafkaUtil getInstance() {
-   
     if (instance == null) {
       instance = new KafkaUtil();
       if (!isSetup && System.getProperties().containsKey("kafka.sessionid")) {
         instance.setup();
       }
     }
-    System.out.println("instance.restendpoint:"+instance.restEndpoint);
-    System.out.println("instance.topics:"+instance.topics);
     return instance;
   }
 
@@ -290,7 +285,7 @@ public class KafkaUtil {
         Schema.Parser parser = new Schema.Parser();
         schemas.put(topic, parser.parse(getSchema(topic)));
       } catch (SchemaNotFoundException ex) {
-        logger.log(Level.SEVERE, "Could not get schema for topic", ex);
+        LOG.log(Level.SEVERE, "Could not get schema for topic", ex);
       }
     }
     return schemas;
@@ -343,7 +338,7 @@ public class KafkaUtil {
   }
 
   public static Logger getLogger() {
-    return logger;
+    return LOG;
   }
 
   public String getjSessionId() {
