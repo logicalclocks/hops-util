@@ -141,7 +141,6 @@ public class KafkaProperties {
     for (final String name : props.stringPropertyNames()) {
       propsMap.put(name, props.getProperty(name));
     }
-    System.out.println("propsMap:" + propsMap);
     return propsMap;
   }
 }

@@ -16,7 +16,7 @@ public class FlinkProducer extends FlinkKafkaProducer09 {
           Properties props) {
     super(topic, new KeyedSerializationSchemaWrapper<>(serializationSchema),
             props);
-
+  
   }
 
 }

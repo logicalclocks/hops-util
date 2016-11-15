@@ -11,6 +11,7 @@ import io.hops.kafkautil.flink.FlinkConsumer;
 import io.hops.kafkautil.flink.FlinkProducer;
 import io.hops.kafkautil.spark.SparkProducer;
 import io.hops.kafkautil.spark.SparkConsumer;
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,12 +39,13 @@ public class KafkaUtil {
   private static final Logger logger = Logger.getLogger(KafkaUtil.class.
           getName());
 
-  public final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
-  public final String KAFKA_PROJECTID_ENV_VAR = "kafka.projectid";
-  public final String KAFKA_BROKERADDR_ENV_VAR = "kafka.brokeraddress";
-  public final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
-  public final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
-  public final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
+  public static final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
+  public static final String KAFKA_PROJECTID_ENV_VAR = "kafka.projectid";
+  public static final String KAFKA_BROKERADDR_ENV_VAR = "kafka.brokeraddress";
+  public static final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
+  public static final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
+  public static final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
+  public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
 
   private static KafkaUtil instance = null;
   private static boolean isSetup;
@@ -78,9 +80,11 @@ public class KafkaUtil {
     this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
     this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");
     isSetup = true;
-    this.topics = Arrays.asList(sysProps.getProperty(
-            "hopsworks.kafka.job.topics").
-            split(","));
+    //Spark Kafka topics
+    if (sysProps.containsKey(KAFKA_TOPICS_ENV_VAR)) {
+      this.topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).
+              split(File.pathSeparator));
+    }
     return this;
   }
 
@@ -174,7 +178,7 @@ public class KafkaUtil {
    *
    * @param jSessionId
    * @param projectId
-   * @param topicName
+   * @param topics
    * @param brokerEndpoint
    * @param restEndpoint
    * @param keyStore
@@ -182,13 +186,14 @@ public class KafkaUtil {
    * @return
    */
   public synchronized KafkaUtil setup(String jSessionId, int projectId,
-          String topicName,
-          String brokerEndpoint, String restEndpoint,
+          String topics,String brokerEndpoint, String restEndpoint,
           String keyStore, String trustStore) {
     this.jSessionId = jSessionId;
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
+    System.out.println("topics:"+topics);
+    this.topics = Arrays.asList(topics.split(File.pathSeparator));
     this.keyStore = keyStore;
     this.trustStore = trustStore;
     isSetup = true;
@@ -202,12 +207,15 @@ public class KafkaUtil {
    * @return
    */
   public static KafkaUtil getInstance() {
+   
     if (instance == null) {
       instance = new KafkaUtil();
       if (!isSetup && System.getProperties().containsKey("kafka.sessionid")) {
         instance.setup();
       }
     }
+    System.out.println("instance.restendpoint:"+instance.restEndpoint);
+    System.out.println("instance.topics:"+instance.topics);
     return instance;
   }
 
@@ -225,7 +233,7 @@ public class KafkaUtil {
     return new HopsProducer(topic);
   }
 
-  public FlinkConsumer getFlinkConsumer(String topic) {
+  public static FlinkConsumer getFlinkConsumer(String topic) {
     return getFlinkConsumer(topic, new AvroDeserializer(topic));
   }
 
@@ -298,7 +306,7 @@ public class KafkaUtil {
     Map<String, Schema> schemas = KafkaUtil.getInstance().getSchemas();
     Map<String, Injection<GenericRecord, byte[]>> recordInjections
             = new HashMap<>();
-    for (String topic : KafkaUtil.getInstance().getTopics()) {
+    for (String topic : KafkaUtil.getTopics()) {
       recordInjections.
               put(topic, GenericAvroCodecs.toBinary(schemas.get(topic)));
 
@@ -369,7 +377,7 @@ public class KafkaUtil {
    * @param propsStr
    * @return
    */
-  public Map<String, String> getFlinkKafkaProps(String propsStr) {
+  public static Map<String, String> getFlinkKafkaProps(String propsStr) {
     propsStr = propsStr.replace("-D", "").replace("\"", "").replace("'", "");
     Map<String, String> props = new HashMap<>();
     String[] propsArray = propsStr.split(",");

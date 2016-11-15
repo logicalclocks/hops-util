@@ -32,7 +32,7 @@ public class SparkConsumer {
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     this.jsc = jsc;
     this.topics = topics;
-    this.kafkaParams = KafkaUtil.getInstance().getKafkaProperties().
+    this.kafkaParams = KafkaUtil.getKafkaProperties().
             getSparkConsumerConfigMap();
   }
 
