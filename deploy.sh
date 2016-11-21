@@ -12,15 +12,15 @@ echo "Deploying version: $VERSION ... to maven repository"
 echo ""
 mvn  deploy:deploy-file -Durl=scpexe://kompics.i.sics.se/home/maven/repository \
                       -DrepositoryId=sics-release-repository \
-                      -Dfile=./target/kafka-util-${VERSION}.jar \
+                      -Dfile=./target/hopsworks-util-${VERSION}.jar \
                       -DgroupId=io.hops \
-                      -DartifactId=kafka-util \
+                      -DartifactId=hopsworks-util \
                       -Dversion=${VERSION} \
                       -Dpackaging=jar \
                       -DpomFile=./pom.xml \
--DgeneratePom.description="HopsWorks Kafka Utility"
+-DgeneratePom.description="HopsWorks Services Utility"
 
 echo ""
-echo "Deploying kafa-util-${VERSION}.jar to snurran.sics.se"
+echo "Deploying hopsworks-util-${VERSION}.jar to snurran.sics.se"
 echo ""
-scp target/kafka-util-${VERSION}.jar glassfish@snurran.sics.se:/var/www/hops
+scp target/hopworks-util-${VERSION}.jar glassfish@snurran.sics.se:/var/www/hops

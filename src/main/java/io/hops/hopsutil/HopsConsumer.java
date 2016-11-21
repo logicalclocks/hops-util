@@ -1,4 +1,4 @@
-package io.hops.kafkautil;
+package io.hops.hopsutil;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
@@ -24,7 +24,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           getName());
 
   private KafkaConsumer<Integer, String> consumer;
-  KafkaUtil hopsKafkaUtil = KafkaUtil.getInstance();
+  HopsUtil hopsKafkaUtil = HopsUtil.getInstance();
   private boolean consume;
   private BlockingQueue<String> messages;
   private boolean callback = false;
@@ -33,7 +33,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
   HopsConsumer(String topic) throws SchemaNotFoundException {
     super(HopsProcessType.CONSUMER, topic);
     //Get Consumer properties
-    //Properties props = KafkaUtil.getInstance().getConsumerConfig();
+    //Properties props = HopsUtil.getInstance().getConsumerConfig();
     //consumer = new KafkaConsumer<>(props);
   }
 
@@ -45,7 +45,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
   public void consume(String path) {
     this.consume = true;
     //new Thread(this).start();
-    Properties props = KafkaUtil.getInstance().getKafkaProperties().getConsumerConfig();
+    Properties props = HopsUtil.getInstance().getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
@@ -140,7 +140,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   @Override
   public void run() {
-    Properties props = KafkaUtil.getInstance().getKafkaProperties().getConsumerConfig();
+    Properties props = HopsUtil.getInstance().getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));

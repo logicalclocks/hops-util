@@ -1,4 +1,4 @@
-package io.hops.kafkautil;
+package io.hops.hopsutil;
 
 import java.io.Serializable;
 import java.util.logging.Level;
@@ -16,7 +16,7 @@ public abstract class HopsProcess implements Serializable{
   public HopsProcessType type;
   final String topic;
   final Schema schema;
-  private final KafkaUtil hopsKafkaUtil = KafkaUtil.getInstance();
+  private final HopsUtil hopsKafkaUtil = HopsUtil.getInstance();
 
   /**
    *

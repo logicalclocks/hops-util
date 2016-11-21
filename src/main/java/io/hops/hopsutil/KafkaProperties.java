@@ -1,4 +1,4 @@
-package io.hops.kafkautil;
+package io.hops.hopsutil;
 
 import com.google.common.base.Strings;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class KafkaProperties {
   public Properties defaultProps() {
 
     Properties props = new Properties();
-    props.setProperty("bootstrap.servers", KafkaUtil.getInstance().
+    props.setProperty("bootstrap.servers", HopsUtil.getInstance().
             getBrokerEndpoint());
     props.setProperty("key.serializer",
             "org.apache.kafka.common.serialization.StringSerializer");
@@ -35,10 +35,10 @@ public class KafkaProperties {
 
     //configure the ssl parameters
     props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-    props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, KafkaUtil.
+    props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
             getInstance().getTrustStore());
     props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PWD);
-    props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
+    props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
             getInstance().getKeyStore());
     props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PWD);
 
@@ -51,7 +51,7 @@ public class KafkaProperties {
    */
   public Properties getProducerConfig() {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaUtil.getInstance().
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getInstance().
             getBrokerEndpoint());
     props.put("client.id", "DemoProducer");
     props.put("key.serializer",
@@ -60,13 +60,13 @@ public class KafkaProperties {
             "org.apache.kafka.common.serialization.StringSerializer");
 
     //configure the ssl parameters
-    if (!Strings.isNullOrEmpty(KafkaUtil.getInstance().getTrustStore())
-            && !Strings.isNullOrEmpty(KafkaUtil.getInstance().getKeyStore())) {
+    if (!Strings.isNullOrEmpty(HopsUtil.getInstance().getTrustStore())
+            && !Strings.isNullOrEmpty(HopsUtil.getInstance().getKeyStore())) {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, KafkaUtil.
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getTrustStore());
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
-      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getKeyStore());
       props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
     }
@@ -79,7 +79,7 @@ public class KafkaProperties {
    */
   public Properties getConsumerConfig() {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaUtil.getInstance().
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getInstance().
             getBrokerEndpoint());
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
@@ -91,13 +91,13 @@ public class KafkaProperties {
             "org.apache.kafka.common.serialization.StringDeserializer");
 
     //configure the ssl parameters
-    if (!Strings.isNullOrEmpty(KafkaUtil.getInstance().getTrustStore())
-            && !Strings.isNullOrEmpty(KafkaUtil.getInstance().getKeyStore())) {
+    if (!Strings.isNullOrEmpty(HopsUtil.getInstance().getTrustStore())
+            && !Strings.isNullOrEmpty(HopsUtil.getInstance().getKeyStore())) {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, KafkaUtil.
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getTrustStore());
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
-      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getKeyStore());
       props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
     }
@@ -111,7 +111,7 @@ public class KafkaProperties {
    */
   public Properties getSparkConsumerConfig() {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaUtil.getInstance().
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getInstance().
             getBrokerEndpoint());
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
@@ -122,13 +122,13 @@ public class KafkaProperties {
             ByteArrayDeserializer.class.getCanonicalName());
 
     //configure the ssl parameters
-    if (!Strings.isNullOrEmpty(KafkaUtil.getInstance().getTrustStore())
-            && !Strings.isNullOrEmpty(KafkaUtil.getInstance().getKeyStore())) {
+    if (!Strings.isNullOrEmpty(HopsUtil.getInstance().getTrustStore())
+            && !Strings.isNullOrEmpty(HopsUtil.getInstance().getKeyStore())) {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, KafkaUtil.
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getTrustStore());
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
-      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KafkaUtil.
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getKeyStore());
       props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
     }

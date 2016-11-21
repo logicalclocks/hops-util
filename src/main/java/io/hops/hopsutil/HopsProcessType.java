@@ -1,4 +1,4 @@
-package io.hops.kafkautil;
+package io.hops.hopsutil;
 
 import java.io.Serializable;
 

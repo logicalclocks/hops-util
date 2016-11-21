@@ -1,7 +1,7 @@
-package io.hops.kafkautil.spark;
+package io.hops.hopsutil.spark;
 
-import io.hops.kafkautil.HopsProducer;
-import io.hops.kafkautil.SchemaNotFoundException;
+import io.hops.hopsutil.HopsProducer;
+import io.hops.hopsutil.SchemaNotFoundException;
 
 /**
  *

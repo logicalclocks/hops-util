@@ -1,4 +1,4 @@
-package io.hops.kafkautil;
+package io.hops.hopsutil;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
@@ -33,7 +33,7 @@ public class AvroDeserializer implements DeserializationSchema<String>,
 
   public AvroDeserializer(String topicName) {
     try {
-      schemaJson = KafkaUtil.getInstance().getSchema(topicName);
+      schemaJson = HopsUtil.getInstance().getSchema(topicName);
     } catch (SchemaNotFoundException ex) {
       Logger.getLogger(AvroDeserializer.class.getName()).log(Level.SEVERE, null,
               ex);
