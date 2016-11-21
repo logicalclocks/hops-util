@@ -1,4 +1,4 @@
-package io.hops.hopsutil.flink;
+package io.hops.util.flink;
 
 import java.util.Properties;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;

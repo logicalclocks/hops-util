@@ -1,4 +1,4 @@
-package io.hops.hopsutil;
+package io.hops.util;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -7,10 +7,10 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
-import io.hops.hopsutil.flink.FlinkConsumer;
-import io.hops.hopsutil.flink.FlinkProducer;
-import io.hops.hopsutil.spark.SparkProducer;
-import io.hops.hopsutil.spark.SparkConsumer;
+import io.hops.util.flink.FlinkConsumer;
+import io.hops.util.flink.FlinkProducer;
+import io.hops.util.spark.SparkProducer;
+import io.hops.util.spark.SparkConsumer;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;

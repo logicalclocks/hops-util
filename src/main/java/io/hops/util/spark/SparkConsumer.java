@@ -1,6 +1,6 @@
-package io.hops.hopsutil.spark;
+package io.hops.util.spark;
 
-import io.hops.hopsutil.Util;
+import io.hops.util.Util;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -13,6 +13,8 @@ import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.apache.spark.streaming.kafka010.LocationStrategy;
 import org.apache.spark.streaming.kafka010.OffsetRange;
+import org.slf4j.Logger;
+import scala.Function0;
 
 /**
  *
@@ -81,6 +83,62 @@ public class SparkConsumer {
           JavaSparkContext jsc,
           OffsetRange[] osr, LocationStrategy ls) {
     return KafkaUtils.createRDD(jsc, kafkaParams, osr, ls);
+  }
+
+  public void initializeLogIfNecessary(boolean init) {
+    KafkaUtils.initializeLogIfNecessary(init);
+  }
+
+  public boolean isTraceEnabled() {
+    return KafkaUtils.isTraceEnabled();
+  }
+
+  public Logger log() {
+    return KafkaUtils.log();
+  }
+
+  public String logName() {
+    return KafkaUtils.logName();
+  }
+
+  public void logDebug(Function0<String> fun) {
+    KafkaUtils.logDebug(fun);
+  }
+
+  public void logDebug(Function0<String> fun, Throwable thr) {
+    KafkaUtils.logDebug(fun, thr);
+  }
+
+  public void logError(Function0<String> fun) {
+    KafkaUtils.logError(fun);
+  }
+
+  public void logError(Function0<String> fun, Throwable thr) {
+    KafkaUtils.logError(fun, thr);
+  }
+
+  public void logInfo(Function0<String> fun) {
+    KafkaUtils.logInfo(fun);
+  }
+
+  public void logInfo(Function0<String> fun, Throwable thr) {
+    KafkaUtils.logInfo(fun, thr);
+  }
+
+  public void logTrace(Function0<String> fun) {
+    KafkaUtils.logTrace(fun);
+  }
+
+  public void logTrace(Function0<String> fun, Throwable thr) {
+    KafkaUtils.logTrace(fun, thr);
+  }
+
+  public void logWarning(Function0<String> fun) {
+    KafkaUtils.logWarning(fun);
+  }
+
+  public void logWarning(Function0<String> fun, Throwable thr) {
+    KafkaUtils.logWarning(fun, thr);
   }
 
 }

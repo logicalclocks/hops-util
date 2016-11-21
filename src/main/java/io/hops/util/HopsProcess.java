@@ -1,4 +1,4 @@
-package io.hops.hopsutil;
+package io.hops.util;
 
 import java.io.Serializable;
 import java.util.logging.Level;

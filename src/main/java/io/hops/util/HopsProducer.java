@@ -1,4 +1,4 @@
-package io.hops.hopsutil;
+package io.hops.util;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;

@@ -1,4 +1,4 @@
-package io.hops.hopsutil;
+package io.hops.util;
 
 import com.google.common.base.Strings;
 import java.util.HashMap;

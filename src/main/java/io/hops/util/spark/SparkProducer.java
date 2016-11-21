@@ -1,7 +1,7 @@
-package io.hops.hopsutil.spark;
+package io.hops.util.spark;
 
-import io.hops.hopsutil.HopsProducer;
-import io.hops.hopsutil.SchemaNotFoundException;
+import io.hops.util.HopsProducer;
+import io.hops.util.SchemaNotFoundException;
 
 /**
  *
