@@ -1,6 +1,6 @@
 package io.hops.hopsutil.spark;
 
-import io.hops.hopsutil.HopsUtil;
+import io.hops.hopsutil.Util;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -32,7 +32,7 @@ public class SparkConsumer {
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     this.jsc = jsc;
     this.topics = topics;
-    this.kafkaParams = HopsUtil.getKafkaProperties().
+    this.kafkaParams = Util.getKafkaProperties().
             getSparkConsumerConfigMap();
   }
 

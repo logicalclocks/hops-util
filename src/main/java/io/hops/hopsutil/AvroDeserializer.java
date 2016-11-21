@@ -33,7 +33,7 @@ public class AvroDeserializer implements DeserializationSchema<String>,
 
   public AvroDeserializer(String topicName) {
     try {
-      schemaJson = HopsUtil.getInstance().getSchema(topicName);
+      schemaJson = Util.getInstance().getSchema(topicName);
     } catch (SchemaNotFoundException ex) {
       Logger.getLogger(AvroDeserializer.class.getName()).log(Level.SEVERE, null,
               ex);
