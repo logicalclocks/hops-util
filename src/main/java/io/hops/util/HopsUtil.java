@@ -34,11 +34,12 @@ import org.json.JSONObject;
  * with Kafka.
  * <p>
  */
-public class Util {
+public class HopsUtil {
 
-  private static final Logger LOG = Logger.getLogger(Util.class.
+  private static final Logger LOG = Logger.getLogger(HopsUtil.class.
           getName());
 
+  public static final String KAFKA_FLINK_PARAMS = "kafka_params";
   public static final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
   public static final String KAFKA_PROJECTID_ENV_VAR = "kafka.projectid";
   public static final String KAFKA_BROKERADDR_ENV_VAR = "kafka.brokeraddress";
@@ -47,7 +48,7 @@ public class Util {
   public static final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
 
-  private static Util instance = null;
+  private static HopsUtil instance = null;
   private static boolean isSetup;
 
   private String jSessionId;
@@ -58,7 +59,7 @@ public class Util {
   private String trustStore;
   private List<String> topics;
 
-  private Util() {
+  private HopsUtil() {
 
   }
 
@@ -67,7 +68,7 @@ public class Util {
    *
    * @return
    */
-  public synchronized Util setup() {
+  public synchronized HopsUtil setup() {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
@@ -96,7 +97,7 @@ public class Util {
    * @param domain
    * @return
    */
-  public synchronized Util setup(String endpoint, String domain) {
+  public synchronized HopsUtil setup(String endpoint, String domain) {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
@@ -123,7 +124,7 @@ public class Util {
    * @param domain
    * @return
    */
-  public synchronized Util setup(String topicName, String restEndpoint,
+  public synchronized HopsUtil setup(String topicName, String restEndpoint,
           String keyStore,
           String trustStore, String domain) {
     Properties sysProps = System.getProperties();
@@ -155,7 +156,7 @@ public class Util {
    * @param trustStore
    * @return
    */
-  public synchronized Util setup(String jSessionId, int projectId,
+  public synchronized HopsUtil setup(String jSessionId, int projectId,
           String topicName,
           String domain, String brokerEndpoint, String restEndpoint,
           String keyStore, String trustStore) {
@@ -184,8 +185,8 @@ public class Util {
    * @param trustStore
    * @return
    */
-  public synchronized Util setup(String jSessionId, int projectId,
-          String topics,String brokerEndpoint, String restEndpoint,
+  public synchronized HopsUtil setup(String jSessionId, int projectId,
+          String topics, String brokerEndpoint, String restEndpoint,
           String keyStore, String trustStore) {
     this.jSessionId = jSessionId;
     this.projectId = projectId;
@@ -199,14 +200,34 @@ public class Util {
   }
 
   /**
-   * Instantiates and provides a singleton Util. Flink application must
+   * Setup the Kafka instance by using a Map of parameters.
+   *
+   * @param params
+   * @return
+   */
+  public synchronized HopsUtil setup(Map<String, String> params) {
+    this.jSessionId = params.get(KAFKA_SESSIONID_ENV_VAR);
+    this.projectId = Integer.parseInt(params.get(HopsUtil.KAFKA_PROJECTID_ENV_VAR));
+    this.brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
+    this.restEndpoint = params.get(HopsUtil.KAFKA_RESTENDPOINT)
+            + "/hopsworks/api/project";
+    this.topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
+            File.pathSeparator));
+    this.keyStore = params.get(HopsUtil.KAFKA_K_CERTIFICATE_ENV_VAR);
+    this.trustStore = params.get(HopsUtil.KAFKA_T_CERTIFICATE_ENV_VAR);
+    isSetup = true;
+    return this;
+  }
+
+  /**
+   * Instantiates and provides a singleton HopsUtil. Flink application must
    * then call the setup() method.
    *
    * @return
    */
-  public static Util getInstance() {
+  public static HopsUtil getInstance() {
     if (instance == null) {
-      instance = new Util();
+      instance = new HopsUtil();
       if (!isSetup && System.getProperties().containsKey("kafka.sessionid")) {
         instance.setup();
       }
@@ -298,10 +319,10 @@ public class Util {
    * @return
    */
   public static Map<String, Injection<GenericRecord, byte[]>> getRecordInjections() {
-    Map<String, Schema> schemas = Util.getInstance().getSchemas();
+    Map<String, Schema> schemas = HopsUtil.getInstance().getSchemas();
     Map<String, Injection<GenericRecord, byte[]>> recordInjections
             = new HashMap<>();
-    for (String topic : Util.getTopics()) {
+    for (String topic : HopsUtil.getTopics()) {
       recordInjections.
               put(topic, GenericAvroCodecs.toBinary(schemas.get(topic)));
 
@@ -362,7 +383,7 @@ public class Util {
   }
 
   public static List<String> getTopics() {
-    return Util.getInstance().topics;
+    return HopsUtil.getInstance().topics;
   }
 
   /**

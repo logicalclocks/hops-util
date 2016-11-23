@@ -16,7 +16,7 @@ public abstract class HopsProcess implements Serializable{
   public HopsProcessType type;
   final String topic;
   final Schema schema;
-  private final Util hopsKafkaUtil = Util.getInstance();
+  private final HopsUtil hopsKafkaUtil = HopsUtil.getInstance();
 
   /**
    *
