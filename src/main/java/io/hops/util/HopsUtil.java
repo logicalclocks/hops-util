@@ -40,13 +40,20 @@ public class HopsUtil {
           getName());
 
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
-  public static final String KAFKA_SESSIONID_ENV_VAR = "kafka.sessionid";
-  public static final String KAFKA_PROJECTID_ENV_VAR = "kafka.projectid";
-  public static final String KAFKA_BROKERADDR_ENV_VAR = "kafka.brokeraddress";
+  public static final String KAFKA_SESSIONID_ENV_VAR = "hopsworks.sessionid";
+  public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
+  public static final String KAFKA_BROKERADDR_ENV_VAR
+          = "hopsworks.kafka.brokeraddress";
   public static final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
   public static final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
-  public static final String KAFKA_RESTENDPOINT = "kafka.restendpoint";
+  public static final String KAFKA_RESTENDPOINT = "hopsworks.kafka.restendpoint";
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
+  public static final String KAFKA_CONSUMER_GROUPS
+          = "hopsworks.kafka.consumergroups";
+  public static final String KEYSTORE_PWD_ENV_VAR
+          = "hopsworks.keystore.password";
+  public static final String TRUSTSTORE_PWD_ENV_VAR
+          = "hopsworks.truststore.password";
 
   private static HopsUtil instance = null;
   private static boolean isSetup;
@@ -57,7 +64,10 @@ public class HopsUtil {
   private String restEndpoint;
   private String keyStore;
   private String trustStore;
+  private String keystorePwd;
+  private String truststorePwd;
   private List<String> topics;
+  private List<String> consumerGroups;
 
   private HopsUtil() {
 
@@ -70,21 +80,28 @@ public class HopsUtil {
    */
   public synchronized HopsUtil setup() {
     Properties sysProps = System.getProperties();
-
+    System.out.println("sysProps:" + sysProps);
     //validate arguments first
-    this.jSessionId = sysProps.getProperty("kafka.sessionid");
-    this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
-    this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");//"10.0.2.15:9091";
-    this.restEndpoint = sysProps.getProperty("kafka.restendpoint")
+    this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
+    this.projectId = Integer.parseInt(sysProps.getProperty(
+            KAFKA_PROJECTID_ENV_VAR));
+    this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
+    this.restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT)
             + "/hopsworks/api/project";
-    this.keyStore = "kafka_k_certificate";//sysProps.getProperty("kafka_k_certificate");
-    this.trustStore = "kafka_t_certificate";//"sysProps.getProperty("kafka_t_certificate");
+    this.keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
+    this.trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
+    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
     //Spark Kafka topics
-    if (sysProps.containsKey(KAFKA_TOPICS_ENV_VAR)) {
-      this.topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).
+    this.topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).
+            split(File.pathSeparator));
+    if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
+      this.consumerGroups = Arrays.asList(sysProps.getProperty(
+              KAFKA_CONSUMER_GROUPS).
               split(File.pathSeparator));
     }
+    System.out.println("consumerGroups:" + sysProps);
     return this;
   }
 
@@ -101,12 +118,15 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
-    this.jSessionId = sysProps.getProperty("kafka.sessionid");
-    this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
-    this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
+    this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
+    this.projectId = Integer.parseInt(sysProps.getProperty(
+            KAFKA_PROJECTID_ENV_VAR));
+    this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = endpoint + "/hopsworks/api/project";
-    this.keyStore = "kafka_k_certificate";
-    this.trustStore = "kafka_t_certificate";
+    this.keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
+    this.trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
+    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
     return this;
   }
@@ -130,12 +150,15 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
-    this.jSessionId = sysProps.getProperty("kafka.sessionid");
-    this.projectId = Integer.parseInt(sysProps.getProperty("kafka.projectid"));
-    this.brokerEndpoint = sysProps.getProperty("kafka.brokeraddress");
+    this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
+    this.projectId = Integer.parseInt(sysProps.getProperty(
+            KAFKA_PROJECTID_ENV_VAR));
+    this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
     this.trustStore = trustStore;
+    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
     return this;
   }
@@ -149,23 +172,26 @@ public class HopsUtil {
    * @param jSessionId
    * @param projectId
    * @param topicName
-   * @param domain
    * @param brokerEndpoint
    * @param restEndpoint
    * @param keyStore
    * @param trustStore
+   * @param keystorePwd
+   * @param truststorePwd
    * @return
    */
   public synchronized HopsUtil setup(String jSessionId, int projectId,
-          String topicName,
-          String domain, String brokerEndpoint, String restEndpoint,
-          String keyStore, String trustStore) {
+          String topicName, String brokerEndpoint, String restEndpoint,
+          String keyStore, String trustStore, String keystorePwd,
+          String truststorePwd) {
     this.jSessionId = jSessionId;
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
     this.trustStore = trustStore;
+    this.keystorePwd = keystorePwd;
+    this.trustStore = truststorePwd;
     isSetup = true;
     return this;
   }
@@ -179,22 +205,31 @@ public class HopsUtil {
    * @param jSessionId
    * @param projectId
    * @param topics
+   * @param consumerGroups
    * @param brokerEndpoint
    * @param restEndpoint
    * @param keyStore
    * @param trustStore
+   * @param keystorePwd
+   * @param truststorePwd
    * @return
    */
   public synchronized HopsUtil setup(String jSessionId, int projectId,
-          String topics, String brokerEndpoint, String restEndpoint,
-          String keyStore, String trustStore) {
+          String topics, String consumerGroups, String brokerEndpoint,
+          String restEndpoint,
+          String keyStore, String trustStore, String keystorePwd,
+          String truststorePwd) {
     this.jSessionId = jSessionId;
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.topics = Arrays.asList(topics.split(File.pathSeparator));
+    this.consumerGroups = Arrays.
+            asList(consumerGroups.split(File.pathSeparator));
     this.keyStore = keyStore;
     this.trustStore = trustStore;
+    this.keystorePwd = keystorePwd;
+    this.truststorePwd = truststorePwd;
     isSetup = true;
     return this;
   }
@@ -207,14 +242,20 @@ public class HopsUtil {
    */
   public synchronized HopsUtil setup(Map<String, String> params) {
     this.jSessionId = params.get(KAFKA_SESSIONID_ENV_VAR);
-    this.projectId = Integer.parseInt(params.get(HopsUtil.KAFKA_PROJECTID_ENV_VAR));
+    this.projectId = Integer.parseInt(params.get(
+            HopsUtil.KAFKA_PROJECTID_ENV_VAR));
     this.brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = params.get(HopsUtil.KAFKA_RESTENDPOINT)
             + "/hopsworks/api/project";
     this.topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
             File.pathSeparator));
+    this.consumerGroups = Arrays.asList(params.get(
+            HopsUtil.KAFKA_CONSUMER_GROUPS).split(
+                    File.pathSeparator));
     this.keyStore = params.get(HopsUtil.KAFKA_K_CERTIFICATE_ENV_VAR);
     this.trustStore = params.get(HopsUtil.KAFKA_T_CERTIFICATE_ENV_VAR);
+    this.keystorePwd = params.get(HopsUtil.KEYSTORE_PWD_ENV_VAR);
+    this.truststorePwd = params.get(HopsUtil.TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
     return this;
   }
@@ -228,7 +269,8 @@ public class HopsUtil {
   public static HopsUtil getInstance() {
     if (instance == null) {
       instance = new HopsUtil();
-      if (!isSetup && System.getProperties().containsKey("kafka.sessionid")) {
+      if (!isSetup && System.getProperties().
+              containsKey(KAFKA_SESSIONID_ENV_VAR)) {
         instance.setup();
       }
     }
@@ -277,6 +319,10 @@ public class HopsUtil {
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
           Collection<String> topics) {
     return new SparkConsumer(jsc, topics);
+  }
+  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
+          Collection<String> topics, String consumerGroup) {
+    return new SparkConsumer(jsc, topics, consumerGroup);
   }
 
   /**
@@ -382,8 +428,22 @@ public class HopsUtil {
     return trustStore;
   }
 
+  public String getKeystorePwd() {
+    return keystorePwd;
+  }
+
+  public String getTruststorePwd() {
+    return truststorePwd;
+  }
+
   public static List<String> getTopics() {
     return HopsUtil.getInstance().topics;
+  }
+
+  public static List<String> getConsumerGroups() {
+    List<String> groups = HopsUtil.getInstance().consumerGroups;
+    System.out.println("groups:"+groups);
+    return HopsUtil.getInstance().consumerGroups;
   }
 
   /**

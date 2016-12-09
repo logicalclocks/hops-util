@@ -12,6 +12,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.kafka.clients.producer.ProducerConfig;
 
 /**
  *
@@ -37,7 +38,7 @@ public class HopsProducer extends HopsProcess {
     super(HopsProcessType.PRODUCER, topic);
     Properties props = HopsUtil.getKafkaProperties().
             defaultProps();
-    props.put("client.id", "HopsProducer");
+    props.put(ProducerConfig.CLIENT_ID_CONFIG, "HopsProducer");
     producer = new KafkaProducer<>(props);
 
     recordInjection = GenericAvroCodecs.toBinary(schema);

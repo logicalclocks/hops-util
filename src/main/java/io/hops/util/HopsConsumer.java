@@ -45,7 +45,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
   public void consume(String path) {
     this.consume = true;
     //new Thread(this).start();
-    Properties props = HopsUtil.getInstance().getKafkaProperties().getConsumerConfig();
+    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));

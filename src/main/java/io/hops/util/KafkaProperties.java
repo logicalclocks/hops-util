@@ -17,16 +17,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
  */
 public class KafkaProperties {
 
-  public static String TRUSTSTORE_PWD = "adminpw";
-  public static String KEYSTORE_PWD = "adminpw";
-
   public KafkaProperties() {
   }
 
   public Properties defaultProps() {
 
     Properties props = new Properties();
-    props.setProperty("bootstrap.servers", HopsUtil.getInstance().
+    props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.
+            getInstance().
             getBrokerEndpoint());
     props.setProperty("key.serializer",
             "org.apache.kafka.common.serialization.StringSerializer");
@@ -37,10 +35,14 @@ public class KafkaProperties {
     props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
     props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
             getInstance().getTrustStore());
-    props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PWD);
+    props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+            HopsUtil.getInstance().getTruststorePwd());
     props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
             getInstance().getKeyStore());
-    props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PWD);
+    props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+            HopsUtil.getInstance().getKeystorePwd());
+    props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+            HopsUtil.getInstance().getKeystorePwd());
 
     return props;
   }
@@ -65,10 +67,12 @@ public class KafkaProperties {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getTrustStore());
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getTruststorePwd());
       props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getKeyStore());
-      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
     }
     return props;
   }
@@ -81,7 +85,11 @@ public class KafkaProperties {
     Properties props = new Properties();
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getInstance().
             getBrokerEndpoint());
-    props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
+    if (HopsUtil.getConsumerGroups() != null && !HopsUtil.getConsumerGroups().
+            isEmpty()) {
+      props.put(ConsumerConfig.GROUP_ID_CONFIG, HopsUtil.getConsumerGroups().
+              get(0));
+    }
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
     props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000");
@@ -96,10 +104,14 @@ public class KafkaProperties {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getTrustStore());
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getTruststorePwd());
       props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getKeyStore());
-      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
+      props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
     }
 
     return props;
@@ -113,7 +125,11 @@ public class KafkaProperties {
     Properties props = new Properties();
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getInstance().
             getBrokerEndpoint());
-    props.put(ConsumerConfig.GROUP_ID_CONFIG, "DemoConsumer");
+    if (HopsUtil.getConsumerGroups() != null && !HopsUtil.getConsumerGroups().
+            isEmpty()) {
+      props.put(ConsumerConfig.GROUP_ID_CONFIG, HopsUtil.getConsumerGroups().
+              get(0));
+    }
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -127,16 +143,56 @@ public class KafkaProperties {
       props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
       props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getTrustStore());
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getTruststorePwd());
       props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
               getInstance().getKeyStore());
-      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, "adminpw");
+      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
+      props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
+    }
+    return props;
+  }
+
+  public Properties getSparkConsumerConfig(String consumerGroup) {
+    Properties props = new Properties();
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getInstance().
+            getBrokerEndpoint());
+    if (!Strings.isNullOrEmpty(consumerGroup)) {
+      props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
+    }
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+            StringDeserializer.class.getCanonicalName());
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+            ByteArrayDeserializer.class.getCanonicalName());
+
+    //configure the ssl parameters
+    if (!Strings.isNullOrEmpty(HopsUtil.getInstance().getTrustStore())
+            && !Strings.isNullOrEmpty(HopsUtil.getInstance().getKeyStore())) {
+      props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.
+              getInstance().getTrustStore());
+      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getTruststorePwd());
+      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.
+              getInstance().getKeyStore());
+      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
+      props.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+              HopsUtil.getInstance().getKeystorePwd());
     }
     return props;
   }
 
   public Map<String, Object> getSparkConsumerConfigMap() {
-    Properties props = getSparkConsumerConfig();
+    return getSparkConsumerConfigMap(null);
+  }
+
+  public Map<String, Object> getSparkConsumerConfigMap(String consumerGroup) {
+    Properties props = getSparkConsumerConfig(consumerGroup);
     Map<String, Object> propsMap = new HashMap<>();
     for (final String name : props.stringPropertyNames()) {
       propsMap.put(name, props.getProperty(name));
