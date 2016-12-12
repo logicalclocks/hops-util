@@ -249,13 +249,15 @@ public class HopsUtil {
             + "/hopsworks/api/project";
     this.topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
             File.pathSeparator));
-    this.consumerGroups = Arrays.asList(params.get(
-            HopsUtil.KAFKA_CONSUMER_GROUPS).split(
-                    File.pathSeparator));
-    this.keyStore = params.get(HopsUtil.KAFKA_K_CERTIFICATE_ENV_VAR);
-    this.trustStore = params.get(HopsUtil.KAFKA_T_CERTIFICATE_ENV_VAR);
-    this.keystorePwd = params.get(HopsUtil.KEYSTORE_PWD_ENV_VAR);
-    this.truststorePwd = params.get(HopsUtil.TRUSTSTORE_PWD_ENV_VAR);
+    if (params.containsKey(KAFKA_CONSUMER_GROUPS)) {
+      this.consumerGroups = Arrays.asList(params.get(
+              HopsUtil.KAFKA_CONSUMER_GROUPS).split(
+                      File.pathSeparator));
+    }
+    this.keyStore = params.get(KAFKA_K_CERTIFICATE_ENV_VAR);
+    this.trustStore = params.get(KAFKA_T_CERTIFICATE_ENV_VAR);
+    this.keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
+    this.truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
     return this;
   }
@@ -320,6 +322,7 @@ public class HopsUtil {
           Collection<String> topics) {
     return new SparkConsumer(jsc, topics);
   }
+
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
           Collection<String> topics, String consumerGroup) {
     return new SparkConsumer(jsc, topics, consumerGroup);
@@ -442,7 +445,7 @@ public class HopsUtil {
 
   public static List<String> getConsumerGroups() {
     List<String> groups = HopsUtil.getInstance().consumerGroups;
-    System.out.println("groups:"+groups);
+    System.out.println("groups:" + groups);
     return HopsUtil.getInstance().consumerGroups;
   }
 

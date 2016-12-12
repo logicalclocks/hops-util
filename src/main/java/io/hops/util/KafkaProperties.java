@@ -78,7 +78,7 @@ public class KafkaProperties {
   }
 
   /**
-   * @Deprecated.
+   * 
    * @return
    */
   public Properties getConsumerConfig() {
