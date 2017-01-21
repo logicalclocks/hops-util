@@ -87,7 +87,7 @@ public class HopsUtil {
             KAFKA_PROJECTID_ENV_VAR));
     this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT)
-            + "/hopsworks/api/project";
+            + "/hopsworks-api/api/project";
     this.keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
     this.trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
     this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
