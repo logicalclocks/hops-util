@@ -313,9 +313,32 @@ public class HopsUtil {
             getKafkaProperties().defaultProps());
   }
 
+  public static SparkProducer getSparkProducer() throws
+          SchemaNotFoundException, TopicNotFoundException {
+    if (HopsUtil.getInstance().topics != null && HopsUtil.getInstance().topics.
+            size() == 1) {
+      return new SparkProducer(HopsUtil.getInstance().topics.get(0));
+    } else {
+      throw new TopicNotFoundException(
+              "No topic was found for this spark producer");
+    }
+  }
+
   public static SparkProducer getSparkProducer(String topic) throws
           SchemaNotFoundException {
     return new SparkProducer(topic);
+  }
+
+  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc) throws
+          TopicNotFoundException {
+
+    if (HopsUtil.getInstance().topics != null && !HopsUtil.getInstance().topics.
+            isEmpty()) {
+      return new SparkConsumer(jsc, HopsUtil.getInstance().topics);
+    } else {
+      throw new TopicNotFoundException(
+              "No topic was found for this spark consumer");
+    }
   }
 
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
