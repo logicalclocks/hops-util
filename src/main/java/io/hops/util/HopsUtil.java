@@ -42,6 +42,7 @@ public class HopsUtil {
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
   public static final String KAFKA_SESSIONID_ENV_VAR = "hopsworks.sessionid";
   public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
+  public static final String KAFKA_PROJECTNAME_ENV_VAR = "hopsworks.projectname";
   public static final String KAFKA_BROKERADDR_ENV_VAR
           = "hopsworks.kafka.brokeraddress";
   public static final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
@@ -60,6 +61,7 @@ public class HopsUtil {
 
   private String jSessionId;
   private Integer projectId;
+  private String projectName;
   private String brokerEndpoint;
   private String restEndpoint;
   private String keyStore;
@@ -85,6 +87,7 @@ public class HopsUtil {
     this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
     this.projectId = Integer.parseInt(sysProps.getProperty(
             KAFKA_PROJECTID_ENV_VAR));
+    this.projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
     this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT)
             + "/hopsworks-api/api/project";
@@ -121,6 +124,7 @@ public class HopsUtil {
     this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
     this.projectId = Integer.parseInt(sysProps.getProperty(
             KAFKA_PROJECTID_ENV_VAR));
+    this.projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
     this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = endpoint + "/hopsworks/api/project";
     this.keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
@@ -153,6 +157,7 @@ public class HopsUtil {
     this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
     this.projectId = Integer.parseInt(sysProps.getProperty(
             KAFKA_PROJECTID_ENV_VAR));
+    this.projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
     this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = restEndpoint + "/hopsworks/api/project";
     this.keyStore = keyStore;
@@ -470,6 +475,10 @@ public class HopsUtil {
     List<String> groups = HopsUtil.getInstance().consumerGroups;
     System.out.println("groups:" + groups);
     return HopsUtil.getInstance().consumerGroups;
+  }
+
+  public static String getProjectName() {
+    return HopsUtil.getInstance().projectName;
   }
 
   /**
