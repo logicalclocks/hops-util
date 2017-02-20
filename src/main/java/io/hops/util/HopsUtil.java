@@ -55,6 +55,7 @@ public class HopsUtil {
           = "hopsworks.keystore.password";
   public static final String TRUSTSTORE_PWD_ENV_VAR
           = "hopsworks.truststore.password";
+  public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
 
   private static HopsUtil instance = null;
   private static boolean isSetup;
@@ -70,7 +71,8 @@ public class HopsUtil {
   private String truststorePwd;
   private List<String> topics;
   private List<String> consumerGroups;
-
+  private String elasticEndPoint;
+  
   private HopsUtil() {
 
   }
@@ -105,6 +107,9 @@ public class HopsUtil {
               split(File.pathSeparator));
     }
     System.out.println("consumerGroups:" + sysProps);
+    
+    this.elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
+    
     return this;
   }
 
@@ -497,6 +502,10 @@ public class HopsUtil {
       props.put(keyVal[0], keyVal[1]);
     }
     return props;
+  }
+  
+  public String getElasticEndPoint(){
+    return this.elasticEndPoint;
   }
 
 }
