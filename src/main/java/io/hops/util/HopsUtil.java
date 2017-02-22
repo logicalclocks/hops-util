@@ -36,8 +36,7 @@ import org.json.JSONObject;
  */
 public class HopsUtil {
 
-  private static final Logger LOG = Logger.getLogger(HopsUtil.class.
-      getName());
+  private static final Logger LOG = Logger.getLogger(HopsUtil.class.getName());
 
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
   public static final String KAFKA_SESSIONID_ENV_VAR = "hopsworks.sessionid";
@@ -60,52 +59,55 @@ public class HopsUtil {
   private static HopsUtil instance = null;
   private static boolean isSetup;
 
-  private String jSessionId;
-  private Integer projectId;
-  private String projectName;
-  private String brokerEndpoint;
-  private String restEndpoint;
-  private String keyStore;
-  private String trustStore;
-  private String keystorePwd;
-  private String truststorePwd;
-  private List<String> topics;
-  private List<String> consumerGroups;
+  private static String jSessionId;
+  private static Integer projectId;
+  private static String projectName;
+  private static String brokerEndpoint;
+  private static String restEndpoint;
+  private static String keyStore;
+  private static String trustStore;
+  private static String keystorePwd;
+  private static String truststorePwd;
+  private static List<String> topics;
+  private static List<String> consumerGroups;
 
+  static {
+    setup();
+  }
+  
   private HopsUtil() {
 
   }
 
+  
+
   /**
    * Setup the Kafka instance.
-   *
-   * @return
+   * <p>
    */
-  public synchronized HopsUtil setup() {
+  public static synchronized void setup() {
     Properties sysProps = System.getProperties();
     System.out.println("sysProps:" + sysProps);
-    //validate arguments first
-    this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
-    this.projectId = Integer.parseInt(sysProps.getProperty(
-        KAFKA_PROJECTID_ENV_VAR));
-    this.projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
-    this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
-    this.restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
-    this.keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
-    this.trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
-    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
-    isSetup = true;
-    //Spark Kafka topics
-    this.topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).
-        split(File.pathSeparator));
-    if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
-      this.consumerGroups = Arrays.asList(sysProps.getProperty(
-          KAFKA_CONSUMER_GROUPS).
-          split(File.pathSeparator));
+    //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
+    if (sysProps.containsKey(KAFKA_SESSIONID_ENV_VAR)) {
+      System.out.println("sysProps contains:" + KAFKA_SESSIONID_ENV_VAR);
+      //validate arguments first
+      jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
+      projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
+      projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
+      brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
+      restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
+      keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
+      trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
+      keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+      truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
+      isSetup = true;
+      //Spark Kafka topics
+      topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
+      if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
+        consumerGroups = Arrays.asList(sysProps.getProperty(KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
+      }
     }
-    System.out.println("consumerGroups:" + sysProps);
-    return this;
   }
 
   /**
@@ -245,26 +247,25 @@ public class HopsUtil {
    * @param params
    * @return
    */
-  public synchronized HopsUtil setup(Map<String, String> params) {
-    this.jSessionId = params.get(KAFKA_SESSIONID_ENV_VAR);
-    this.projectId = Integer.parseInt(params.get(
+  public static synchronized void setup(Map<String, String> params) {
+    jSessionId = params.get(KAFKA_SESSIONID_ENV_VAR);
+    projectId = Integer.parseInt(params.get(
         HopsUtil.KAFKA_PROJECTID_ENV_VAR));
-    this.brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
-    this.restEndpoint = params.get(HopsUtil.KAFKA_RESTENDPOINT)
+    brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
+    restEndpoint = params.get(HopsUtil.KAFKA_RESTENDPOINT)
         + File.separator + HOPSWORKS_REST_RESOURCE;
-    this.topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
+    topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
         File.pathSeparator));
     if (params.containsKey(KAFKA_CONSUMER_GROUPS)) {
-      this.consumerGroups = Arrays.asList(params.get(
+      consumerGroups = Arrays.asList(params.get(
           HopsUtil.KAFKA_CONSUMER_GROUPS).split(
               File.pathSeparator));
     }
-    this.keyStore = params.get(KAFKA_K_CERTIFICATE_ENV_VAR);
-    this.trustStore = params.get(KAFKA_T_CERTIFICATE_ENV_VAR);
-    this.keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
-    this.truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
+    keyStore = params.get(KAFKA_K_CERTIFICATE_ENV_VAR);
+    trustStore = params.get(KAFKA_T_CERTIFICATE_ENV_VAR);
+    keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
+    truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
-    return this;
   }
 
   /**
@@ -273,16 +274,15 @@ public class HopsUtil {
    *
    * @return
    */
-  public static HopsUtil getInstance() {
-    if (instance == null) {
-      instance = new HopsUtil();
-      if (!isSetup && System.getProperties().
-          containsKey(KAFKA_SESSIONID_ENV_VAR)) {
-        instance.setup();
-      }
-    }
-    return instance;
-  }
+//  public static HopsUtil getInstance() {
+//    if (instance == null) {
+//      instance = new HopsUtil();
+//      if (!isSetup && System.getProperties().containsKey(KAFKA_SESSIONID_ENV_VAR)) {
+//        instance.setup();
+//      }
+//    }
+//    return instance;
+//  }
 
   public static KafkaProperties getKafkaProperties() {
     return new KafkaProperties();
@@ -312,48 +312,92 @@ public class HopsUtil {
     return getFlinkProducer(topic, new AvroDeserializer(topic));
   }
 
+  /**
+   *
+   * @param topic
+   * @param serializationSchema
+   * @return
+   */
   public static FlinkProducer getFlinkProducer(String topic,
       SerializationSchema serializationSchema) {
     return new FlinkProducer(topic, serializationSchema,
         getKafkaProperties().defaultProps());
   }
 
+  /**
+   *
+   * @return
+   * @throws SchemaNotFoundException
+   * @throws TopicNotFoundException
+   */
   public static SparkProducer getSparkProducer() throws
       SchemaNotFoundException, TopicNotFoundException {
-    if (HopsUtil.getInstance().topics != null && HopsUtil.getInstance().topics.
-        size() == 1) {
-      return new SparkProducer(HopsUtil.getInstance().topics.get(0));
+    if (HopsUtil.getTopics() != null && HopsUtil.getTopics().size() == 1) {
+      return new SparkProducer(HopsUtil.getTopics().get(0));
     } else {
       throw new TopicNotFoundException(
           "No topic was found for this spark producer");
     }
   }
 
+  /**
+   *
+   * @param topic
+   * @return
+   * @throws SchemaNotFoundException
+   */
   public static SparkProducer getSparkProducer(String topic) throws
       SchemaNotFoundException {
     return new SparkProducer(topic);
   }
 
+  /**
+   *
+   * @param jsc
+   * @return
+   * @throws TopicNotFoundException
+   */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc) throws
       TopicNotFoundException {
-
-    if (HopsUtil.getInstance().topics != null && !HopsUtil.getInstance().topics.
-        isEmpty()) {
-      return new SparkConsumer(jsc, HopsUtil.getInstance().topics);
+    if (topics != null && !topics.isEmpty()) {
+      return new SparkConsumer(jsc, topics);
+    } else {
+      throw new TopicNotFoundException(
+          "No topic was found for this spark consumer");
+    }
+  }
+  
+  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Properties userProps) throws
+      TopicNotFoundException {
+    if (topics != null && !topics.isEmpty()) {
+      return new SparkConsumer(jsc, topics, userProps);
     } else {
       throw new TopicNotFoundException(
           "No topic was found for this spark consumer");
     }
   }
 
+  /**
+   *
+   * @param jsc
+   * @param topics
+   * @return
+   */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
       Collection<String> topics) {
     return new SparkConsumer(jsc, topics);
   }
 
+  /**
+   *
+   * @param jsc
+   * @param topics
+   * @param userProps
+   * @return
+   */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
-      Collection<String> topics, String consumerGroup) {
-    return new SparkConsumer(jsc, topics, consumerGroup);
+      Collection<String> topics, Properties userProps) {
+    return new SparkConsumer(jsc, topics, userProps);
   }
 
   /**
@@ -365,7 +409,7 @@ public class HopsUtil {
     return new AvroDeserializer(topic);
   }
 
-  public String getSchema(String topicName) throws SchemaNotFoundException {
+  public static String getSchema(String topicName) throws SchemaNotFoundException {
     return getSchema(topicName, Integer.MIN_VALUE);
   }
 
@@ -375,10 +419,9 @@ public class HopsUtil {
    *
    * @return
    */
-  public Map<String, Schema> getSchemas() {
-
+  public static Map<String, Schema> getSchemas() {
     Map<String, Schema> schemas = new HashMap<>();
-    for (String topic : topics) {
+    for (String topic : HopsUtil.getTopics()) {
       try {
         Schema.Parser parser = new Schema.Parser();
         schemas.put(topic, parser.parse(getSchema(topic)));
@@ -396,7 +439,7 @@ public class HopsUtil {
    * @return
    */
   public static Map<String, Injection<GenericRecord, byte[]>> getRecordInjections() {
-    Map<String, Schema> schemas = HopsUtil.getInstance().getSchemas();
+    Map<String, Schema> schemas = HopsUtil.getSchemas();
     Map<String, Injection<GenericRecord, byte[]>> recordInjections
         = new HashMap<>();
     for (String topic : HopsUtil.getTopics()) {
@@ -407,10 +450,10 @@ public class HopsUtil {
     return recordInjections;
   }
 
-  public String getSchema(String topicName, int versionId) throws
+  public static String getSchema(String topicName, int versionId) throws
       SchemaNotFoundException {
     System.out.println("kafka.hopsutil.topicName:" + topicName);
-    String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
+    String uri = HopsUtil.getRestEndpoint() + "/" + HopsUtil.getProjectId() + "/kafka/schema/" + topicName;
     if (versionId > 0) {
       uri += "/" + versionId;
     }
@@ -419,7 +462,7 @@ public class HopsUtil {
     ClientConfig config = new DefaultClientConfig();
     Client client = Client.create(config);
     WebResource service = client.resource(uri);
-    Cookie cookie = new Cookie("SESSIONID", jSessionId);
+    Cookie cookie = new Cookie("SESSIONID", HopsUtil.getjSessionId());
     final ClientResponse blogResponse = service.cookie(cookie).get(
         ClientResponse.class);
     final String blog = blogResponse.getEntity(String.class);
@@ -431,54 +474,52 @@ public class HopsUtil {
 
   }
 
-  public String getBrokerEndpoint() {
-    return brokerEndpoint;
-  }
-
   public static Logger getLogger() {
     return LOG;
   }
 
-  public String getjSessionId() {
+  public static String getBrokerEndpoint() {
+    return brokerEndpoint;
+  }
+
+  public static String getjSessionId() {
     return jSessionId;
   }
 
-  public Integer getProjectId() {
+  public static Integer getProjectId() {
     return projectId;
   }
 
-  public String getRestEndpoint() {
+  public static String getRestEndpoint() {
     return restEndpoint;
   }
 
-  public String getKeyStore() {
+  public static String getKeyStore() {
     return keyStore;
   }
 
-  public String getTrustStore() {
+  public static String getTrustStore() {
     return trustStore;
   }
 
-  public String getKeystorePwd() {
+  public static String getKeystorePwd() {
     return keystorePwd;
   }
 
-  public String getTruststorePwd() {
+  public static String getTruststorePwd() {
     return truststorePwd;
   }
 
   public static List<String> getTopics() {
-    return HopsUtil.getInstance().topics;
+    return topics;
   }
 
   public static List<String> getConsumerGroups() {
-    List<String> groups = HopsUtil.getInstance().consumerGroups;
-    System.out.println("groups:" + groups);
-    return HopsUtil.getInstance().consumerGroups;
+    return consumerGroups;
   }
 
   public static String getProjectName() {
-    return HopsUtil.getInstance().projectName;
+    return projectName;
   }
 
   /**

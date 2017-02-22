@@ -3,6 +3,7 @@ package io.hops.util.spark;
 import io.hops.util.HopsUtil;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -22,9 +23,9 @@ import scala.Function0;
  */
 public class SparkConsumer {
 
-  private JavaStreamingContext jsc;
-  private Collection<String> topics;
-  private Map<String, Object> kafkaParams;
+  private final JavaStreamingContext jsc;
+  private final Collection<String> topics;
+  private final Map<String, Object> kafkaParams;
 
   /**
    *
@@ -34,18 +35,15 @@ public class SparkConsumer {
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     this.jsc = jsc;
     this.topics = topics;
-    this.kafkaParams = HopsUtil.getKafkaProperties().
-            getSparkConsumerConfigMap();
+    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
   }
-  
-  public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics, String consumerGroup) {
+
+  public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics, Properties userProps) {
     this.jsc = jsc;
     this.topics = topics;
-    this.kafkaParams = HopsUtil.getKafkaProperties().
-            getSparkConsumerConfigMap(consumerGroup);
-    
+    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap(userProps);
+
   }
-  
 
   /**
    *
@@ -54,7 +52,7 @@ public class SparkConsumer {
    * @param kafkaParams
    */
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics,
-          Map<String, Object> kafkaParams) {
+      Map<String, Object> kafkaParams) {
     this.jsc = jsc;
     this.topics = topics;
     this.kafkaParams = kafkaParams;
@@ -68,9 +66,9 @@ public class SparkConsumer {
    */
   public <K extends Object, V extends Object> JavaInputDStream<ConsumerRecord<K, V>> createDirectStream() {
     JavaInputDStream<ConsumerRecord<K, V>> directKafkaStream
-            = KafkaUtils.
+        = KafkaUtils.
             createDirectStream(jsc, LocationStrategies.PreferConsistent(),
-                    ConsumerStrategies.Subscribe(topics, kafkaParams));
+                ConsumerStrategies.Subscribe(topics, kafkaParams));
     return directKafkaStream;
   }
 
@@ -82,15 +80,15 @@ public class SparkConsumer {
    * @return
    */
   public <K extends Object, V extends Object> JavaInputDStream<ConsumerRecord<K, V>> createDirectStream(
-          LocationStrategy ls) {
+      LocationStrategy ls) {
     return KafkaUtils.
-            createDirectStream(jsc, ls, ConsumerStrategies.Subscribe(topics,
-                    kafkaParams));
+        createDirectStream(jsc, ls, ConsumerStrategies.Subscribe(topics,
+            kafkaParams));
   }
 
   public <K extends Object, V extends Object> JavaRDD<ConsumerRecord<K, V>> createRDD(
-          JavaSparkContext jsc,
-          OffsetRange[] osr, LocationStrategy ls) {
+      JavaSparkContext jsc,
+      OffsetRange[] osr, LocationStrategy ls) {
     return KafkaUtils.createRDD(jsc, kafkaParams, osr, ls);
   }
 

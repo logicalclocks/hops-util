@@ -20,15 +20,13 @@ import org.apache.avro.generic.GenericRecord;
  */
 public class HopsConsumer extends HopsProcess implements Runnable {
 
-  private static final Logger logger = Logger.getLogger(HopsConsumer.class.
-          getName());
+  private static final Logger logger = Logger.getLogger(HopsConsumer.class.getName());
 
   private KafkaConsumer<Integer, String> consumer;
-  HopsUtil hopsKafkaUtil = HopsUtil.getInstance();
   private boolean consume;
   private BlockingQueue<String> messages;
-  private boolean callback = false;
-  private StringBuilder consumed = new StringBuilder();
+  private final boolean callback = false;
+  private final StringBuilder consumed = new StringBuilder();
 
   HopsConsumer(String topic) throws SchemaNotFoundException {
     super(HopsProcessType.CONSUMER, topic);
@@ -140,7 +138,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   @Override
   public void run() {
-    Properties props = HopsUtil.getInstance().getKafkaProperties().getConsumerConfig();
+    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
