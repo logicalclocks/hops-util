@@ -54,6 +54,7 @@ public class HopsUtil {
       = "hopsworks.keystore.password";
   public static final String TRUSTSTORE_PWD_ENV_VAR
       = "hopsworks.truststore.password";
+  public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
   public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api/project";
 
   private static HopsUtil instance = null;
@@ -70,16 +71,15 @@ public class HopsUtil {
   private static String truststorePwd;
   private static List<String> topics;
   private static List<String> consumerGroups;
+  private static String elasticEndPoint;
 
   static {
     setup();
   }
-  
+
   private HopsUtil() {
 
   }
-
-  
 
   /**
    * Setup the Kafka instance.
@@ -101,7 +101,7 @@ public class HopsUtil {
       trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
       keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
       truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
-      isSetup = true;
+      elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
       //Spark Kafka topics
       topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
       if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
@@ -283,7 +283,6 @@ public class HopsUtil {
 //    }
 //    return instance;
 //  }
-
   public static KafkaProperties getKafkaProperties() {
     return new KafkaProperties();
   }
@@ -366,7 +365,7 @@ public class HopsUtil {
           "No topic was found for this spark consumer");
     }
   }
-  
+
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Properties userProps) throws
       TopicNotFoundException {
     if (topics != null && !topics.isEmpty()) {
@@ -520,6 +519,10 @@ public class HopsUtil {
 
   public static String getProjectName() {
     return projectName;
+  }
+
+  public static String getElasticEndPoint() {
+    return elasticEndPoint;
   }
 
   /**
