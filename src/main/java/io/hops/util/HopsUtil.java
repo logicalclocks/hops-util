@@ -42,6 +42,7 @@ public class HopsUtil {
   public static final String KAFKA_SESSIONID_ENV_VAR = "hopsworks.sessionid";
   public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String KAFKA_PROJECTNAME_ENV_VAR = "hopsworks.projectname";
+  public static final String JOBNAME_ENV_VAR = "hopsworks.jobname";
   public static final String KAFKA_BROKERADDR_ENV_VAR
       = "hopsworks.kafka.brokeraddress";
   public static final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
@@ -63,6 +64,7 @@ public class HopsUtil {
   private static String jSessionId;
   private static Integer projectId;
   private static String projectName;
+  private static String jobName;
   private static String brokerEndpoint;
   private static String restEndpoint;
   private static String keyStore;
@@ -95,6 +97,7 @@ public class HopsUtil {
       jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
       projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
       projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
+      jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
       brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
       restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
       keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
@@ -525,6 +528,10 @@ public class HopsUtil {
     return elasticEndPoint;
   }
 
+  public static String getJobName() {
+    return jobName;
+  }
+  
   /**
    * Utility method for Flink applications that need to parse Flink system
    * variables.
