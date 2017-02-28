@@ -46,6 +46,7 @@ public class HopsUtil {
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
   public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String KAFKA_PROJECTNAME_ENV_VAR = "hopsworks.projectname";
+  public static final String JOBNAME_ENV_VAR = "hopsworks.jobname";
   public static final String KAFKA_BROKERADDR_ENV_VAR
       = "hopsworks.kafka.brokeraddress";
   public static final String K_CERTIFICATE_ENV_VAR = "k_certificate";
@@ -66,6 +67,7 @@ public class HopsUtil {
 
   private static Integer projectId;
   private static String projectName;
+  private static String jobName;
   private static String brokerEndpoint;
   private static String restEndpoint;
   private static String keyStore;
@@ -101,6 +103,7 @@ public class HopsUtil {
       //validate arguments first
       projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
       projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
+      jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
       brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
       elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
       //Spark Kafka topics
@@ -558,6 +561,10 @@ public class HopsUtil {
     return elasticEndPoint;
   }
 
+  public static String getJobName() {
+    return jobName;
+  }
+  
   /**
    * Utility method for Flink applications that need to parse Flink system
    * variables.
