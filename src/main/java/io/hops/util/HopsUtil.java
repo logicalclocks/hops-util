@@ -26,6 +26,8 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.json.JSONObject;
 
@@ -43,6 +45,7 @@ public class HopsUtil {
   public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String KAFKA_PROJECTNAME_ENV_VAR = "hopsworks.projectname";
   public static final String JOBNAME_ENV_VAR = "hopsworks.jobname";
+  public static final String JOBTYPE_ENV_VAR = "hopsworks.jobtype";
   public static final String KAFKA_BROKERADDR_ENV_VAR
       = "hopsworks.kafka.brokeraddress";
   public static final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
@@ -65,6 +68,7 @@ public class HopsUtil {
   private static Integer projectId;
   private static String projectName;
   private static String jobName;
+  private static String jobType;
   private static String brokerEndpoint;
   private static String restEndpoint;
   private static String keyStore;
@@ -74,6 +78,7 @@ public class HopsUtil {
   private static List<String> topics;
   private static List<String> consumerGroups;
   private static String elasticEndPoint;
+  private static SparkInfo sparkInfo;
 
   static {
     setup();
@@ -89,15 +94,15 @@ public class HopsUtil {
    */
   public static synchronized void setup() {
     Properties sysProps = System.getProperties();
-    System.out.println("sysProps:" + sysProps);
+    LOG.log(Level.FINE, "sysProps:{0}", sysProps);
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
-    if (sysProps.containsKey(KAFKA_SESSIONID_ENV_VAR)) {
-      System.out.println("sysProps contains:" + KAFKA_SESSIONID_ENV_VAR);
+    if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
       //validate arguments first
       jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
       projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
       projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
       jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
+      jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
       brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
       restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
       keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
@@ -110,6 +115,8 @@ public class HopsUtil {
       if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
         consumerGroups = Arrays.asList(sysProps.getProperty(KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
       }
+
+      sparkInfo = new SparkInfo();
     }
   }
 
@@ -454,12 +461,12 @@ public class HopsUtil {
 
   public static String getSchema(String topicName, int versionId) throws
       SchemaNotFoundException {
-    System.out.println("kafka.hopsutil.topicName:" + topicName);
+    LOG.log(Level.FINE, "topicName:{0}", topicName);
     String uri = HopsUtil.getRestEndpoint() + "/" + HopsUtil.getProjectId() + "/kafka/schema/" + topicName;
     if (versionId > 0) {
       uri += "/" + versionId;
     }
-    System.out.println("kafka.hopsutil.uri:" + uri);
+    LOG.log(Level.FINE, "uri:{0}", uri);
 
     ClientConfig config = new DefaultClientConfig();
     Client client = Client.create(config);
@@ -531,7 +538,42 @@ public class HopsUtil {
   public static String getJobName() {
     return jobName;
   }
-  
+
+  public static String getJobType() {
+    return jobType;
+  }
+
+  public static String getAppId(JavaStreamingContext jssc) {
+    return sparkInfo.getAppId(jssc);
+  }
+
+  public static SparkSession getSparkSession() {
+    return sparkInfo.getSparkSession();
+  }
+
+  public static JavaStreamingContext getJavaStreamingContext(long duration) {
+    return sparkInfo.getJavaStreamingContext(duration);
+  }
+
+  public static SparkConf getSparkConf() {
+    return sparkInfo.sparkConf;
+  }
+
+  public static void shutdownGracefully(JavaStreamingContext jssc) throws InterruptedException {
+    shutdownGracefully(jssc, 3000);
+  }
+
+  public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis) throws InterruptedException {
+    boolean isStopped = false;
+    while (!isStopped) {
+      isStopped = jssc.awaitTerminationOrTimeout(checkIntervalMillis);
+      if (!isStopped && sparkInfo.isShutdownRequested()) {
+        LOG.info("Marker file has been removed, will attempt to stop gracefully the spark streaming context");
+        jssc.stop(true, true);
+      }
+    }
+  }
+
   /**
    * Utility method for Flink applications that need to parse Flink system
    * variables.
