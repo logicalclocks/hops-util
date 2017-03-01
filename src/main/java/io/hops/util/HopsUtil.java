@@ -1,5 +1,6 @@
 package io.hops.util;
 
+import com.google.common.io.ByteStreams;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -12,6 +13,8 @@ import io.hops.util.flink.FlinkProducer;
 import io.hops.util.spark.SparkProducer;
 import io.hops.util.spark.SparkConsumer;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,8 +25,10 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.Cookie;
+import javax.ws.rs.core.MediaType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.net.util.Base64;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
@@ -39,15 +44,14 @@ public class HopsUtil {
   private static final Logger LOG = Logger.getLogger(HopsUtil.class.getName());
 
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
-  public static final String KAFKA_SESSIONID_ENV_VAR = "hopsworks.sessionid";
   public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String KAFKA_PROJECTNAME_ENV_VAR = "hopsworks.projectname";
   public static final String JOBNAME_ENV_VAR = "hopsworks.jobname";
   public static final String KAFKA_BROKERADDR_ENV_VAR
       = "hopsworks.kafka.brokeraddress";
-  public static final String KAFKA_K_CERTIFICATE_ENV_VAR = "kafka_k_certificate";
-  public static final String KAFKA_T_CERTIFICATE_ENV_VAR = "kafka_t_certificate";
-  public static final String KAFKA_RESTENDPOINT = "hopsworks.kafka.restendpoint";
+  public static final String K_CERTIFICATE_ENV_VAR = "k_certificate";
+  public static final String T_CERTIFICATE_ENV_VAR = "t_certificate";
+  public static final String HOPSWORKS_RESTENDPOINT = "hopsworks.restendpoint";
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
   public static final String KAFKA_CONSUMER_GROUPS
       = "hopsworks.kafka.consumergroups";
@@ -56,12 +60,11 @@ public class HopsUtil {
   public static final String TRUSTSTORE_PWD_ENV_VAR
       = "hopsworks.truststore.password";
   public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
-  public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api/project";
+  public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api/appservice";
 
   private static HopsUtil instance = null;
   private static boolean isSetup;
 
-  private static String jSessionId;
   private static Integer projectId;
   private static String projectName;
   private static String jobName;
@@ -90,20 +93,18 @@ public class HopsUtil {
   public static synchronized void setup() {
     Properties sysProps = System.getProperties();
     System.out.println("sysProps:" + sysProps);
+    restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
+    keyStore = K_CERTIFICATE_ENV_VAR;
+    trustStore = T_CERTIFICATE_ENV_VAR;
+    keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+    truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
-    if (sysProps.containsKey(KAFKA_SESSIONID_ENV_VAR)) {
-      System.out.println("sysProps contains:" + KAFKA_SESSIONID_ENV_VAR);
+    if (sysProps.containsKey(KAFKA_PROJECTID_ENV_VAR)) {
       //validate arguments first
-      jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
       projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
       projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
       jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
       brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
-      restEndpoint = sysProps.getProperty(KAFKA_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
-      keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
-      trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
-      keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-      truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
       elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
       //Spark Kafka topics
       topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
@@ -126,14 +127,13 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
-    this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
     this.projectId = Integer.parseInt(sysProps.getProperty(
         KAFKA_PROJECTID_ENV_VAR));
     this.projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
     this.brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
     this.restEndpoint = endpoint + File.separator + HOPSWORKS_REST_RESOURCE;
-    this.keyStore = KAFKA_K_CERTIFICATE_ENV_VAR;
-    this.trustStore = KAFKA_T_CERTIFICATE_ENV_VAR;
+    this.keyStore = K_CERTIFICATE_ENV_VAR;
+    this.trustStore = T_CERTIFICATE_ENV_VAR;
     this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
     this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
@@ -159,7 +159,6 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
-    this.jSessionId = sysProps.getProperty(KAFKA_SESSIONID_ENV_VAR);
     this.projectId = Integer.parseInt(sysProps.getProperty(
         KAFKA_PROJECTID_ENV_VAR));
     this.projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
@@ -190,11 +189,10 @@ public class HopsUtil {
    * @param truststorePwd
    * @return
    */
-  public synchronized HopsUtil setup(String jSessionId, int projectId,
+  public synchronized HopsUtil setup(int projectId,
       String topicName, String brokerEndpoint, String restEndpoint,
       String keyStore, String trustStore, String keystorePwd,
       String truststorePwd) {
-    this.jSessionId = jSessionId;
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + File.separator + HOPSWORKS_REST_RESOURCE;
@@ -224,12 +222,11 @@ public class HopsUtil {
    * @param truststorePwd
    * @return
    */
-  public synchronized HopsUtil setup(String jSessionId, int projectId,
+  public synchronized HopsUtil setup(int projectId,
       String topics, String consumerGroups, String brokerEndpoint,
       String restEndpoint,
       String keyStore, String trustStore, String keystorePwd,
       String truststorePwd) {
-    this.jSessionId = jSessionId;
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
     this.restEndpoint = restEndpoint + File.separator + HOPSWORKS_REST_RESOURCE;
@@ -251,11 +248,10 @@ public class HopsUtil {
    * @return
    */
   public static synchronized void setup(Map<String, String> params) {
-    jSessionId = params.get(KAFKA_SESSIONID_ENV_VAR);
     projectId = Integer.parseInt(params.get(
         HopsUtil.KAFKA_PROJECTID_ENV_VAR));
     brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
-    restEndpoint = params.get(HopsUtil.KAFKA_RESTENDPOINT)
+    restEndpoint = params.get(HopsUtil.HOPSWORKS_RESTENDPOINT)
         + File.separator + HOPSWORKS_REST_RESOURCE;
     topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
         File.pathSeparator));
@@ -264,8 +260,8 @@ public class HopsUtil {
           HopsUtil.KAFKA_CONSUMER_GROUPS).split(
               File.pathSeparator));
     }
-    keyStore = params.get(KAFKA_K_CERTIFICATE_ENV_VAR);
-    trustStore = params.get(KAFKA_T_CERTIFICATE_ENV_VAR);
+    keyStore = params.get(K_CERTIFICATE_ENV_VAR);
+    trustStore = params.get(T_CERTIFICATE_ENV_VAR);
     keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
     truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
     isSetup = true;
@@ -454,26 +450,67 @@ public class HopsUtil {
 
   public static String getSchema(String topicName, int versionId) throws
       SchemaNotFoundException {
-    System.out.println("kafka.hopsutil.topicName:" + topicName);
-    String uri = HopsUtil.getRestEndpoint() + "/" + HopsUtil.getProjectId() + "/kafka/schema/" + topicName;
+    
+    JSONObject json = new JSONObject();
+    jsonAddKeyStore(json);
+    json.append("topicName", topicName);
     if (versionId > 0) {
-      uri += "/" + versionId;
+      json.append("version", versionId);
     }
-    System.out.println("kafka.hopsutil.uri:" + uri);
+        
+    System.out.println("kafka.hopsutil.topicName:" + topicName);
+    String uri = HopsUtil.getRestEndpoint() + "/schema";
 
     ClientConfig config = new DefaultClientConfig();
     Client client = Client.create(config);
     WebResource service = client.resource(uri);
-    Cookie cookie = new Cookie("SESSIONID", HopsUtil.getjSessionId());
-    final ClientResponse blogResponse = service.cookie(cookie).get(
-        ClientResponse.class);
+    final ClientResponse blogResponse = service.type(
+            MediaType.APPLICATION_JSON).post(ClientResponse.class, json.
+                    toString());
     final String blog = blogResponse.getEntity(String.class);
     //Extract fields from json
-    JSONObject json = new JSONObject(blog);
+    json = new JSONObject(blog);
     String schema = json.getString("contents");
 
     return schema;
 
+  }
+ 
+  public static String sendEmail(String dest, String subject, String message) {
+
+    String uri = HopsUtil.getRestEndpoint() + "/mail";
+
+    ClientConfig config = new DefaultClientConfig();
+    Client client = Client.create(config);
+    WebResource service = client.resource(uri);
+    JSONObject json = new JSONObject();
+    json.append("dest", dest);
+    json.append("subject", subject);
+    json.append("message", message);
+
+    jsonAddKeyStore(json);
+
+    ClientResponse blogResponse
+            = service.type(
+            MediaType.APPLICATION_JSON).post(ClientResponse.class, json.
+                    toString());
+    final String response = blogResponse.getEntity(String.class);
+
+    return response;
+
+  }
+
+  private static void jsonAddKeyStore(JSONObject json) {
+    json.append("keyStorePwd", keystorePwd);
+
+    try {
+      FileInputStream kfin = new FileInputStream(new File(keyStore));
+      byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
+      String keystorString = Base64.encodeBase64String(kStoreBlob);
+      json.append("keyStore", keystorString);
+    } catch (IOException ex) {
+      Logger.getLogger(HopsUtil.class.getName()).log(Level.SEVERE, null, ex);
+    }
   }
 
   public static Logger getLogger() {
@@ -482,10 +519,6 @@ public class HopsUtil {
 
   public static String getBrokerEndpoint() {
     return brokerEndpoint;
-  }
-
-  public static String getjSessionId() {
-    return jSessionId;
   }
 
   public static Integer getProjectId() {
