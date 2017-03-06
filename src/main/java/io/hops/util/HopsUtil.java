@@ -24,15 +24,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.net.util.Base64;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
-import org.apache.spark.SparkConf;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.json.JSONObject;
 
@@ -48,29 +45,24 @@ public class HopsUtil {
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
   public static final String KAFKA_PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String KAFKA_PROJECTNAME_ENV_VAR = "hopsworks.projectname";
-  public static final String JOBNAME_ENV_VAR = "hopsworks.jobname";
-  public static final String JOBTYPE_ENV_VAR = "hopsworks.jobtype";
-  public static final String KAFKA_BROKERADDR_ENV_VAR
-      = "hopsworks.kafka.brokeraddress";
+  public static final String JOBNAME_ENV_VAR = "hopsworks.job.name";
+  public static final String JOBTYPE_ENV_VAR = "hopsworks.job.type";
+  public static final String APPID_ENV_VAR = "hopsworks.job.appid";
+  public static final String KAFKA_BROKERADDR_ENV_VAR = "hopsworks.kafka.brokeraddress";
   public static final String K_CERTIFICATE_ENV_VAR = "k_certificate";
   public static final String T_CERTIFICATE_ENV_VAR = "t_certificate";
   public static final String HOPSWORKS_RESTENDPOINT = "hopsworks.restendpoint";
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
-  public static final String KAFKA_CONSUMER_GROUPS
-      = "hopsworks.kafka.consumergroups";
-  public static final String KEYSTORE_PWD_ENV_VAR
-      = "hopsworks.keystore.password";
-  public static final String TRUSTSTORE_PWD_ENV_VAR
-      = "hopsworks.truststore.password";
+  public static final String KAFKA_CONSUMER_GROUPS = "hopsworks.kafka.consumergroups";
+  public static final String KEYSTORE_PWD_ENV_VAR = "hopsworks.keystore.password";
+  public static final String TRUSTSTORE_PWD_ENV_VAR = "hopsworks.truststore.password";
   public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
   public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api/appservice";
-
-  private static HopsUtil instance = null;
-  private static boolean isSetup;
 
   private static Integer projectId;
   private static String projectName;
   private static String jobName;
+  private static String appId;
   private static String jobType;
   private static String brokerEndpoint;
   private static String restEndpoint;
@@ -99,7 +91,7 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
     if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
-      LOG.log(Level.FINE, "sysProps:{0}", sysProps);
+      LOG.log(Level.INFO, "sysProps:{0}", sysProps);
       restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
       keyStore = K_CERTIFICATE_ENV_VAR;
       trustStore = T_CERTIFICATE_ENV_VAR;
@@ -108,6 +100,7 @@ public class HopsUtil {
       projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
       projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
       jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
+      appId = sysProps.getProperty(APPID_ENV_VAR);
       jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
       brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
       elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
@@ -116,7 +109,7 @@ public class HopsUtil {
       if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
         consumerGroups = Arrays.asList(sysProps.getProperty(KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
       }
-      sparkInfo = new SparkInfo();
+      sparkInfo = new SparkInfo(jobName);
     }
   }
 
@@ -142,7 +135,6 @@ public class HopsUtil {
     this.trustStore = T_CERTIFICATE_ENV_VAR;
     this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
     this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
-    isSetup = true;
     return this;
   }
 
@@ -174,7 +166,6 @@ public class HopsUtil {
     this.trustStore = trustStore;
     this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
     this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
-    isSetup = true;
     return this;
   }
 
@@ -206,7 +197,6 @@ public class HopsUtil {
     this.trustStore = trustStore;
     this.keystorePwd = keystorePwd;
     this.trustStore = truststorePwd;
-    isSetup = true;
     return this;
   }
 
@@ -243,7 +233,6 @@ public class HopsUtil {
     this.trustStore = trustStore;
     this.keystorePwd = keystorePwd;
     this.truststorePwd = truststorePwd;
-    isSetup = true;
     return this;
   }
 
@@ -270,7 +259,6 @@ public class HopsUtil {
     trustStore = params.get(T_CERTIFICATE_ENV_VAR);
     keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
     truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
-    isSetup = true;
   }
 
   /**
@@ -493,10 +481,7 @@ public class HopsUtil {
 
     jsonAddKeyStore(json);
 
-    ClientResponse blogResponse
-        = service.type(
-            MediaType.APPLICATION_JSON).post(ClientResponse.class, json.
-                toString());
+    ClientResponse blogResponse = service.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, json.toString());
     final String response = blogResponse.getEntity(String.class);
 
     return response;
@@ -512,7 +497,7 @@ public class HopsUtil {
       String keystorString = Base64.encodeBase64String(kStoreBlob);
       json.append("keyStore", keystorString);
     } catch (IOException ex) {
-      Logger.getLogger(HopsUtil.class.getName()).log(Level.SEVERE, null, ex);
+      LOG.log(Level.SEVERE, null, ex);
     }
   }
 
@@ -568,24 +553,12 @@ public class HopsUtil {
     return jobName;
   }
 
+  public static String getAppId() {
+    return appId;
+  }
+
   public static String getJobType() {
     return jobType;
-  }
-
-  public static String getAppId(JavaStreamingContext jssc) {
-    return sparkInfo.getAppId(jssc);
-  }
-
-  public static SparkSession getSparkSession() {
-    return sparkInfo.getSparkSession();
-  }
-
-  public static JavaStreamingContext getJavaStreamingContext(long duration) {
-    return sparkInfo.getJavaStreamingContext(duration);
-  }
-
-  public static SparkConf getSparkConf() {
-    return sparkInfo.sparkConf;
   }
 
   public static void shutdownGracefully(JavaStreamingContext jssc) throws InterruptedException {
