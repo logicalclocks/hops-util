@@ -14,8 +14,8 @@ public abstract class HopsProcess implements Serializable {
   private static final Logger logger = Logger.
       getLogger(HopsProcess.class.getName());
   public HopsProcessType type;
-  final String topic;
-  final Schema schema;
+  protected final String topic;
+  protected final Schema schema;
 
   /**
    *
@@ -32,6 +32,12 @@ public abstract class HopsProcess implements Serializable {
     schema = parser.parse(HopsUtil.getSchema(topic));
     logger.log(Level.INFO, "Got schema:{0}", schema);
 
+  }
+  
+  public HopsProcess(HopsProcessType type, String topic, Schema schema) {
+    this.type = type;
+    this.topic = topic;
+    this.schema = schema;
   }
 
   /**
