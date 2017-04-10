@@ -10,17 +10,17 @@ import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import io.hops.util.flink.FlinkConsumer;
 import io.hops.util.flink.FlinkProducer;
-import io.hops.util.spark.SparkProducer;
 import io.hops.util.spark.SparkConsumer;
+import io.hops.util.spark.SparkProducer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -178,29 +178,29 @@ public class HopsUtil {
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
    *
-   * @param jSessionId
-   * @param projectId
-   * @param topicName
-   * @param brokerEndpoint
-   * @param restEndpoint
-   * @param keyStore
-   * @param trustStore
-   * @param keystorePwd
-   * @param truststorePwd
+   * @param pId
+   * @param topicN
+   * @param brokerE
+   * @param restE
+   * @param keySt
+   * @param trustSt
+   * @param keystPwd
+   * @param truststPwd
    * @return
    */
-  public synchronized HopsUtil setup(int projectId,
-      String topicName, String brokerEndpoint, String restEndpoint,
-      String keyStore, String trustStore, String keystorePwd,
-      String truststorePwd) {
-    this.projectId = projectId;
-    this.brokerEndpoint = brokerEndpoint;
-    this.restEndpoint = restEndpoint + File.separator + HOPSWORKS_REST_RESOURCE;
-    this.keyStore = keyStore;
-    this.trustStore = trustStore;
-    this.keystorePwd = keystorePwd;
-    this.trustStore = truststorePwd;
-    return this;
+  public static synchronized void setup(int pId,
+      String topicN, String brokerE, String restE,
+      String keySt, String trustSt, String keystPwd,
+      String truststPwd) {
+    brokerEndpoint = brokerE;
+    restEndpoint = restE + File.separator + HOPSWORKS_REST_RESOURCE;
+    keyStore = keySt;
+    trustStore = trustSt;
+    keystorePwd = keystPwd;
+    trustStore = truststPwd;
+    projectId = pId;
+    topics = new LinkedList();
+    topics.add(topicN);
   }
 
   /**
@@ -263,7 +263,7 @@ public class HopsUtil {
     keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
     truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
   }
-
+  
   /**
    * Instantiates and provides a singleton HopsUtil. Flink application must
    * then call the setup() method.

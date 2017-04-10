@@ -5,6 +5,7 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import io.hops.util.HopsUtil;
 import io.hops.util.SchemaNotFoundException;
 import java.util.logging.Logger;
 import javax.ws.rs.core.MediaType;
@@ -15,28 +16,32 @@ public class DelaHelper {
 
   private static final Logger logger = Logger.getLogger(DelaHelper.class.getName());
 
-  public static DelaConsumer getHopsConsumer(String restEndpoint, int projectId, String topic) 
+  public static DelaConsumer getHopsConsumer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
+    String keyStore, String trustStore, String keystorePwd, String truststorePwd)
     throws SchemaNotFoundException {
-    String stringSchema = getSchemaByTopic(restEndpoint, projectId, topic);
+    HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd, truststorePwd);
+    String stringSchema = getSchemaByTopic(restEndpoint, projectId, topicName);
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
-    return new DelaConsumer(topic, schema);
+    return new DelaConsumer(topicName, schema);
   }
 
-  public static DelaProducer getHopsProducer(String restEndpoint, int projectId, String topic, long lingerDelay)
+  public static DelaProducer getHopsProducer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
+    String keyStore, String trustStore, String keystorePwd, String truststorePwd, long lingerDelay)
     throws SchemaNotFoundException {
-    String stringSchema = getSchemaByTopic(restEndpoint, projectId, topic);
+    HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd, truststorePwd);
+    String stringSchema = getSchemaByTopic(restEndpoint, projectId, topicName);
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
-    return new DelaProducer(topic, schema, lingerDelay);
+    return new DelaProducer(topicName, schema, lingerDelay);
   }
 
-  public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName) 
+  public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName)
     throws SchemaNotFoundException {
     return getSchemaByTopic(restEndpoint, projectId, topicName, Integer.MIN_VALUE);
   }
 
-  public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName, int versionId) 
+  public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName, int versionId)
     throws SchemaNotFoundException {
 
     String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
@@ -75,7 +80,7 @@ public class DelaHelper {
     WebResource service = client.resource(uri);
     return service.type(MediaType.APPLICATION_JSON).get(ClientResponse.class);
   }
-  
+
   private static ClientResponse postResponse(String uri, String payload) {
     ClientConfig config = new DefaultClientConfig();
     Client client = Client.create(config);
