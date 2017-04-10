@@ -44,4 +44,8 @@ public abstract class HopsProcess implements Serializable {
    * Closes the Kafka process.
    */
   public abstract void close();
+  
+  public Schema getSchema() {
+    return schema;
+  }
 }
