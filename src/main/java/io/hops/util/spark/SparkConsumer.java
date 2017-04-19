@@ -2,11 +2,15 @@ package io.hops.util.spark;
 
 import io.hops.util.HopsUtil;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.streaming.DataStreamReader;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
@@ -23,9 +27,20 @@ import scala.Function0;
  */
 public class SparkConsumer {
 
-  private final JavaStreamingContext jsc;
+  private JavaStreamingContext jsc;
   private final Collection<String> topics;
   private final Map<String, Object> kafkaParams;
+  private SparkSession sparkSession;
+
+  public SparkConsumer() {
+    this.topics = HopsUtil.getTopics();
+    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
+  }
+
+  public SparkConsumer(Collection<String> topics) {
+    this.topics = topics;
+    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
+  }
 
   /**
    *
@@ -70,6 +85,34 @@ public class SparkConsumer {
             createDirectStream(jsc, LocationStrategies.PreferConsistent(),
                 ConsumerStrategies.Subscribe(topics, kafkaParams));
     return directKafkaStream;
+  }
+
+  /**
+   * Returns a DataStreamReader which the user can then load into the application, for example
+   * getKafkaDataStreamReader.load()
+   *
+   * @return
+   */
+  public DataStreamReader getKafkaDataStreamReader() {
+    sparkSession = SparkSession
+        .builder()
+        .appName(HopsUtil.getJobName())
+        .getOrCreate();
+
+    // Create DataSet representing the stream of input lines from kafka
+    return sparkSession
+        .readStream()
+        .format("kafka")
+        .options(HopsUtil.getKafkaProperties().getSparkStructuredStreamingKafkaProps());
+  }
+
+  /**
+   * Get the spark session after it is initialized by getKafkaDataStreamReader().
+   *
+   * @return
+   */
+  public SparkSession getSparkSession() {
+    return sparkSession;
   }
 
   /**

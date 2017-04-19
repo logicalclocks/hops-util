@@ -30,6 +30,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.net.util.Base64;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.json.JSONObject;
 
@@ -338,19 +339,40 @@ public class HopsUtil {
    * @return
    * @throws SchemaNotFoundException
    */
-  public static SparkProducer getSparkProducer(String topic) throws
-      SchemaNotFoundException {
+  public static SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException {
     return new SparkProducer(topic);
   }
+  
+  /**
+   * 
+   * @return 
+   */
+  public static SparkConsumer getSparkConsumer() {
+      return new SparkConsumer();
+  }
 
+  /**
+   * 
+   * @param topics
+   * @return
+   * @throws TopicNotFoundException 
+   */
+  public static SparkConsumer getSparkConsumer(Collection<String> topics) throws TopicNotFoundException {
+    if (topics != null && !topics.isEmpty()) {
+      return new SparkConsumer(topics);
+    } else {
+      throw new TopicNotFoundException(
+          "No topic was found for this spark consumer");
+    }
+  }
+  
   /**
    *
    * @param jsc
    * @return
    * @throws TopicNotFoundException
    */
-  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc) throws
-      TopicNotFoundException {
+  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc) throws TopicNotFoundException {
     if (topics != null && !topics.isEmpty()) {
       return new SparkConsumer(jsc, topics);
     } else {
@@ -359,6 +381,13 @@ public class HopsUtil {
     }
   }
 
+  /**
+   * 
+   * @param jsc
+   * @param userProps
+   * @return
+   * @throws TopicNotFoundException 
+   */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Properties userProps) throws
       TopicNotFoundException {
     if (topics != null && !topics.isEmpty()) {
@@ -375,8 +404,7 @@ public class HopsUtil {
    * @param topics
    * @return
    */
-  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
-      Collection<String> topics) {
+  public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     return new SparkConsumer(jsc, topics);
   }
 
@@ -536,6 +564,18 @@ public class HopsUtil {
   public static List<String> getTopics() {
     return topics;
   }
+  
+  public static String getTopicsAsCSV() {
+    StringBuilder sb = new StringBuilder();
+    topics.forEach((topic) -> {
+      sb.append(topic).append(",");
+    });
+    //Delete last comma
+    if (sb.charAt(sb.length() - 1) == ',') {
+      return sb.substring(0, sb.length() - 1);
+    }
+    return sb.toString();
+  }
 
   public static List<String> getConsumerGroups() {
     return consumerGroups;
@@ -561,10 +601,23 @@ public class HopsUtil {
     return jobType;
   }
 
+  /**
+   * Shutdown gracefully a streaming spark job.
+   *
+   * @param jssc
+   * @throws InterruptedException
+   */
   public static void shutdownGracefully(JavaStreamingContext jssc) throws InterruptedException {
     shutdownGracefully(jssc, 3000);
   }
 
+  /**
+   * Shutdown gracefully a streaming spark job.
+   *
+   * @param jssc
+   * @param checkIntervalMillis
+   * @throws InterruptedException
+   */
   public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis) throws InterruptedException {
     boolean isStopped = false;
     while (!isStopped) {
@@ -574,6 +627,22 @@ public class HopsUtil {
         jssc.stop(true, true);
       }
     }
+  }
+
+  /**
+   * Shutdown gracefully non streaming jobs.
+   *
+   * @param jsc
+   * @throws InterruptedException
+   */
+  public static void shutdownGracefully(JavaSparkContext jsc) throws InterruptedException {
+    while (!sparkInfo.isShutdownRequested()) {
+      Thread.sleep(5000);
+      LOG.info("Sleeping marker");
+    }
+    LOG.info("Marker file has been removed, will attempt to stop gracefully the spark context");
+    jsc.stop();
+    jsc.close();
   }
 
   /**

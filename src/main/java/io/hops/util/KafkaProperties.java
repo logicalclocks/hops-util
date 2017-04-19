@@ -188,8 +188,45 @@ public class KafkaProperties {
     return props;
   }
 
+  /**
+   *
+   * @return
+   */
   public Map<String, Object> getSparkConsumerConfigMap() {
     return getSparkConsumerConfigMap(null);
+  }
+
+  /**
+   *
+   * @return
+   */
+  public Map<String, String> getSparkStructuredStreamingKafkaProps() {
+    //Create options map for kafka
+    return getSparkStructuredStreamingKafkaProps(null);
+  }
+
+  /**
+   *
+   * @param userOptions
+   * @return
+   */
+  public Map<String, String> getSparkStructuredStreamingKafkaProps(Map<String, String> userOptions) {
+    //Create options map for kafka
+    Map<String, String> options = new HashMap<>();
+    options.put("kafka." + ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    options.put("subscribe", HopsUtil.getTopicsAsCSV());
+    options.put("kafka." + CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+    options.put("kafka." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.getTrustStore());
+    options.put("kafka." + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, HopsUtil.getTruststorePwd());
+    options.put("kafka." + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.getKeyStore());
+    options.put("kafka." + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, HopsUtil.getKeystorePwd());
+    options.put("kafka." + SslConfigs.SSL_KEY_PASSWORD_CONFIG, HopsUtil.getKeystorePwd());
+
+    if (userOptions != null) {
+      options.putAll(userOptions);
+    }
+
+    return options;
   }
 
   public Map<String, Object> getSparkConsumerConfigMap(Properties userProps) {
