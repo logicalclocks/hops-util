@@ -13,11 +13,11 @@
   </properties>
   
   <dependencies>
-    <dependency>
+<!--    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <version>0.10.0.1</version>
-    </dependency>
+    </dependency>-->
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_2.11</artifactId>

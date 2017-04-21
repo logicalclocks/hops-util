@@ -2,11 +2,9 @@ package io.hops.util.spark;
 
 import io.hops.util.HopsUtil;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
@@ -57,7 +55,6 @@ public class SparkConsumer {
     this.jsc = jsc;
     this.topics = topics;
     this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap(userProps);
-
   }
 
   /**
@@ -94,6 +91,17 @@ public class SparkConsumer {
    * @return
    */
   public DataStreamReader getKafkaDataStreamReader() {
+    return getKafkaDataStreamReader(null);
+  }
+
+  /**
+   * Returns a DataStreamReader which the user can then load into the application, for example
+   * getKafkaDataStreamReader.load()
+   *
+   * @param userOptions
+   * @return
+   */
+  public DataStreamReader getKafkaDataStreamReader(Map<String, String> userOptions) {
     sparkSession = SparkSession
         .builder()
         .appName(HopsUtil.getJobName())
@@ -103,7 +111,7 @@ public class SparkConsumer {
     return sparkSession
         .readStream()
         .format("kafka")
-        .options(HopsUtil.getKafkaProperties().getSparkStructuredStreamingKafkaProps());
+        .options(HopsUtil.getKafkaProperties().getSparkStructuredStreamingKafkaProps(userOptions));
   }
 
   /**
