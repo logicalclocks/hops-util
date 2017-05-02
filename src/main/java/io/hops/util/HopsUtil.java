@@ -31,6 +31,8 @@ import org.apache.commons.net.util.Base64;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.streaming.StreamingQuery;
+import org.apache.spark.sql.streaming.StreamingQueryException;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.json.JSONObject;
 
@@ -342,20 +344,20 @@ public class HopsUtil {
   public static SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException {
     return new SparkProducer(topic);
   }
-  
+
   /**
-   * 
-   * @return 
+   *
+   * @return
    */
   public static SparkConsumer getSparkConsumer() {
-      return new SparkConsumer();
+    return new SparkConsumer();
   }
 
   /**
-   * 
+   *
    * @param topics
    * @return
-   * @throws TopicNotFoundException 
+   * @throws TopicNotFoundException
    */
   public static SparkConsumer getSparkConsumer(Collection<String> topics) throws TopicNotFoundException {
     if (topics != null && !topics.isEmpty()) {
@@ -365,7 +367,7 @@ public class HopsUtil {
           "No topic was found for this spark consumer");
     }
   }
-  
+
   /**
    *
    * @param jsc
@@ -382,11 +384,11 @@ public class HopsUtil {
   }
 
   /**
-   * 
+   *
    * @param jsc
    * @param userProps
    * @return
-   * @throws TopicNotFoundException 
+   * @throws TopicNotFoundException
    */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Properties userProps) throws
       TopicNotFoundException {
@@ -564,7 +566,7 @@ public class HopsUtil {
   public static List<String> getTopics() {
     return topics;
   }
-  
+
   public static String getTopicsAsCSV() {
     StringBuilder sb = new StringBuilder();
     topics.forEach((topic) -> {
@@ -611,6 +613,10 @@ public class HopsUtil {
     shutdownGracefully(jssc, 3000);
   }
 
+  public static void shutdownGracefully(StreamingQuery query) throws InterruptedException, StreamingQueryException {
+    shutdownGracefully(query, 3000);
+  }
+
   /**
    * Shutdown gracefully a streaming spark job.
    *
@@ -625,6 +631,25 @@ public class HopsUtil {
       if (!isStopped && sparkInfo.isShutdownRequested()) {
         LOG.info("Marker file has been removed, will attempt to stop gracefully the spark streaming context");
         jssc.stop(true, true);
+      }
+    }
+  }
+
+  /**
+   *
+   * @param query
+   * @param checkIntervalMillis
+   * @throws InterruptedException
+   * @throws StreamingQueryException
+   */
+  public static void shutdownGracefully(StreamingQuery query, long checkIntervalMillis) throws InterruptedException,
+      StreamingQueryException {
+    boolean isStopped = false;
+    while (!isStopped) {
+      isStopped = query.awaitTermination(checkIntervalMillis);
+      if (!isStopped && sparkInfo.isShutdownRequested()) {
+        LOG.info("Marker file has been removed, will attempt to stop gracefully the spark structured streaming query");
+        query.stop();
       }
     }
   }
