@@ -1,5 +1,6 @@
 package io.hops.util.dela;
 
+import com.google.common.io.ByteStreams;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -7,9 +8,14 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.util.HopsUtil;
 import io.hops.util.SchemaNotFoundException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ws.rs.core.MediaType;
 import org.apache.avro.Schema;
+import org.apache.commons.net.util.Base64;
 import org.json.JSONObject;
 
 public class DelaHelper {
@@ -19,8 +25,9 @@ public class DelaHelper {
   public static DelaConsumer getHopsConsumer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
     String keyStore, String trustStore, String keystorePwd, String truststorePwd)
     throws SchemaNotFoundException {
+    logger.info("key store" + keyStore);
     HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd, truststorePwd);
-    String stringSchema = getSchemaByTopic(restEndpoint, projectId, topicName);
+    String stringSchema = getSchemaByTopic(HopsUtil.getRestEndpoint(), projectId, topicName);
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
     return new DelaConsumer(topicName, schema);
@@ -29,8 +36,9 @@ public class DelaHelper {
   public static DelaProducer getHopsProducer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
     String keyStore, String trustStore, String keystorePwd, String truststorePwd, long lingerDelay)
     throws SchemaNotFoundException {
+    logger.info("key store" + keyStore);
     HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd, truststorePwd);
-    String stringSchema = getSchemaByTopic(restEndpoint, projectId, topicName);
+    String stringSchema = getSchemaByTopic(HopsUtil.getRestEndpoint(), projectId, topicName);
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
     return new DelaProducer(topicName, schema, lingerDelay);
@@ -44,34 +52,38 @@ public class DelaHelper {
   public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName, int versionId)
     throws SchemaNotFoundException {
 
-    String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
+    JSONObject json = new JSONObject();
+    jsonAddKeyStore(json, HopsUtil.getKeyStore(), HopsUtil.getKeystorePwd());
+    json.append("topicName", topicName);
     if (versionId > 0) {
-      uri += "/" + versionId;
+      json.append("version", versionId);
     }
+
+    String uri = HopsUtil.getRestEndpoint() + "/schema";
     logger.info("getting schema:" + uri);
-    ClientResponse response = getResponse(uri);
+    ClientResponse response = postResponse(uri, json.toString());
     if (response == null) {
       throw new SchemaNotFoundException("Could not reach schema endpoint");
     } else if (response.getStatus() != 200) {
+      logger.warning("error code:" + response.getStatus());
+      logger.warning("response:" + response.toString());
       throw new SchemaNotFoundException(response.getStatus(), "Schema is not found");
     }
     String schema = extractSchema(response);
     return schema;
-
   }
 
-  public static String getSchemaByName(String restEndpoint, String jSessionId, int projectId, String schemaName,
-    int schemaVersion) throws SchemaNotFoundException {
-    String uri = restEndpoint + "/" + projectId + "/kafka/showSchema/" + schemaName + "/" + schemaVersion;
-    logger.info("getting schema:" + uri);
-    ClientResponse response = getResponse(uri);
-    if (response == null) {
-      throw new SchemaNotFoundException("Could not reach schema endpoint");
-    } else if (response.getStatus() != 200) {
-      throw new SchemaNotFoundException(response.getStatus(), "Schema is not found");
+  private static void jsonAddKeyStore(JSONObject json, String keyStore, String keystorePwd) {
+    json.append("keyStorePwd", keystorePwd);
+
+    try {
+      FileInputStream kfin = new FileInputStream(new File(keyStore));
+      byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
+      String keystorString = Base64.encodeBase64String(kStoreBlob);
+      json.append("keyStore", keystorString);
+    } catch (IOException ex) {
+      logger.log(Level.SEVERE, null, ex);
     }
-    String schema = extractSchema(response);
-    return schema;
   }
 
   private static ClientResponse getResponse(String uri) {
