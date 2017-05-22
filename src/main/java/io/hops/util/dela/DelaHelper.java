@@ -25,7 +25,9 @@ public class DelaHelper {
   public static DelaConsumer getHopsConsumer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
     String keyStore, String trustStore, String keystorePwd, String truststorePwd)
     throws SchemaNotFoundException {
-    logger.info("key store" + keyStore);
+    logger.log(Level.INFO, "projectId:{0}, topicName:{1}, brokerE:{2}, restE:{3}, keyS:{4}, trustS:{5}, keysP:{6}, "
+      + "trustsP:{7}", new Object[]{projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, 
+        keystorePwd, truststorePwd});
     HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd, truststorePwd);
     String stringSchema = getSchemaByTopic(HopsUtil.getRestEndpoint(), projectId, topicName);
     Schema.Parser parser = new Schema.Parser();
@@ -36,9 +38,12 @@ public class DelaHelper {
   public static DelaProducer getHopsProducer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
     String keyStore, String trustStore, String keystorePwd, String truststorePwd, long lingerDelay)
     throws SchemaNotFoundException {
-    logger.info("key store" + keyStore);
+    logger.log(Level.INFO, "projectId:{0}, topicName:{1}, brokerE:{2}, restE:{3}, keyS:{4}, trustS:{5}, keysP:{6}, "
+      + "trustsP:{7}, linger:{8}", new Object[]{projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, 
+        keystorePwd, truststorePwd, lingerDelay});
     HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd, truststorePwd);
     String stringSchema = getSchemaByTopic(HopsUtil.getRestEndpoint(), projectId, topicName);
+    logger.log(Level.INFO, "schema:{0}", new Object[]{stringSchema});
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
     return new DelaProducer(topicName, schema, lingerDelay);

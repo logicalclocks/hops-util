@@ -197,7 +197,7 @@ public class HopsUtil {
     keyStore = keySt;
     trustStore = trustSt;
     keystorePwd = keystPwd;
-    trustStore = truststPwd;
+    truststorePwd = truststPwd;
     projectId = pId;
     topics = new LinkedList();
     topics.add(topicN);
