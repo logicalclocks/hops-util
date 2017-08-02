@@ -1,5 +1,6 @@
 package io.hops.util.spark;
 
+import io.hops.util.CredentialsNotFoundException;
 import io.hops.util.HopsProducer;
 import io.hops.util.SchemaNotFoundException;
 
@@ -9,7 +10,7 @@ import io.hops.util.SchemaNotFoundException;
  */
 public class SparkProducer extends HopsProducer {
 
-  public SparkProducer(String topic) throws SchemaNotFoundException {
+  public SparkProducer(String topic) throws SchemaNotFoundException, CredentialsNotFoundException {
     super(topic);
   }
 }

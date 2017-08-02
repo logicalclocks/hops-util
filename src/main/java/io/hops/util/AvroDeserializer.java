@@ -20,23 +20,23 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
  * <p>
  */
 public class AvroDeserializer implements DeserializationSchema<String>,
-        SerializationSchema<Tuple4<String, String, String, String>> {
+    SerializationSchema<Tuple4<String, String, String, String>> {
 
   private static final long serialVersionUID = 1L;
   private String schemaJson;
   private transient Schema.Parser parser = new Schema.Parser();
   private transient Schema schema;
   private transient Injection<GenericRecord, byte[]> recordInjection
-          = GenericAvroCodecs.
+      = GenericAvroCodecs.
           toBinary(schema);
   private boolean initialized = false;
 
   public AvroDeserializer(String topicName) {
     try {
       schemaJson = HopsUtil.getSchema(topicName);
-    } catch (SchemaNotFoundException ex) {
+    } catch (SchemaNotFoundException | CredentialsNotFoundException ex) {
       Logger.getLogger(AvroDeserializer.class.getName()).log(Level.SEVERE, null,
-              ex);
+          ex);
     }
   }
 

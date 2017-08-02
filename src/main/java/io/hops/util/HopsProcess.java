@@ -24,7 +24,7 @@ public abstract class HopsProcess implements Serializable {
    * @throws SchemaNotFoundException
    */
   public HopsProcess(HopsProcessType type, String topic) throws
-      SchemaNotFoundException {
+      SchemaNotFoundException, CredentialsNotFoundException {
     this.topic = topic;
     Schema.Parser parser = new Schema.Parser();
     logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);

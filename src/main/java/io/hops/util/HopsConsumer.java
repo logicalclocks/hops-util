@@ -28,7 +28,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
   private final boolean callback = false;
   private final StringBuilder consumed = new StringBuilder();
 
-  HopsConsumer(String topic) throws SchemaNotFoundException {
+  HopsConsumer(String topic) throws SchemaNotFoundException, CredentialsNotFoundException {
     super(HopsProcessType.CONSUMER, topic);
     //Get Consumer properties
     //Properties props = HopsUtil.getInstance().getConsumerConfig();

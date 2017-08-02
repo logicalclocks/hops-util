@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -57,10 +58,15 @@ public class HopsUtil {
   public static final String HOPSWORKS_RESTENDPOINT = "hopsworks.restendpoint";
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
   public static final String KAFKA_CONSUMER_GROUPS = "hopsworks.kafka.consumergroups";
-  public static final String KEYSTORE_PWD_ENV_VAR = "hopsworks.keystore.password";
-  public static final String TRUSTSTORE_PWD_ENV_VAR = "hopsworks.truststore.password";
+  public static final String KEYSTORE_ENV_VAR = "hopsworks.keystore";
+  public static final String TRUSTSTORE_ENV_VAR = "hopsworks.truststore";
+  public static final String KEYSTORE_VAL_ENV_VAR = "keyPw";
+  public static final String TRUSTSTORE_VAL_ENV_VAR = "trustPw";
   public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
-  public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api/appservice";
+  public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api";
+  public static final String HOPSWORKS_REST_APPSERVICE = "appservice";
+  public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
+  public static final String SESSIONID_ENV_VAR = "hopsworks.sessionid";
 
   private static Integer projectId;
   private static String projectName;
@@ -77,6 +83,7 @@ public class HopsUtil {
   private static List<String> consumerGroups;
   private static String elasticEndPoint;
   private static SparkInfo sparkInfo;
+  private static String sessionId;
 
   static {
     setup();
@@ -94,25 +101,31 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
     if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
-      LOG.log(Level.INFO, "sysProps:{0}", sysProps);
-      restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT) + File.separator + HOPSWORKS_REST_RESOURCE;
-      keyStore = K_CERTIFICATE_ENV_VAR;
-      trustStore = T_CERTIFICATE_ENV_VAR;
-      keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-      truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
-      projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
-      projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
-      jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
-      appId = sysProps.getProperty(APPID_ENV_VAR);
-      jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
-      brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
-      elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
-      //Spark Kafka topics
-      topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
-      if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
-        consumerGroups = Arrays.asList(sysProps.getProperty(KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
+      try {
+        sessionId = sysProps.getProperty(SESSIONID_ENV_VAR);
+        restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT);
+        keyStore = K_CERTIFICATE_ENV_VAR;
+        trustStore = T_CERTIFICATE_ENV_VAR;
+        //Get keystore and truststore passwords from Hopsworks
+        projectId = Integer.parseInt(sysProps.getProperty(KAFKA_PROJECTID_ENV_VAR));
+        JSONObject pw = getCertPw();
+        keystorePwd = pw.getString(KEYSTORE_VAL_ENV_VAR);
+        truststorePwd = pw.getString(TRUSTSTORE_VAL_ENV_VAR);
+        projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
+        jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
+        appId = sysProps.getProperty(APPID_ENV_VAR);
+        jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
+        brokerEndpoint = sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR);
+        elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
+        //Spark Kafka topics
+        topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
+        if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
+          consumerGroups = Arrays.asList(sysProps.getProperty(KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
+        }
+        sparkInfo = new SparkInfo(jobName);
+      } catch (CredentialsNotFoundException ex) {
+        LOG.log(Level.SEVERE, "Could not get credentials for certificates", ex);
       }
-      sparkInfo = new SparkInfo(jobName);
     }
   }
 
@@ -136,8 +149,8 @@ public class HopsUtil {
     this.restEndpoint = endpoint + File.separator + HOPSWORKS_REST_RESOURCE;
     this.keyStore = K_CERTIFICATE_ENV_VAR;
     this.trustStore = T_CERTIFICATE_ENV_VAR;
-    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
+//    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+//    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     return this;
   }
 
@@ -167,8 +180,8 @@ public class HopsUtil {
     this.restEndpoint = restEndpoint + File.separator + HOPSWORKS_REST_RESOURCE;
     this.keyStore = keyStore;
     this.trustStore = trustStore;
-    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
+//    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
+//    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     return this;
   }
 
@@ -193,7 +206,7 @@ public class HopsUtil {
       String keySt, String trustSt, String keystPwd,
       String truststPwd) {
     brokerEndpoint = brokerE;
-    restEndpoint = restE + File.separator + HOPSWORKS_REST_RESOURCE;
+    restEndpoint = restE;
     keyStore = keySt;
     trustStore = trustSt;
     keystorePwd = keystPwd;
@@ -228,7 +241,7 @@ public class HopsUtil {
       String truststorePwd) {
     this.projectId = projectId;
     this.brokerEndpoint = brokerEndpoint;
-    this.restEndpoint = restEndpoint + File.separator + HOPSWORKS_REST_RESOURCE;
+    this.restEndpoint = restEndpoint;
     this.topics = Arrays.asList(topics.split(File.pathSeparator));
     this.consumerGroups = Arrays.
         asList(consumerGroups.split(File.pathSeparator));
@@ -249,8 +262,7 @@ public class HopsUtil {
     projectId = Integer.parseInt(params.get(
         HopsUtil.KAFKA_PROJECTID_ENV_VAR));
     brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
-    restEndpoint = params.get(HopsUtil.HOPSWORKS_RESTENDPOINT)
-        + File.separator + HOPSWORKS_REST_RESOURCE;
+    restEndpoint = params.get(HopsUtil.HOPSWORKS_RESTENDPOINT);
     topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
         File.pathSeparator));
     if (params.containsKey(KAFKA_CONSUMER_GROUPS)) {
@@ -260,10 +272,10 @@ public class HopsUtil {
     }
     keyStore = params.get(K_CERTIFICATE_ENV_VAR);
     trustStore = params.get(T_CERTIFICATE_ENV_VAR);
-    keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
-    truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
+//    keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
+//    truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
   }
-  
+
   /**
    * Instantiates and provides a singleton HopsUtil. Flink application must
    * then call the setup() method.
@@ -284,12 +296,12 @@ public class HopsUtil {
   }
 
   public static HopsConsumer getHopsConsumer(String topic) throws
-      SchemaNotFoundException {
+      SchemaNotFoundException, CredentialsNotFoundException {
     return new HopsConsumer(topic);
   }
 
   public static HopsProducer getHopsProducer(String topic) throws
-      SchemaNotFoundException {
+      SchemaNotFoundException, CredentialsNotFoundException {
     return new HopsProducer(topic);
   }
 
@@ -326,7 +338,7 @@ public class HopsUtil {
    * @throws TopicNotFoundException
    */
   public static SparkProducer getSparkProducer() throws
-      SchemaNotFoundException, TopicNotFoundException {
+      SchemaNotFoundException, TopicNotFoundException, CredentialsNotFoundException {
     if (HopsUtil.getTopics() != null && HopsUtil.getTopics().size() == 1) {
       return new SparkProducer(HopsUtil.getTopics().get(0));
     } else {
@@ -341,7 +353,8 @@ public class HopsUtil {
    * @return
    * @throws SchemaNotFoundException
    */
-  public static SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException {
+  public static SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException,
+      CredentialsNotFoundException {
     return new SparkProducer(topic);
   }
 
@@ -431,7 +444,7 @@ public class HopsUtil {
     return new AvroDeserializer(topic);
   }
 
-  public static String getSchema(String topicName) throws SchemaNotFoundException {
+  public static String getSchema(String topicName) throws SchemaNotFoundException, CredentialsNotFoundException {
     return getSchema(topicName, Integer.MIN_VALUE);
   }
 
@@ -447,7 +460,7 @@ public class HopsUtil {
       try {
         Schema.Parser parser = new Schema.Parser();
         schemas.put(topic, parser.parse(getSchema(topic)));
-      } catch (SchemaNotFoundException ex) {
+      } catch (SchemaNotFoundException | CredentialsNotFoundException ex) {
         LOG.log(Level.SEVERE, "Could not get schema for topic", ex);
       }
     }
@@ -462,6 +475,9 @@ public class HopsUtil {
    */
   public static Map<String, Injection<GenericRecord, byte[]>> getRecordInjections() {
     Map<String, Schema> schemas = HopsUtil.getSchemas();
+    if (schemas.isEmpty()) {
+      return null;
+    }
     Map<String, Injection<GenericRecord, byte[]>> recordInjections
         = new HashMap<>();
     for (String topic : HopsUtil.getTopics()) {
@@ -472,16 +488,23 @@ public class HopsUtil {
     return recordInjections;
   }
 
-  public static String getSchema(String topicName, int versionId) throws
-      SchemaNotFoundException {
+  public static String getSchema(String topicName, int versionId) throws SchemaNotFoundException,
+      CredentialsNotFoundException {
 
     JSONObject json = new JSONObject();
-    jsonAddKeyStore(json);
+    json.append("keyStorePwd", keystorePwd);
+    try {
+      json.append("keyStore", keystoreEncode());
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, null, ex);
+      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
+    }
     json.append("topicName", topicName);
     if (versionId > 0) {
       json.append("version", versionId);
     }
-    String uri = HopsUtil.getRestEndpoint() + "/schema";
+    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
+        + "/schema";
     LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topicName, uri});
 
     ClientConfig config = new DefaultClientConfig();
@@ -497,9 +520,10 @@ public class HopsUtil {
     return schema;
   }
 
-  public static String sendEmail(String dest, String subject, String message) {
+  public static String sendEmail(String dest, String subject, String message) throws
+      CredentialsNotFoundException {
 
-    String uri = HopsUtil.getRestEndpoint() + "/mail";
+    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE + "/mail";
 
     ClientConfig config = new DefaultClientConfig();
     Client client = Client.create(config);
@@ -508,9 +532,13 @@ public class HopsUtil {
     json.append("dest", dest);
     json.append("subject", subject);
     json.append("message", message);
-
-    jsonAddKeyStore(json);
-
+    json.append("keyStorePwd", keystorePwd);
+    try {
+      json.append("keyStore", keystoreEncode());
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, null, ex);
+      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
+    }
     ClientResponse blogResponse = service.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, json.toString());
     final String response = blogResponse.getEntity(String.class);
 
@@ -518,17 +546,34 @@ public class HopsUtil {
 
   }
 
-  private static void jsonAddKeyStore(JSONObject json) {
-    json.append("keyStorePwd", keystorePwd);
+  private static JSONObject getCertPw() throws CredentialsNotFoundException {
 
     try {
-      FileInputStream kfin = new FileInputStream(new File(keyStore));
-      byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
-      String keystorString = Base64.encodeBase64String(kStoreBlob);
-      json.append("keyStore", keystorString);
+      String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/project/" + projectId + "/"
+          + HOPSWORKS_REST_CERTSERVICE
+          + "/certpw";
+      ClientConfig config = new DefaultClientConfig();
+      Client client = Client.create(config);
+      WebResource service = client.resource(uri);
+      Cookie cookie = new Cookie("SESSION", sessionId);
+
+      final ClientResponse blogResponse = service.queryParam("keyStore", keystoreEncode())
+          .type(MediaType.TEXT_PLAIN).cookie(cookie)
+          .get(ClientResponse.class);
+      final String response = blogResponse.getEntity(String.class);
+      JSONObject json = new JSONObject(response);
+      return json;
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, null, ex);
+      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
+
+  }
+
+  private static String keystoreEncode() throws IOException {
+    FileInputStream kfin = new FileInputStream(new File(keyStore));
+    byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
+    return Base64.encodeBase64String(kStoreBlob);
   }
 
   public static Logger getLogger() {
