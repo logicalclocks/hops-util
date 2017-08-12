@@ -67,9 +67,11 @@ public class HopsUtil {
   public static final String HOPSWORKS_REST_APPSERVICE = "appservice";
   public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
   public static final String SESSIONID_ENV_VAR = "hopsworks.sessionid";
+  public static final String HOPSWORKS_PROJECTUSER_ENV_VAR = "hopsworks.projectuser";
 
   private static Integer projectId;
   private static String projectName;
+  private static String projectUser;
   private static String jobName;
   private static String appId;
   private static String jobType;
@@ -83,7 +85,6 @@ public class HopsUtil {
   private static List<String> consumerGroups;
   private static String elasticEndPoint;
   private static SparkInfo sparkInfo;
-  private static String sessionId;
 
   static {
     setup();
@@ -102,8 +103,10 @@ public class HopsUtil {
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
     if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
       try {
-        sessionId = sysProps.getProperty(SESSIONID_ENV_VAR);
+        //sessionId = sysProps.getProperty(SESSIONID_ENV_VAR);
+        projectUser = sysProps.getProperty(HOPSWORKS_PROJECTUSER_ENV_VAR);
         restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT);
+        projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
         keyStore = K_CERTIFICATE_ENV_VAR;
         trustStore = T_CERTIFICATE_ENV_VAR;
         //Get keystore and truststore passwords from Hopsworks
@@ -111,7 +114,6 @@ public class HopsUtil {
         JSONObject pw = getCertPw();
         keystorePwd = pw.getString(KEYSTORE_VAL_ENV_VAR);
         truststorePwd = pw.getString(TRUSTSTORE_VAL_ENV_VAR);
-        projectName = sysProps.getProperty(KAFKA_PROJECTNAME_ENV_VAR);
         jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
         appId = sysProps.getProperty(APPID_ENV_VAR);
         jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
@@ -549,16 +551,17 @@ public class HopsUtil {
   private static JSONObject getCertPw() throws CredentialsNotFoundException {
 
     try {
-      String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/project/" + projectId + "/"
-          + HOPSWORKS_REST_CERTSERVICE
+      String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
           + "/certpw";
       ClientConfig config = new DefaultClientConfig();
       Client client = Client.create(config);
       WebResource service = client.resource(uri);
-      Cookie cookie = new Cookie("SESSION", sessionId);
+//      Cookie cookie = new Cookie("SESSION", sessionId);
 
       final ClientResponse blogResponse = service.queryParam("keyStore", keystoreEncode())
-          .type(MediaType.TEXT_PLAIN).cookie(cookie)
+          .queryParam("projectUser", projectUser)
+          .type(MediaType.TEXT_PLAIN)
+//          .cookie(cookie)
           .get(ClientResponse.class);
       final String response = blogResponse.getEntity(String.class);
       JSONObject json = new JSONObject(response);
