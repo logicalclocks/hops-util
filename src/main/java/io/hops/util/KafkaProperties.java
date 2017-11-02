@@ -23,7 +23,7 @@ public class KafkaProperties {
   public Properties defaultProps() {
 
     Properties props = new Properties();
-    props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoints());
     props.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     props.setProperty("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
 
@@ -39,34 +39,12 @@ public class KafkaProperties {
   }
 
   /**
-   * @Deprecated.
-   * @return
-   */
-  public Properties getProducerConfig() {
-    Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
-    props.put("client.id", "DemoProducer");
-    props.put("key.serializer", "org.apache.kafka.common.serialization.IntegerSerializer");
-    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-
-    //configure the ssl parameters
-    if (!Strings.isNullOrEmpty(HopsUtil.getTrustStore()) && !Strings.isNullOrEmpty(HopsUtil.getKeyStore())) {
-      props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.getTrustStore());
-      props.setProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, HopsUtil.getTruststorePwd());
-      props.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, HopsUtil.getKeyStore());
-      props.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, HopsUtil.getKeystorePwd());
-    }
-    return props;
-  }
-
-  /**
    *
    * @return
    */
   public Properties getConsumerConfig() {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpointsList());
     if (HopsUtil.getConsumerGroups() != null && !HopsUtil.getConsumerGroups().isEmpty()) {
       props.put(ConsumerConfig.GROUP_ID_CONFIG, HopsUtil.getConsumerGroups().get(0));
     }
@@ -98,7 +76,7 @@ public class KafkaProperties {
    */
   public Properties getConsumerConfig(Properties userProps) {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpointsList());
     if (HopsUtil.getConsumerGroups() != null && !HopsUtil.getConsumerGroups().isEmpty()) {
       props.put(ConsumerConfig.GROUP_ID_CONFIG, HopsUtil.getConsumerGroups().get(0));
     }
@@ -133,7 +111,7 @@ public class KafkaProperties {
    */
   public Properties getSparkConsumerConfig() {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpointsList());
     if (HopsUtil.getConsumerGroups() != null && !HopsUtil.getConsumerGroups().isEmpty()) {
       props.put(ConsumerConfig.GROUP_ID_CONFIG, HopsUtil.getConsumerGroups().get(0));
     }
@@ -162,7 +140,7 @@ public class KafkaProperties {
    */
   public Properties getSparkConsumerConfig(Properties userProps) {
     Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoints());
     props.put(ConsumerConfig.GROUP_ID_CONFIG, HopsUtil.getConsumerGroups().get(0));
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
@@ -213,7 +191,7 @@ public class KafkaProperties {
   public Map<String, String> getSparkStructuredStreamingKafkaProps(Map<String, String> userOptions) {
     //Create options map for kafka
     Map<String, String> options = new HashMap<>();
-    options.put("kafka." + ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoint());
+    options.put("kafka." + ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoints());
     options.put("subscribe", HopsUtil.getTopicsAsCSV());
     options.put("kafka." + CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
     options.put("kafka." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.getTrustStore());
