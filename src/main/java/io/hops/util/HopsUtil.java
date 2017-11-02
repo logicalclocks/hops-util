@@ -573,33 +573,6 @@ public class HopsUtil {
   }
 
   /////////////////////////////////////////////
-  // REST calls to Hopsworks JobService
-  /**
-   *
-   * @param jobId
-   * @return
-   * @throws CredentialsNotFoundException
-   */
-  public static String startJob(String jobId) throws CredentialsNotFoundException {
-    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE + "/jobs/"
-        + jobId + "/executions";
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
-    JSONObject json = new JSONObject();
-    json.append("keyStorePwd", keystorePwd);
-    try {
-      json.append("keyStore", keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
-    }
-    ClientResponse blogResponse = service.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, json.toString());
-    final String response = blogResponse.getEntity(String.class);
-    return response;
-  }
-
-  /////////////////////////////////////////////
   private static String keystoreEncode() throws IOException {
     FileInputStream kfin = new FileInputStream(new File(keyStore));
     byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
