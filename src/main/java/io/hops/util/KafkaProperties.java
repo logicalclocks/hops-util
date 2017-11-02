@@ -191,7 +191,14 @@ public class KafkaProperties {
   public Map<String, String> getSparkStructuredStreamingKafkaProps(Map<String, String> userOptions) {
     //Create options map for kafka
     Map<String, String> options = new HashMap<>();
-    options.put("kafka." + ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoints());
+    //set only INTERNAL brokers
+    StringBuilder sb = new StringBuilder();
+    for(String broker : HopsUtil.getBrokerEndpointsList()){
+      if(broker.startsWith("INTERNAL")){
+        sb.append(broker).append(",");
+      }
+    }
+    options.put("kafka." + ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, sb.substring(0,sb.length()-1));
     options.put("subscribe", HopsUtil.getTopicsAsCSV());
     options.put("kafka." + CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
     options.put("kafka." + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, HopsUtil.getTrustStore());
