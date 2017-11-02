@@ -67,7 +67,6 @@ public class HopsUtil {
   public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api";
   public static final String HOPSWORKS_REST_APPSERVICE = "appservice";
   public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
-  public static final String SESSIONID_ENV_VAR = "hopsworks.sessionid";
   public static final String HOPSWORKS_PROJECTUSER_ENV_VAR = "hopsworks.projectuser";
   private static final String BROKERS_REGEX = "(?:[^:]+\\:){1}[^:]*";
 
@@ -106,7 +105,6 @@ public class HopsUtil {
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
     if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
       try {
-        //sessionId = sysProps.getProperty(SESSIONID_ENV_VAR);
         projectUser = sysProps.getProperty(HOPSWORKS_PROJECTUSER_ENV_VAR);
         restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT);
         projectName = sysProps.getProperty(PROJECTNAME_ENV_VAR);
