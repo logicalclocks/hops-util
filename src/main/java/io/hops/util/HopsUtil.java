@@ -1,11 +1,9 @@
 package io.hops.util;
 
 import com.google.common.io.ByteStreams;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.filter.LoggingFilter;
+
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import io.hops.util.flink.FlinkConsumer;
@@ -24,9 +22,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.net.util.Base64;
@@ -343,7 +345,7 @@ public class HopsUtil {
       CredentialsNotFoundException {
     return new SparkProducer(topic, null);
   }
-  
+
   /**
    *
    * @param topic
@@ -506,13 +508,12 @@ public class HopsUtil {
         + "/schema";
     LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topicName, uri});
 
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
-    final ClientResponse blogResponse = service.type(
-        MediaType.APPLICATION_JSON).post(ClientResponse.class, json.
-            toString());
-    final String blog = blogResponse.getEntity(String.class);
+    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    Invocation.Builder invocationBuilder = webTarget.request().accept(MediaType.APPLICATION_JSON);
+    final Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+    final String blog = blogResponse.readEntity(String.class);
     //Extract fields from json
     json = new JSONObject(blog);
     String schema = json.getString("contents");
@@ -524,9 +525,9 @@ public class HopsUtil {
 
     String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE + "/mail";
 
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
+    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
     JSONObject json = new JSONObject();
     json.append("dest", dest);
     json.append("subject", subject);
@@ -538,8 +539,9 @@ public class HopsUtil {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
-    ClientResponse blogResponse = service.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, json.toString());
-    final String response = blogResponse.getEntity(String.class);
+    Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+    Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+    final String response = blogResponse.readEntity(String.class);
 
     return response;
 
@@ -554,14 +556,13 @@ public class HopsUtil {
     try {
       String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
           + "/certpw";
-      ClientConfig config = new DefaultClientConfig();
-      Client client = Client.create(config);
-      WebResource service = client.resource(uri);
-      final ClientResponse blogResponse = service.queryParam("keyStore", keystoreEncode())
-          .queryParam("projectUser", projectUser)
-          .type(MediaType.TEXT_PLAIN)
-          .get(ClientResponse.class);
-      final String response = blogResponse.getEntity(String.class);
+      ClientConfig config = new ClientConfig().register(LoggingFilter.class);
+      Client client = ClientBuilder.newClient(config);
+      WebTarget webTarget = client.target(uri);
+      Invocation.Builder invocationBuilder = webTarget.queryParam("keyStore", keystoreEncode()).
+          queryParam("projectUser", projectUser).request(MediaType.APPLICATION_JSON);
+      Response blogResponse = invocationBuilder.get();
+      final String response = blogResponse.readEntity(String.class);
       JSONObject json = new JSONObject(response);
       return json;
     } catch (IOException ex) {
