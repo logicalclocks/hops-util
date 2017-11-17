@@ -70,11 +70,10 @@ public class HopsUtil {
   public static final String HOPSWORKS_REST_APPSERVICE = "appservice";
   public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
   public static final String HOPSWORKS_PROJECTUSER_ENV_VAR = "hopsworks.projectuser";
-  private static final String BROKERS_REGEX = "(?:[^:]+\\:){1}[^:]*";
+  public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
 
   private static Integer projectId;
   private static String projectName;
-  private static String projectUser;
   private static String jobName;
   private static String appId;
   private static String jobType;
@@ -107,23 +106,24 @@ public class HopsUtil {
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
     if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
       try {
-        projectUser = sysProps.getProperty(HOPSWORKS_PROJECTUSER_ENV_VAR);
         restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT);
         projectName = sysProps.getProperty(PROJECTNAME_ENV_VAR);
         keyStore = K_CERTIFICATE_ENV_VAR;
         trustStore = T_CERTIFICATE_ENV_VAR;
         //Get keystore and truststore passwords from Hopsworks
         projectId = Integer.parseInt(sysProps.getProperty(PROJECTID_ENV_VAR));
-        JSONObject pw = getCertPw();
-        keystorePwd = pw.getString(KEYSTORE_VAL_ENV_VAR);
-        truststorePwd = pw.getString(TRUSTSTORE_VAL_ENV_VAR);
+        String pwd = getCertPw();
+        keystorePwd = pwd;
+        truststorePwd = pwd;
         jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
         appId = sysProps.getProperty(APPID_ENV_VAR);
         jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
 
         elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
         //Spark Kafka topics
-        parseBrokerEndpoints(sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR));
+        if (sysProps.containsKey(KAFKA_BROKERADDR_ENV_VAR)) {
+          parseBrokerEndpoints(sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR));
+        }
         if (sysProps.containsKey(KAFKA_TOPICS_ENV_VAR)) {
           topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
         }
@@ -547,28 +547,87 @@ public class HopsUtil {
 
   }
 
-  /**
-   *
-   * @return
-   * @throws CredentialsNotFoundException
-   */
-  private static JSONObject getCertPw() throws CredentialsNotFoundException {
+  public static String startJobs(List<String> jobIds) throws CredentialsNotFoundException {
+    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
+        + "/jobs";
+
+    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    JSONObject json = new JSONObject();
+    json.put("jobIds", jobIds);
+    json.put("keyStorePwd", keystorePwd);
     try {
-      String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
-          + "/certpw";
-      ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-      Client client = ClientBuilder.newClient(config);
-      WebTarget webTarget = client.target(uri);
-      Invocation.Builder invocationBuilder = webTarget.queryParam("keyStore", keystoreEncode()).
-          queryParam("projectUser", projectUser).request(MediaType.APPLICATION_JSON);
-      Response blogResponse = invocationBuilder.get();
-      final String response = blogResponse.readEntity(String.class);
-      JSONObject json = new JSONObject(response);
-      return json;
+      json.put("keyStore", keystoreEncode());
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
+    Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+    Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+    final String response = blogResponse.readEntity(String.class);
+    return response;
+  }
+
+  /**
+   * Gets status of job(s) from Hopsworks and returns on provided status (default is FINISHED),
+   *
+   * @param jobIds
+   * @return
+   * @throws CredentialsNotFoundException
+   */
+  public static void waitJobs(List<String> jobIds) throws CredentialsNotFoundException {
+    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
+        + "/runningjobs";
+    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    JSONObject json = new JSONObject();
+    json.put("jobIds", jobIds);
+    json.put("keyStorePwd", keystorePwd);
+    try {
+      json.put("keyStore", keystoreEncode());
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, null, ex);
+      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
+    }
+    boolean runningJobs = true;
+    while (runningJobs) {
+      LOG.log(Level.INFO, "Retrieving running jobs:{0}", jobIds);
+      Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+      Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+      String response = blogResponse.readEntity(String.class);
+      LOG.log(Level.INFO, "Retrieved running jobs:{0}", response);
+      JSONObject jobs = new JSONObject(response);
+      if (jobs.getJSONArray("jobIds").length() == 0) {
+        runningJobs = false;
+      }
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException ex) {
+        LOG.log(Level.WARNING, null, ex);
+      }
+    }
+  }
+
+  /**
+   * Get keystore password from local container.
+   *
+   * @return
+   * @throws CredentialsNotFoundException
+   */
+  private static String getCertPw() throws CredentialsNotFoundException {
+    try (FileInputStream fis = new FileInputStream(CRYPTO_MATERIAL_PASSWORD)) {
+      StringBuilder sb = new StringBuilder();
+      int content;
+      while ((content = fis.read()) != -1) {
+        sb.append((char) content);
+      }
+      return sb.toString();
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, null, ex);
+    }
+    return null;
   }
 
   /////////////////////////////////////////////
