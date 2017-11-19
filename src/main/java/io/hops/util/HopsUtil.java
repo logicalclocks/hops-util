@@ -49,29 +49,6 @@ public class HopsUtil {
 
   private static final Logger LOG = Logger.getLogger(HopsUtil.class.getName());
 
-  public static final String KAFKA_FLINK_PARAMS = "kafka_params";
-  public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
-  public static final String PROJECTNAME_ENV_VAR = "hopsworks.projectname";
-  public static final String JOBNAME_ENV_VAR = "hopsworks.job.name";
-  public static final String JOBTYPE_ENV_VAR = "hopsworks.job.type";
-  public static final String APPID_ENV_VAR = "hopsworks.job.appid";
-  public static final String KAFKA_BROKERADDR_ENV_VAR = "hopsworks.kafka.brokeraddress";
-  public static final String K_CERTIFICATE_ENV_VAR = "k_certificate";
-  public static final String T_CERTIFICATE_ENV_VAR = "t_certificate";
-  public static final String HOPSWORKS_RESTENDPOINT = "hopsworks.restendpoint";
-  public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
-  public static final String KAFKA_CONSUMER_GROUPS = "hopsworks.kafka.consumergroups";
-  public static final String KEYSTORE_ENV_VAR = "hopsworks.keystore";
-  public static final String TRUSTSTORE_ENV_VAR = "hopsworks.truststore";
-  public static final String KEYSTORE_VAL_ENV_VAR = "keyPw";
-  public static final String TRUSTSTORE_VAL_ENV_VAR = "trustPw";
-  public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
-  public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api";
-  public static final String HOPSWORKS_REST_APPSERVICE = "appservice";
-  public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
-  public static final String HOPSWORKS_PROJECTUSER_ENV_VAR = "hopsworks.projectuser";
-  public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
-
   private static Integer projectId;
   private static String projectName;
   private static String jobName;
@@ -104,31 +81,33 @@ public class HopsUtil {
   public static synchronized void setup() {
     Properties sysProps = System.getProperties();
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
-    if (sysProps.containsKey(JOBTYPE_ENV_VAR) && sysProps.getProperty(JOBTYPE_ENV_VAR).equalsIgnoreCase("spark")) {
+    if (sysProps.containsKey(Constants.JOBTYPE_ENV_VAR) && sysProps.getProperty(Constants.JOBTYPE_ENV_VAR).
+        equalsIgnoreCase("spark")) {
       try {
-        restEndpoint = sysProps.getProperty(HOPSWORKS_RESTENDPOINT);
-        projectName = sysProps.getProperty(PROJECTNAME_ENV_VAR);
-        keyStore = K_CERTIFICATE_ENV_VAR;
-        trustStore = T_CERTIFICATE_ENV_VAR;
+        restEndpoint = sysProps.getProperty(Constants.HOPSWORKS_RESTENDPOINT);
+        projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
+        keyStore = Constants.K_CERTIFICATE_ENV_VAR;
+        trustStore = Constants.T_CERTIFICATE_ENV_VAR;
         //Get keystore and truststore passwords from Hopsworks
-        projectId = Integer.parseInt(sysProps.getProperty(PROJECTID_ENV_VAR));
+        projectId = Integer.parseInt(sysProps.getProperty(Constants.PROJECTID_ENV_VAR));
         String pwd = getCertPw();
         keystorePwd = pwd;
         truststorePwd = pwd;
-        jobName = sysProps.getProperty(JOBNAME_ENV_VAR);
-        appId = sysProps.getProperty(APPID_ENV_VAR);
-        jobType = sysProps.getProperty(JOBTYPE_ENV_VAR);
+        jobName = sysProps.getProperty(Constants.JOBNAME_ENV_VAR);
+        appId = sysProps.getProperty(Constants.APPID_ENV_VAR);
+        jobType = sysProps.getProperty(Constants.JOBTYPE_ENV_VAR);
 
-        elasticEndPoint = sysProps.getProperty(ELASTIC_ENDPOINT_ENV_VAR);
+        elasticEndPoint = sysProps.getProperty(Constants.ELASTIC_ENDPOINT_ENV_VAR);
         //Spark Kafka topics
-        if (sysProps.containsKey(KAFKA_BROKERADDR_ENV_VAR)) {
-          parseBrokerEndpoints(sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR));
+        if (sysProps.containsKey(Constants.KAFKA_BROKERADDR_ENV_VAR)) {
+          parseBrokerEndpoints(sysProps.getProperty(Constants.KAFKA_BROKERADDR_ENV_VAR));
         }
-        if (sysProps.containsKey(KAFKA_TOPICS_ENV_VAR)) {
-          topics = Arrays.asList(sysProps.getProperty(KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
+        if (sysProps.containsKey(Constants.KAFKA_TOPICS_ENV_VAR)) {
+          topics = Arrays.asList(sysProps.getProperty(Constants.KAFKA_TOPICS_ENV_VAR).split(File.pathSeparator));
         }
-        if (sysProps.containsKey(KAFKA_CONSUMER_GROUPS)) {
-          consumerGroups = Arrays.asList(sysProps.getProperty(KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
+        if (sysProps.containsKey(Constants.KAFKA_CONSUMER_GROUPS)) {
+          consumerGroups = Arrays.
+              asList(sysProps.getProperty(Constants.KAFKA_CONSUMER_GROUPS).split(File.pathSeparator));
         }
         sparkInfo = new SparkInfo(jobName);
       } catch (CredentialsNotFoundException ex) {
@@ -150,12 +129,12 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
-    this.projectId = Integer.parseInt(sysProps.getProperty(PROJECTID_ENV_VAR));
-    this.projectName = sysProps.getProperty(PROJECTNAME_ENV_VAR);
-    parseBrokerEndpoints(sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR));
-    this.restEndpoint = endpoint + File.separator + HOPSWORKS_REST_RESOURCE;
-    this.keyStore = K_CERTIFICATE_ENV_VAR;
-    this.trustStore = T_CERTIFICATE_ENV_VAR;
+    this.projectId = Integer.parseInt(sysProps.getProperty(Constants.PROJECTID_ENV_VAR));
+    this.projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
+    parseBrokerEndpoints(sysProps.getProperty(Constants.KAFKA_BROKERADDR_ENV_VAR));
+    this.restEndpoint = endpoint + File.separator + Constants.HOPSWORKS_REST_RESOURCE;
+    this.keyStore = Constants.K_CERTIFICATE_ENV_VAR;
+    this.trustStore = Constants.T_CERTIFICATE_ENV_VAR;
 //    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
 //    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     return this;
@@ -180,10 +159,10 @@ public class HopsUtil {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
-    this.projectId = Integer.parseInt(sysProps.getProperty(PROJECTID_ENV_VAR));
-    this.projectName = sysProps.getProperty(PROJECTNAME_ENV_VAR);
-    parseBrokerEndpoints(sysProps.getProperty(KAFKA_BROKERADDR_ENV_VAR));
-    this.restEndpoint = restEndpoint + File.separator + HOPSWORKS_REST_RESOURCE;
+    this.projectId = Integer.parseInt(sysProps.getProperty(Constants.PROJECTID_ENV_VAR));
+    this.projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
+    parseBrokerEndpoints(sysProps.getProperty(Constants.KAFKA_BROKERADDR_ENV_VAR));
+    this.restEndpoint = restEndpoint + File.separator + Constants.HOPSWORKS_REST_RESOURCE;
     this.keyStore = keyStore;
     this.trustStore = trustStore;
 //    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
@@ -262,18 +241,17 @@ public class HopsUtil {
    * @param params
    */
   public static synchronized void setup(Map<String, String> params) {
-    projectId = Integer.parseInt(params.get(HopsUtil.PROJECTID_ENV_VAR));
-    parseBrokerEndpoints(params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR));
-    restEndpoint = params.get(HopsUtil.HOPSWORKS_RESTENDPOINT);
-    topics = Arrays.asList(params.get(HopsUtil.KAFKA_TOPICS_ENV_VAR).split(
+    projectId = Integer.parseInt(params.get(Constants.PROJECTID_ENV_VAR));
+    parseBrokerEndpoints(params.get(Constants.KAFKA_BROKERADDR_ENV_VAR));
+    restEndpoint = params.get(Constants.HOPSWORKS_RESTENDPOINT);
+    topics = Arrays.asList(params.get(Constants.KAFKA_TOPICS_ENV_VAR).split(
         File.pathSeparator));
-    if (params.containsKey(KAFKA_CONSUMER_GROUPS)) {
-      consumerGroups = Arrays.asList(params.get(
-          HopsUtil.KAFKA_CONSUMER_GROUPS).split(
-              File.pathSeparator));
+    if (params.containsKey(Constants.KAFKA_CONSUMER_GROUPS)) {
+      consumerGroups = Arrays.asList(params.get(Constants.KAFKA_CONSUMER_GROUPS).split(
+          File.pathSeparator));
     }
-    keyStore = params.get(K_CERTIFICATE_ENV_VAR);
-    trustStore = params.get(T_CERTIFICATE_ENV_VAR);
+    keyStore = params.get(Constants.K_CERTIFICATE_ENV_VAR);
+    trustStore = params.get(Constants.T_CERTIFICATE_ENV_VAR);
   }
 
   public static KafkaProperties getKafkaProperties() {
@@ -493,9 +471,9 @@ public class HopsUtil {
       CredentialsNotFoundException {
 
     JSONObject json = new JSONObject();
-    json.append("keyStorePwd", keystorePwd);
+    json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
     try {
-      json.append("keyStore", keystoreEncode());
+      json.append(Constants.JSON_KEYSTORE, keystoreEncode());
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
@@ -504,7 +482,8 @@ public class HopsUtil {
     if (versionId > 0) {
       json.append("version", versionId);
     }
-    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
+    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
+        + Constants.HOPSWORKS_REST_APPSERVICE
         + "/schema";
     LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topicName, uri});
 
@@ -523,7 +502,8 @@ public class HopsUtil {
   public static String sendEmail(String dest, String subject, String message) throws
       CredentialsNotFoundException {
 
-    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE + "/mail";
+    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
+        + Constants.HOPSWORKS_REST_APPSERVICE + "/mail";
 
     ClientConfig config = new ClientConfig().register(LoggingFilter.class);
     Client client = ClientBuilder.newClient(config);
@@ -532,9 +512,9 @@ public class HopsUtil {
     json.append("dest", dest);
     json.append("subject", subject);
     json.append("message", message);
-    json.append("keyStorePwd", keystorePwd);
+    json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
     try {
-      json.append("keyStore", keystoreEncode());
+      json.append(Constants.JSON_KEYSTORE, keystoreEncode());
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
@@ -547,18 +527,26 @@ public class HopsUtil {
 
   }
 
+  /**
+   * Start Hopsworks jobs with given IDs.
+   *
+   * @param jobIds
+   * @return
+   * @throws CredentialsNotFoundException
+   */
   public static String startJobs(List<String> jobIds) throws CredentialsNotFoundException {
-    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
-        + "/jobs";
+    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
+        + Constants.HOPSWORKS_REST_APPSERVICE
+        + "/jobs/executions";
 
     ClientConfig config = new ClientConfig().register(LoggingFilter.class);
     Client client = ClientBuilder.newClient(config);
     WebTarget webTarget = client.target(uri);
     JSONObject json = new JSONObject();
-    json.put("jobIds", jobIds);
-    json.put("keyStorePwd", keystorePwd);
+    json.put(Constants.JSON_JOBIDS, jobIds);
+    json.put(Constants.JSON_KEYSTOREPWD, keystorePwd);
     try {
-      json.put("keyStore", keystoreEncode());
+      json.put(Constants.JSON_KEYSTORE, keystoreEncode());
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
@@ -570,40 +558,83 @@ public class HopsUtil {
   }
 
   /**
-   * Gets status of job(s) from Hopsworks and returns on provided status (default is FINISHED),
+   * Polls Hopsworks and waits as long as Jobs with given IDs are in a running or terminal state. Default category of
+   * states is running and polling interval is 5000 milliseconds.
    *
    * @param jobIds
-   * @return
+   * @throws io.hops.util.CredentialsNotFoundException
+   */
+  public static void waitJobs(Integer... jobIds) throws CredentialsNotFoundException {
+    waitJobs(Constants.WAIT_JOBS_INTERVAL, Constants.WAIT_JOBS_RUNNINGSTATUS, jobIds);
+  }
+
+  /**
+   * Polls Hopsworks and waits as long as Jobs with given IDs are in running or terminal state. Default category of
+   * states is running.
+   *
+   * @param jobIds
+   * @param interval Polling interval for getting Job state.
    * @throws CredentialsNotFoundException
    */
-  public static void waitJobs(List<String> jobIds) throws CredentialsNotFoundException {
-    String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
-        + "/runningjobs";
+  public static void waitJobs(long interval, List<Integer> jobIds) throws CredentialsNotFoundException {
+    Integer[] jobs = (Integer[]) jobIds.toArray();
+    waitJobs(interval, Constants.WAIT_JOBS_RUNNINGSTATUS, jobs);
+  }
+
+  /**
+   * Polls Hopsworks and waits as long as Jobs with given IDs are in a running or terminal state. Default interval is
+   * 5000ms.
+   *
+   * @param jobIds
+   * @param runningState
+   * @throws CredentialsNotFoundException
+   */
+  public static void waitJobs(boolean runningState, Integer... jobIds) throws CredentialsNotFoundException {
+    waitJobs(Constants.WAIT_JOBS_INTERVAL, runningState, jobIds);
+  }
+
+  /**
+   * Polls Hopsworks and waits as long as Jobs with given IDs are in a running or terminal state.
+   *
+   * @param jobIds
+   * @param runningState True for running states, false for terminal states.
+   * @param waitInterval
+   * @throws CredentialsNotFoundException
+   */
+  public static void waitJobs(long waitInterval, boolean runningState, Integer... jobIds) throws
+      CredentialsNotFoundException {
+    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
+        + Constants.HOPSWORKS_REST_APPSERVICE
+        + "/jobs";
     ClientConfig config = new ClientConfig().register(LoggingFilter.class);
     Client client = ClientBuilder.newClient(config);
     WebTarget webTarget = client.target(uri);
     JSONObject json = new JSONObject();
-    json.put("jobIds", jobIds);
-    json.put("keyStorePwd", keystorePwd);
+    json.put(Constants.JSON_JOBIDS, jobIds);
+    json.put(Constants.JSON_JOBSTATE, runningState);
+    json.put(Constants.JSON_KEYSTOREPWD, keystorePwd);
     try {
-      json.put("keyStore", keystoreEncode());
+      json.put(Constants.JSON_KEYSTORE, keystoreEncode());
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
-    boolean runningJobs = true;
-    while (runningJobs) {
-      LOG.log(Level.INFO, "Retrieving running jobs:{0}", jobIds);
+    boolean flag = true;
+    while (flag) {
       Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
       Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       String response = blogResponse.readEntity(String.class);
       LOG.log(Level.INFO, "Retrieved running jobs:{0}", response);
       JSONObject jobs = new JSONObject(response);
-      if (jobs.getJSONArray("jobIds").length() == 0) {
-        runningJobs = false;
+      //Wait as long as job(s) are running
+      if (runningState && jobs.getJSONArray(Constants.JSON_JOBIDS).length() == 0) {
+        flag = false;
+      } //Wait as long as job(s) are NOT running
+      else if (!runningState && jobs.getJSONArray(Constants.JSON_JOBIDS).length() > 0) {
+        flag = false;
       }
       try {
-        Thread.sleep(5000);
+        Thread.sleep(waitInterval);
       } catch (InterruptedException ex) {
         LOG.log(Level.WARNING, null, ex);
       }
@@ -617,7 +648,7 @@ public class HopsUtil {
    * @throws CredentialsNotFoundException
    */
   private static String getCertPw() throws CredentialsNotFoundException {
-    try (FileInputStream fis = new FileInputStream(CRYPTO_MATERIAL_PASSWORD)) {
+    try (FileInputStream fis = new FileInputStream(Constants.CRYPTO_MATERIAL_PASSWORD)) {
       StringBuilder sb = new StringBuilder();
       int content;
       while ((content = fis.read()) != -1) {
