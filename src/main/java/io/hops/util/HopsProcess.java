@@ -11,8 +11,7 @@ import org.apache.avro.Schema;
  */
 public abstract class HopsProcess implements Serializable {
 
-  private static final Logger logger = Logger.
-      getLogger(HopsProcess.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(HopsProcess.class.getName());
   public HopsProcessType type;
   protected final String topic;
   protected final Schema schema;
@@ -22,15 +21,16 @@ public abstract class HopsProcess implements Serializable {
    * @param type
    * @param topic
    * @throws SchemaNotFoundException
+   * @throws io.hops.util.CredentialsNotFoundException
    */
   public HopsProcess(HopsProcessType type, String topic) throws
       SchemaNotFoundException, CredentialsNotFoundException {
     this.topic = topic;
     Schema.Parser parser = new Schema.Parser();
-    logger.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
+    LOGGER.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
 
     schema = parser.parse(HopsUtil.getSchema(topic));
-    logger.log(Level.INFO, "Got schema:{0}", schema);
+    LOGGER.log(Level.INFO, "Got schema:{0}", schema);
 
   }
   

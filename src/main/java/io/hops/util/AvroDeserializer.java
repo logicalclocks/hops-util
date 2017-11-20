@@ -17,7 +17,7 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
 /**
  * Serializer for Converting data into Avro records to be produced/consumed
  * by Kafka.
- * <p>
+ * 
  */
 public class AvroDeserializer implements DeserializationSchema<String>,
     SerializationSchema<Tuple4<String, String, String, String>> {
@@ -31,6 +31,10 @@ public class AvroDeserializer implements DeserializationSchema<String>,
           toBinary(schema);
   private boolean initialized = false;
 
+  /**
+   * 
+   * @param topicName 
+   */
   public AvroDeserializer(String topicName) {
     try {
       schemaJson = HopsUtil.getSchema(topicName);
@@ -40,6 +44,12 @@ public class AvroDeserializer implements DeserializationSchema<String>,
     }
   }
 
+  /**
+   * 
+   * @param bytes
+   * @return
+   * @throws IOException 
+   */
   @Override
   public String deserialize(byte[] bytes) throws IOException {
     if (!initialized) {
@@ -52,16 +62,30 @@ public class AvroDeserializer implements DeserializationSchema<String>,
     return genericRecord.toString().replaceAll("\\\\u001A", "");
   }
 
+  /**
+   * 
+   * @param t
+   * @return 
+   */
   @Override
   public boolean isEndOfStream(String t) {
     return false;
   }
 
+  /**
+   * 
+   * @return 
+   */
   @Override
   public TypeInformation<String> getProducedType() {
     return BasicTypeInfo.STRING_TYPE_INFO;
   }
 
+  /**
+   * 
+   * @param t
+   * @return 
+   */
   @Override
   public byte[] serialize(Tuple4<String, String, String, String> t) {
 

@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import scala.Function0;
 
 /**
- *
+ * Hops wrapper for a SparkConsumer.
  * <p>
  */
 public class SparkConsumer {

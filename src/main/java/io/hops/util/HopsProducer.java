@@ -39,7 +39,7 @@ public class HopsProducer extends HopsProcess {
     super(HopsProcessType.PRODUCER, topic);
     Properties props = HopsUtil.getKafkaProperties().defaultProps();
     props.put(ProducerConfig.CLIENT_ID_CONFIG, "HopsProducer");
-     if(userProps != null){
+    if (userProps != null) {
       props.putAll(userProps);
     }
     producer = new KafkaProducer<>(props);

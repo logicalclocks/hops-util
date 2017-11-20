@@ -6,12 +6,13 @@ import io.hops.util.SchemaNotFoundException;
 import java.util.Properties;
 
 /**
- *
- * @author teo
+ * Hops wrapper for a Spark producer.
+ * 
  */
 public class SparkProducer extends HopsProducer {
 
-  public SparkProducer(String topic, Properties userProps) throws SchemaNotFoundException, CredentialsNotFoundException {
+  public SparkProducer(String topic, Properties userProps) throws SchemaNotFoundException,
+      CredentialsNotFoundException {
     super(topic, userProps);
   }
 }

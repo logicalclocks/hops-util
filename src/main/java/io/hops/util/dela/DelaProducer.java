@@ -15,14 +15,24 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
+/**
+ * Hops Dela wrapper for a Kafka producer.
+ * 
+ */
 public class DelaProducer extends HopsProcess {
 
-  private static final Logger logger = Logger.getLogger(DelaProducer.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(DelaProducer.class.getName());
 
   private final KafkaProducer<String, byte[]> producer;
   private final Injection<GenericRecord, byte[]> recordInjection;
 
-  DelaProducer(String topic, Schema schema, long lingerDelay) {
+  /**
+   *
+   * @param topic
+   * @param schema
+   * @param lingerDelay
+   */
+  public DelaProducer(String topic, Schema schema, long lingerDelay) {
     super(HopsProcessType.PRODUCER, topic, schema);
     Properties props = HopsUtil.getKafkaProperties().defaultProps();
     props.put(ProducerConfig.CLIENT_ID_CONFIG, "DelaProducer");
@@ -31,6 +41,10 @@ public class DelaProducer extends HopsProcess {
     recordInjection = GenericAvroCodecs.toBinary(schema);
   }
 
+  /**
+   *
+   * @param messageFields
+   */
   public void produce(Map<String, Object> messageFields) {
     //create the avro message
     GenericData.Record avroRecord = new GenericData.Record(schema);
@@ -41,21 +55,37 @@ public class DelaProducer extends HopsProcess {
     produce(avroRecord);
   }
 
+  /**
+   *
+   * @param avroRecord
+   */
   public void produce(GenericRecord avroRecord) {
     byte[] bytes = recordInjection.apply(avroRecord);
     produce(bytes);
   }
 
+  /**
+   *
+   * @param byteRecord
+   */
   public void produce(byte[] byteRecord) {
     ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, byteRecord);
     producer.send(record);
   }
 
+  /**
+   *
+   * @param avroRecord
+   * @return
+   */
   public byte[] prepareRecord(GenericRecord avroRecord) {
     byte[] bytes = recordInjection.apply(avroRecord);
     return bytes;
   }
 
+  /**
+   *
+   */
   @Override
   public void close() {
     producer.close();

@@ -254,30 +254,64 @@ public class HopsUtil {
     trustStore = params.get(Constants.T_CERTIFICATE_ENV_VAR);
   }
 
+  /**
+   *
+   * @return
+   */
   public static KafkaProperties getKafkaProperties() {
     return new KafkaProperties();
   }
 
+  /**
+   *
+   * @param topic
+   * @return
+   * @throws SchemaNotFoundException
+   * @throws CredentialsNotFoundException
+   */
   public static HopsConsumer getHopsConsumer(String topic) throws
       SchemaNotFoundException, CredentialsNotFoundException {
     return new HopsConsumer(topic);
   }
 
+  /**
+   *
+   * @param topic
+   * @return
+   * @throws SchemaNotFoundException
+   * @throws CredentialsNotFoundException
+   */
   public static HopsProducer getHopsProducer(String topic) throws
       SchemaNotFoundException, CredentialsNotFoundException {
     return new HopsProducer(topic, null);
   }
 
+  /**
+   *
+   * @param topic
+   * @return
+   */
   public static FlinkConsumer getFlinkConsumer(String topic) {
     return getFlinkConsumer(topic, new AvroDeserializer(topic));
   }
 
+  /**
+   *
+   * @param topic
+   * @param deserializationSchema
+   * @return
+   */
   public static FlinkConsumer getFlinkConsumer(String topic,
       DeserializationSchema deserializationSchema) {
     return new FlinkConsumer(topic, deserializationSchema,
         getKafkaProperties().getConsumerConfig());
   }
 
+  /**
+   *
+   * @param topic
+   * @return
+   */
   public static FlinkProducer getFlinkProducer(String topic) {
     return getFlinkProducer(topic, new AvroDeserializer(topic));
   }
@@ -423,6 +457,13 @@ public class HopsUtil {
     return new AvroDeserializer(topic);
   }
 
+  /**
+   *
+   * @param topicName
+   * @return
+   * @throws SchemaNotFoundException
+   * @throws CredentialsNotFoundException
+   */
   public static String getSchema(String topicName) throws SchemaNotFoundException, CredentialsNotFoundException {
     return getSchema(topicName, Integer.MIN_VALUE);
   }
@@ -467,6 +508,14 @@ public class HopsUtil {
     return recordInjections;
   }
 
+  /**
+   *
+   * @param topicName
+   * @param versionId
+   * @return
+   * @throws SchemaNotFoundException
+   * @throws CredentialsNotFoundException
+   */
   public static String getSchema(String topicName, int versionId) throws SchemaNotFoundException,
       CredentialsNotFoundException {
 
@@ -499,6 +548,14 @@ public class HopsUtil {
     return schema;
   }
 
+  /**
+   *
+   * @param dest
+   * @param subject
+   * @param message
+   * @return
+   * @throws CredentialsNotFoundException
+   */
   public static String sendEmail(String dest, String subject, String message) throws
       CredentialsNotFoundException {
 
@@ -668,35 +725,55 @@ public class HopsUtil {
     return Base64.encodeBase64String(kStoreBlob);
   }
 
-  public static Logger getLogger() {
-    return LOG;
-  }
-
+  /**
+   *
+   * @return
+   */
   public static List<String> getBrokerEndpointsList() {
     return brokerEndpointsList;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getBrokerEndpoints() {
     return brokerEndpoints;
   }
 
+  /**
+   *
+   * @return
+   */
   public static Integer getProjectId() {
     return projectId;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getRestEndpoint() {
     return restEndpoint;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getKeyStore() {
     return keyStore;
   }
 
-  public static String getTrustStore() {
+  /**
+   *
+   * @return
+   */
+  static String getTrustStore() {
     return trustStore;
   }
 
-  public static String getKeystorePwd() {
+  static String getKeystorePwd() {
     return keystorePwd;
   }
 
@@ -704,15 +781,23 @@ public class HopsUtil {
     return truststorePwd;
   }
 
+  /**
+   *
+   * @return
+   */
   public static List<String> getTopics() {
     return topics;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getTopicsAsCSV() {
     StringBuilder sb = new StringBuilder();
     topics.forEach((topic) -> {
-      sb.append(topic).append(",");
-    });
+        sb.append(topic).append(",");
+      });
     //Delete last comma
     if (sb.charAt(sb.length() - 1) == ',') {
       return sb.substring(0, sb.length() - 1);
@@ -720,26 +805,50 @@ public class HopsUtil {
     return sb.toString();
   }
 
+  /**
+   *
+   * @return
+   */
   public static List<String> getConsumerGroups() {
     return consumerGroups;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getProjectName() {
     return projectName;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getElasticEndPoint() {
     return elasticEndPoint;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getJobName() {
     return jobName;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getAppId() {
     return appId;
   }
 
+  /**
+   *
+   * @return
+   */
   public static String getJobType() {
     return jobType;
   }
@@ -765,7 +874,8 @@ public class HopsUtil {
    * @param checkIntervalMillis
    * @throws InterruptedException
    */
-  public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis) throws InterruptedException {
+  public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis) 
+      throws InterruptedException {
     boolean isStopped = false;
     while (!isStopped) {
       isStopped = jssc.awaitTerminationOrTimeout(checkIntervalMillis);
