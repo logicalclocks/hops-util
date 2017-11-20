@@ -41,8 +41,8 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.json.JSONObject;
 
 /**
- * Hops utility class to be used by applications that want to communicate
- * with Kafka.
+ * Utility class to be used by applications that want to communicate with Hopsworks.
+ * Users can call the getters within their Hopsworks jobs to get the provided properties.
  * <p>
  */
 public class HopsUtil {
@@ -75,10 +75,10 @@ public class HopsUtil {
   }
 
   /**
-   * Setup the Kafka instance.
+   * Setup the static HopsUtil instance upon instantiation.
    * <p>
    */
-  public static synchronized void setup() {
+  private static synchronized void setup() {
     Properties sysProps = System.getProperties();
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
     if (sysProps.containsKey(Constants.JOBTYPE_ENV_VAR) && sysProps.getProperty(Constants.JOBTYPE_ENV_VAR).
@@ -135,8 +135,6 @@ public class HopsUtil {
     this.restEndpoint = endpoint + File.separator + Constants.HOPSWORKS_REST_RESOURCE;
     this.keyStore = Constants.K_CERTIFICATE_ENV_VAR;
     this.trustStore = Constants.T_CERTIFICATE_ENV_VAR;
-//    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-//    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     return this;
   }
 
@@ -165,8 +163,6 @@ public class HopsUtil {
     this.restEndpoint = restEndpoint + File.separator + Constants.HOPSWORKS_REST_RESOURCE;
     this.keyStore = keyStore;
     this.trustStore = trustStore;
-//    this.keystorePwd = sysProps.getProperty(KEYSTORE_PWD_ENV_VAR);
-//    this.truststorePwd = sysProps.getProperty(TRUSTSTORE_PWD_ENV_VAR);
     return this;
   }
 
@@ -255,6 +251,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a default KafkaProperties instance.
    *
    * @return
    */
@@ -263,6 +260,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a HopsConsumer for a specific Kafka topic.
    *
    * @param topic
    * @return
@@ -275,6 +273,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a HopsProducerfor a specific Kafka topic.
    *
    * @param topic
    * @return
@@ -287,6 +286,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a FlinkConsumer for a specific Kafka topic.
    *
    * @param topic
    * @return
@@ -296,6 +296,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a FlinkConsumer for a specific Kafka topic and DeserializationSchema.
    *
    * @param topic
    * @param deserializationSchema
@@ -308,6 +309,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a FlinkProducer for a specific Kafka topic.
    *
    * @param topic
    * @return
@@ -317,6 +319,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a FlinkProducer for a specific Kafka topic and SerializationSchema.
    *
    * @param topic
    * @param serializationSchema
@@ -347,6 +350,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkProducer for a specific Kafka topic.
    *
    * @param topic
    * @return
@@ -359,6 +363,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkProducer for a specific Kafka topic and extra users properties.
    *
    * @param topic
    * @param userProps
@@ -372,6 +377,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer for default Kafka topics, picked up from Hopsworks.
    *
    * @return
    */
@@ -380,6 +386,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer for specific Kafka topics.
    *
    * @param topics
    * @return
@@ -395,6 +402,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer for a specific JavaStreamingContext.
    *
    * @param jsc
    * @return
@@ -410,6 +418,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer for a specific JavaStreamingContext and extra user properties.
    *
    * @param jsc
    * @param userProps
@@ -427,6 +436,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer for a specific JavaStreamingContext and specific Kafka properties.
    *
    * @param jsc
    * @param topics
@@ -437,6 +447,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer for a specific JavaStreamingContext, specific Kafka properties and extra users properties.
    *
    * @param jsc
    * @param topics
@@ -449,6 +460,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get the AvroDesiarilzer for a Kafka topic.
    *
    * @param topic
    * @return
@@ -458,6 +470,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get the Avro schema for a particular Kafka topic.
    *
    * @param topicName
    * @return
@@ -469,8 +482,7 @@ public class HopsUtil {
   }
 
   /**
-   * Get Avro Schema directly using topics extracted from Spark HopsWorks Jobs
-   * UI.
+   * Get Avro Schemas for all Kafka topics directly using topics retrieved from Hopsworks.
    *
    * @return
    */
@@ -509,6 +521,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get the Avro schema for a particular Kafka topic and its version.
    *
    * @param topicName
    * @param versionId
@@ -549,6 +562,7 @@ public class HopsUtil {
   }
 
   /**
+   * Send an email from the Hopsworks platform.
    *
    * @param dest
    * @param subject
@@ -726,6 +740,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get Kafka brokers endpoints as a List object.
    *
    * @return
    */
@@ -734,6 +749,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get Kafka brokers endpoints as a String object.
    *
    * @return
    */
@@ -742,6 +758,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get Project ID of current job.
    *
    * @return
    */
@@ -750,6 +767,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get REST Endpoint of Hopsworks.
    *
    * @return
    */
@@ -758,6 +776,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get keystore location.
    *
    * @return
    */
@@ -766,6 +785,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get truststore. location.
    *
    * @return
    */
@@ -773,25 +793,35 @@ public class HopsUtil {
     return trustStore;
   }
 
+  /**
+   *
+   * @return
+   */
   static String getKeystorePwd() {
     return keystorePwd;
-  }
-
-  public static String getTruststorePwd() {
-    return truststorePwd;
   }
 
   /**
    *
    * @return
    */
+  static String getTruststorePwd() {
+    return truststorePwd;
+  }
+
+  /**
+   * Get a list of Topics set for this job.
+   *
+   * @return List of String object with Kafka topic names.
+   */
   public static List<String> getTopics() {
     return topics;
   }
 
   /**
+   * Get a list of Topics set for this job in a comma-separated value text format.
    *
-   * @return
+   * @return String object with Kafka topic names in CSV format.
    */
   public static String getTopicsAsCSV() {
     StringBuilder sb = new StringBuilder();
@@ -806,6 +836,7 @@ public class HopsUtil {
   }
 
   /**
+   * Get a List of Kafka consumer groups for this object.
    *
    * @return
    */
@@ -863,6 +894,12 @@ public class HopsUtil {
     shutdownGracefully(jssc, 3000);
   }
 
+  /**
+   *
+   * @param query
+   * @throws InterruptedException
+   * @throws StreamingQueryException
+   */
   public static void shutdownGracefully(StreamingQuery query) throws InterruptedException, StreamingQueryException {
     shutdownGracefully(query, 3000);
   }
@@ -871,10 +908,10 @@ public class HopsUtil {
    * Shutdown gracefully a streaming spark job.
    *
    * @param jssc
-   * @param checkIntervalMillis
+   * @param checkIntervalMillis How often to check
    * @throws InterruptedException
    */
-  public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis) 
+  public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis)
       throws InterruptedException {
     boolean isStopped = false;
     while (!isStopped) {
@@ -887,9 +924,10 @@ public class HopsUtil {
   }
 
   /**
+   * Shutdown gracefully a streaming spark job and wait for specific amount of time before exiting.
    *
    * @param query
-   * @param checkIntervalMillis
+   * @param checkIntervalMillis whether the query has terminated or not within the checkIntervalMillis milliseconds.
    * @throws InterruptedException
    * @throws StreamingQueryException
    */
@@ -939,6 +977,11 @@ public class HopsUtil {
     return props;
   }
 
+  /**
+   * Populates the Kafka broker endpoints List with the value of the java system property passed by Hopsworks.
+   *
+   * @param addresses
+   */
   private static void parseBrokerEndpoints(String addresses) {
     brokerEndpoints = addresses;
     brokerEndpointsList = Arrays.asList(addresses.split(","));
