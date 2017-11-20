@@ -534,7 +534,7 @@ public class HopsUtil {
    * @return
    * @throws CredentialsNotFoundException
    */
-  public static String startJobs(List<String> jobIds) throws CredentialsNotFoundException {
+  public static String startJobs(Integer... jobIds) throws CredentialsNotFoundException {
     String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
         + Constants.HOPSWORKS_REST_APPSERVICE
         + "/jobs/executions";
