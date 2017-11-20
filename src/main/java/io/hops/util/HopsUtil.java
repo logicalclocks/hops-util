@@ -942,11 +942,6 @@ public class HopsUtil {
   private static void parseBrokerEndpoints(String addresses) {
     brokerEndpoints = addresses;
     brokerEndpointsList = Arrays.asList(addresses.split(","));
-//    Pattern pattern = Pattern.compile(BROKERS_REGEX);
-//    Matcher matcher = pattern.matcher(addresses);
-//    while (matcher.find()) {
-//      brokerEndpointsList.add(matcher.group(0));
-//    }
   }
 
 }
