@@ -534,7 +534,7 @@ public class HopsUtil {
    * @return
    * @throws CredentialsNotFoundException
    */
-  public static String startJobs(List<String> jobIds) throws CredentialsNotFoundException {
+  public static String startJobs(Integer... jobIds) throws CredentialsNotFoundException {
     String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
         + Constants.HOPSWORKS_REST_APPSERVICE
         + "/jobs/executions";
@@ -832,11 +832,6 @@ public class HopsUtil {
   private static void parseBrokerEndpoints(String addresses) {
     brokerEndpoints = addresses;
     brokerEndpointsList = Arrays.asList(addresses.split(","));
-//    Pattern pattern = Pattern.compile(BROKERS_REGEX);
-//    Matcher matcher = pattern.matcher(addresses);
-//    while (matcher.find()) {
-//      brokerEndpointsList.add(matcher.group(0));
-//    }
   }
 
 }
