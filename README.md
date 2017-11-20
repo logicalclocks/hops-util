@@ -17,7 +17,7 @@ HopsUtil provides an API that automatically sets up Apache Kafka producers and c
 ### Job Workflows
 It is also possible to build simple Hopsworks job workflows using HopsUtil. The two methods provided are:
 * **startJobs**: Gets a number of job IDs as input parameter and starts the respective jobs of the project for which the user invoking the jobs is also their creator. It can be used like `HopsUtil.startJobs(1);`
-* **waitJobs**: Gets a number of job IDs to wait as long as the jobs are either in a running (default) state or not, depending on the input parameter. It can be used like `waitJobs(1,5,11);`, which means the method will return when all three jobs are not running, or `waitJobs(false, 1,5,11);` which means the method will return when all jobs are in a running state.
+* **waitJobs**: Waits for jobs (supplied as comma-separated job IDs) to transition to a running (default) state or not_running, depending whether an optional boolean parameter is true or not. It can be used like `waitJobs(1,5,11);`, which means the method will return when all three jobs with IDs 1,5,11 are not running, or `waitJobs(false, 1,5,11);` which means the method will return when all jobs have entered the running state.
 
 The ID of a job is displayed in the Hopsworks Job Details page, as shown below.
 ![Job ID](./src/main/resources/job_id.png)
