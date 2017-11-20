@@ -6,7 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-import java.util.Collections; 
+import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
@@ -30,9 +30,6 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   HopsConsumer(String topic) throws SchemaNotFoundException, CredentialsNotFoundException {
     super(HopsProcessType.CONSUMER, topic);
-    //Get Consumer properties
-    //Properties props = HopsUtil.getInstance().getConsumerConfig();
-    //consumer = new KafkaConsumer<>(props);
   }
 
   /**
@@ -55,17 +52,17 @@ public class HopsConsumer extends HopsProcess implements Runnable {
         for (ConsumerRecord<Integer, String> record : records) {
           //Convert the record using the schema
           Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
+              toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
-          System.out.println("Consumer put into queue:" + record.value());
+              getBytes()).get();
+          logger.log(Level.FINE, "Consumer put into queue:{0}", record.value());
           try {
             messages.put(record.value());
           } catch (InterruptedException ex) {
             Logger.getLogger(HopsConsumer.class.getName()).
-                    log(Level.SEVERE, null, ex);
+                log(Level.SEVERE, null, ex);
           }
-          System.out.println("Consumer received message:" + genericRecord);
+          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
@@ -81,11 +78,11 @@ public class HopsConsumer extends HopsProcess implements Runnable {
         for (ConsumerRecord<Integer, String> record : records) {
           //Convert the record using the schema
           Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
+              toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
+              getBytes()).get();
           consumed.append(record.value()).append("\n");
-          System.out.println("Consumer received message:" + genericRecord);
+          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
@@ -94,21 +91,6 @@ public class HopsConsumer extends HopsProcess implements Runnable {
         }
       }
       consumer.close();
-//      if (path != null && consumed.length() > 0) {
-//        try {
-//          Configuration hdConf = new Configuration();
-//          Path hdPath = new org.apache.hadoop.fs.Path(path);
-//          FileSystem hdfs = hdPath.getFileSystem(hdConf);
-//          FSDataOutputStream stream = hdfs.create(hdPath);
-//          stream.write(consumed.toString().getBytes());
-//          stream.flush();
-//          stream.close();
-//
-//        } catch (IOException ex) {
-//          Logger.getLogger(HopsConsumer.class.getName()).
-//                  log(Level.SEVERE, null, ex);
-//        }
-//      }
     }
   }
 
@@ -116,19 +98,6 @@ public class HopsConsumer extends HopsProcess implements Runnable {
     consume(null);
   }
 
-//  public void consume(BlockingQueue messages) {
-//    this.messages = messages;
-//    callback = true;
-//    consume = true;
-//    new Thread(this).start();
-//  }
-
-//  public void consume(FSDataOutputStream stream) {
-//    this.stream = stream;
-//    callback = true;
-//    consume = true;
-//    new Thread(this).start();
-//  }
   /**
    * Stop the consuming thread
    */
@@ -150,17 +119,17 @@ public class HopsConsumer extends HopsProcess implements Runnable {
         for (ConsumerRecord<Integer, String> record : records) {
           //Convert the record using the schema
           Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
+              toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
-          System.out.println("Consumer put into queue:" + record.value());
+              getBytes()).get();
+          logger.log(Level.FINE, "Consumer put into queue:{0}", record.value());
           try {
             messages.put(record.value());
           } catch (InterruptedException ex) {
             Logger.getLogger(HopsConsumer.class.getName()).
-                    log(Level.SEVERE, null, ex);
+                log(Level.SEVERE, null, ex);
           }
-          System.out.println("Consumer received message:" + genericRecord);
+          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
@@ -176,11 +145,11 @@ public class HopsConsumer extends HopsProcess implements Runnable {
         for (ConsumerRecord<Integer, String> record : records) {
           //Convert the record using the schema
           Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
+              toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
+              getBytes()).get();
           consumed.append(record.value()).append("\n");
-          System.out.println("Consumer received message:" + genericRecord);
+          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
@@ -193,7 +162,6 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   @Override
   public void close() {
-
     consume = false;
   }
 

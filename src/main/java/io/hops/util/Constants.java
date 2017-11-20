@@ -13,13 +13,11 @@ public class Constants {
   //System properties set by Hopsworks
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";
   public static final String KEYSTORE_VAL_ENV_VAR = "keyPw";
-  public static final String JSON_JOBSTATE = "running";
   public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api";
-  public static final String JSON_JOBIDS = "jobIds";
   public static final String TRUSTSTORE_VAL_ENV_VAR = "trustPw";
   public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
   public static final long WAIT_JOBS_INTERVAL = 5000;
-  public static final String JSON_KEYSTOREPWD = "keyStorePwd";
+
   public static final String JOBTYPE_ENV_VAR = "hopsworks.job.type";
   public static final String T_CERTIFICATE_ENV_VAR = "t_certificate";
   public static final String HOPSWORKS_RESTENDPOINT = "hopsworks.restendpoint";
@@ -31,9 +29,19 @@ public class Constants {
   public static final boolean WAIT_JOBS_RUNNINGSTATUS = true;
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
   public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
-  public static final String JSON_KEYSTORE = "keyStore";
   public static final String KAFKA_CONSUMER_GROUPS = "hopsworks.kafka.consumergroups";
   public static final String KAFKA_BROKERADDR_ENV_VAR = "hopsworks.kafka.brokeraddress";
   public static final String TRUSTSTORE_ENV_VAR = "hopsworks.truststore";
 
+  //JSON properties sent to Hopsworks REST API
+  public static final String JSON_JOBSTATE = "running";
+  public static final String JSON_JOBIDS = "jobIds";
+  public static final String JSON_KEYSTOREPWD = "keyStorePwd";
+  public static final String JSON_SCHEMA_CONTENTS = "contents";
+  public static final String JSON_SCHEMA_TOPICNAME = "topicName";
+  public static final String JSON_SCHEMA_VERSION = "version";
+  public static final String JSON_KEYSTORE = "keyStore";
+
+  public static final String PROJECT_STAGING_DIR = "Resources";
+  public static final String PROJECT_ROOT_DIR = "Projects";
 }

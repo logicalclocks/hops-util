@@ -1,27 +1,27 @@
 package io.hops.util;
 
 /**
- *
- * @author misdess
+ * Exception thrown when the schema for the topic cannot be retrieved.
+ * <p>
  */
 public class SchemaNotFoundException extends Exception {
 
-    Integer status;
+  Integer status;
 
-    public SchemaNotFoundException(String message) {
-        super(message);
-    }
-    
-    public SchemaNotFoundException(Integer status, String message) {
-        super(message);
-        this.status = status;
-    }
+  public SchemaNotFoundException(String message) {
+    super(message);
+  }
 
-    public Integer getStatus() {
-        return status;
-    }
+  public SchemaNotFoundException(Integer status, String message) {
+    super(message);
+    this.status = status;
+  }
 
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
+  public Integer getStatus() {
+    return status;
+  }
+
+  public void setStatus(Integer status) {
+    this.status = status;
+  }
 }
