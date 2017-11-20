@@ -12,7 +12,7 @@ This generates under target/hops-util-0.1-0.jar a fat-jar that includes all the 
 ## API
 HopsUtil provides an API that automatically sets up Apache Kafka producers and consumers for both Apache Spark and Apache Flink as well as providing methods for discovering endpoints of various Hops services such as InfluxDB.
 
-Javadoc for HopsUtil is available [here](http://snurran.sics.se/hops/hops-util-javadoc/0.1.0/).
+**Javadoc for HopsUtil is available** [here](http://snurran.sics.se/hops/hops-util-javadoc/0.1.0/).
 
 ### Job Workflows
 It is also possible to build simple Hopsworks job workflows using HopsUtil. The two methods provided are:
