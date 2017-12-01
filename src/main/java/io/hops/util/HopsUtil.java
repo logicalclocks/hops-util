@@ -386,6 +386,16 @@ public class HopsUtil {
   }
 
   /**
+   * Get a SparkConsumer and set extra user properties.
+   *
+   * @param userProps
+   * @return
+   */
+  public static SparkConsumer getSparkConsumer(Properties userProps) {
+    return new SparkConsumer(userProps);
+  }
+
+  /**
    * Get a SparkConsumer for specific Kafka topics.
    *
    * @param topics
@@ -954,7 +964,7 @@ public class HopsUtil {
       Thread.sleep(5000);
       LOG.info("Sleeping marker");
     }
-    LOG.info("Marker file has been removed, will attempt to stop gracefully the spark context");
+    LOG.info("Marker file has been removed, will attempt to gracefully stop the spark context");
     jsc.stop();
     jsc.close();
   }

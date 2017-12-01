@@ -40,6 +40,11 @@ public class SparkConsumer {
     this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
   }
 
+  public SparkConsumer(Properties userProps) {
+    this.topics = HopsUtil.getTopics();
+    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap(userProps);
+  }
+
   /**
    *
    * @param jsc
