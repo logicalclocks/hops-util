@@ -19,9 +19,10 @@ import org.apache.spark.streaming.kafka010.OffsetRange;
 import org.slf4j.Logger;
 import scala.Function0;
 
+
 /**
  * Hops wrapper for a SparkConsumer.
- * <p>
+ * @deprecated 
  */
 public class SparkConsumer {
 
