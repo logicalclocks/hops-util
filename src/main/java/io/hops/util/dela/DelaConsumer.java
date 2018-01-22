@@ -25,33 +25,23 @@ public class DelaConsumer extends HopsProcess implements Runnable {
   private KafkaConsumer<Integer, String> consumer;
   private boolean consume;
 
-  /**
-   *
-   * @param topic
-   * @param schema
-   */
+  
   public DelaConsumer(String topic, Schema schema) {
     super(HopsProcessType.CONSUMER, topic, schema);
   }
 
-  /**
-   *
-   */
+  
   public void consume() {
     consume = true;
     new Thread(this).start();
   }
 
-  /**
-   *
-   */
+  
   public void stopConsuming() {
     consume = false;
   }
 
-  /**
-   *
-   */
+  
   @Override
   public void run() {
     Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
@@ -70,9 +60,8 @@ public class DelaConsumer extends HopsProcess implements Runnable {
     }
   }
 
-  /**
-   *
-   */
+ 
+  
   @Override
   public void close() {
     consume = false;

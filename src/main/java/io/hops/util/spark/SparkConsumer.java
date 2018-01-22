@@ -19,10 +19,10 @@ import org.apache.spark.streaming.kafka010.OffsetRange;
 import org.slf4j.Logger;
 import scala.Function0;
 
-
 /**
  * Hops wrapper for a SparkConsumer.
- * @deprecated 
+ *
+ * @deprecated
  */
 public class SparkConsumer {
 
@@ -76,12 +76,6 @@ public class SparkConsumer {
     this.kafkaParams = kafkaParams;
   }
 
-  /**
-   *
-   * @param <K>
-   * @param <V>
-   * @return
-   */
   public <K extends Object, V extends Object> JavaInputDStream<ConsumerRecord<K, V>> createDirectStream() {
     JavaInputDStream<ConsumerRecord<K, V>> directKafkaStream
         = KafkaUtils.
@@ -94,7 +88,7 @@ public class SparkConsumer {
    * Returns a DataStreamReader which the user can then load into the application, for example
    * getKafkaDataStreamReader.load()
    *
-   * @return
+   * @return DataStreamReader
    */
   public DataStreamReader getKafkaDataStreamReader() {
     return getKafkaDataStreamReader(null);
@@ -104,8 +98,8 @@ public class SparkConsumer {
    * Returns a DataStreamReader which the user can then load into the application, for example
    * getKafkaDataStreamReader.load()
    *
-   * @param userOptions
-   * @return
+   * @param userOptions User-provided Spark options.
+   * @return DataStreamReader
    */
   public DataStreamReader getKafkaDataStreamReader(Map<String, String> userOptions) {
     sparkSession = SparkSession
@@ -123,19 +117,12 @@ public class SparkConsumer {
   /**
    * Get the spark session after it is initialized by getKafkaDataStreamReader().
    *
-   * @return
+   * @return SparkSession.
    */
   public SparkSession getSparkSession() {
     return sparkSession;
   }
 
-  /**
-   *
-   * @param <K>
-   * @param <V>
-   * @param ls
-   * @return
-   */
   public <K extends Object, V extends Object> JavaInputDStream<ConsumerRecord<K, V>> createDirectStream(
       LocationStrategy ls) {
     return KafkaUtils.

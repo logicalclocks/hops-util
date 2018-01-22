@@ -1,5 +1,7 @@
 package io.hops.util;
 
+import io.hops.util.exceptions.CredentialsNotFoundException;
+import io.hops.util.exceptions.SchemaNotFoundException;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import java.util.Map;
@@ -30,10 +32,10 @@ public class HopsProducer extends HopsProcess {
   /**
    * Create a Producer to stream messages to Kafka.
    *
-   * @param topic
-   * @param userProps
-   * @throws SchemaNotFoundException
-   * @throws io.hops.util.CredentialsNotFoundException
+   * @param topic Kafka topic.
+   * @param userProps User-provided properties.
+   * @throws SchemaNotFoundException When Avro schema for topic could not be found in HopsWorks.
+   * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public HopsProducer(String topic, Properties userProps) throws SchemaNotFoundException, CredentialsNotFoundException {
     super(HopsProcessType.PRODUCER, topic);
@@ -48,8 +50,8 @@ public class HopsProducer extends HopsProcess {
 
   /**
    * Send the given record to Kafka.
-   * <p>
-   * @param messageFields
+   * 
+   * @param messageFields message to produce to Kafka
    */
   public void produce(Map<String, String> messageFields) {
     //create the avro message

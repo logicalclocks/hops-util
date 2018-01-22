@@ -10,7 +10,7 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * Wrapper providing spark runtime services to user, for example JavaStreamingContext of the application.
- * <p>
+ * 
  */
 public class SparkInfo {
 
@@ -40,7 +40,7 @@ public class SparkInfo {
    * requested shutdown.
    * In Hopsworks, the marker file is automatically removed by clicking the 'Stop' button in the Job service.
    *
-   * @return
+   * @return true is shutdown has been requested.
    */
   protected boolean isShutdownRequested() {
     try {

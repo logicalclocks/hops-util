@@ -39,17 +39,19 @@ public class KafkaProperties {
   }
 
   /**
+   * Get Consumer properties.
    *
-   * @return
+   * @return Properties
    */
   public Properties getConsumerConfig() {
     return getConsumerConfig(null);
   }
 
   /**
+   * Get Consumer properties.
    *
-   * @param userProps
-   * @return
+   * @param userProps User-provided properties.
+   * @return Properties.
    */
   public Properties getConsumerConfig(Properties userProps) {
     Properties props = new Properties();
@@ -83,19 +85,10 @@ public class KafkaProperties {
     return props;
   }
 
-  /**
-   *
-   * @return
-   */
   public Properties getSparkConsumerConfig() {
     return getSparkConsumerConfig(null);
   }
 
-  /**
-   *
-   * @param userProps
-   * @return
-   */
   public Properties getSparkConsumerConfig(Properties userProps) {
     Properties props = new Properties();
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, HopsUtil.getBrokerEndpoints());
@@ -124,28 +117,15 @@ public class KafkaProperties {
     return props;
   }
 
-  /**
-   *
-   * @return
-   */
   public Map<String, Object> getSparkConsumerConfigMap() {
     return getSparkConsumerConfigMap(null);
   }
 
-  /**
-   *
-   * @return
-   */
   public Map<String, String> getSparkStructuredStreamingKafkaProps() {
     //Create options map for kafka
     return getSparkStructuredStreamingKafkaProps(null);
   }
 
-  /**
-   *
-   * @param userOptions
-   * @return
-   */
   public Map<String, String> getSparkStructuredStreamingKafkaProps(Map<String, String> userOptions) {
     //Create options map for kafka
     Map<String, String> options = new HashMap<>();

@@ -1,5 +1,7 @@
 package io.hops.util;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  *
  * Constants used by HopsUtil.
@@ -16,7 +18,10 @@ public class Constants {
   public static final String HOPSWORKS_REST_RESOURCE = "hopsworks-api/api";
   public static final String TRUSTSTORE_VAL_ENV_VAR = "trustPw";
   public static final String HOPSWORKS_REST_CERTSERVICE = "certs";
-  public static final long WAIT_JOBS_INTERVAL = 5000;
+  public static final long WAIT_JOBS_INTERVAL = 5;
+  public static final TimeUnit WAIT_JOBS_INTERVAL_TIMEUNIT = TimeUnit.SECONDS;
+  public static final long WAIT_JOBS_TIMEOUT = 7;
+  public static final TimeUnit WAIT_JOBS_TIMEOUT_TIMEUNIT = TimeUnit.DAYS;
 
   public static final String JOBTYPE_ENV_VAR = "hopsworks.job.type";
   public static final String T_CERTIFICATE_ENV_VAR = "t_certificate";
@@ -26,7 +31,7 @@ public class Constants {
   public static final String KEYSTORE_ENV_VAR = "hopsworks.keystore";
   public static final String HOPSWORKS_PROJECTUSER_ENV_VAR = "hopsworks.projectuser";
   public static final String PROJECTNAME_ENV_VAR = "hopsworks.projectname";
-  public static final boolean WAIT_JOBS_RUNNINGSTATUS = true;
+  public static final boolean WAIT_JOBS_RUNNING_STATE = true;
   public static final String KAFKA_TOPICS_ENV_VAR = "hopsworks.kafka.job.topics";
   public static final String ELASTIC_ENDPOINT_ENV_VAR = "hopsworks.elastic.endpoint";
   public static final String KAFKA_CONSUMER_GROUPS = "hopsworks.kafka.consumergroups";

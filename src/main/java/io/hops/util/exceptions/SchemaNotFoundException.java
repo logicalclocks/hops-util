@@ -1,8 +1,8 @@
-package io.hops.util;
+package io.hops.util.exceptions;
 
 /**
  * Exception thrown when the schema for the topic cannot be retrieved.
- * <p>
+ * 
  */
 public class SchemaNotFoundException extends Exception {
 

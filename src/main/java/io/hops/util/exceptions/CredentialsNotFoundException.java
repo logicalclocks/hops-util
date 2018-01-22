@@ -1,8 +1,8 @@
-package io.hops.util;
+package io.hops.util.exceptions;
 
 /**
- *
- * <p>
+ * Thrown when project user credentials (certificates and their password) could not be found in the container.
+ * 
  */
 public class CredentialsNotFoundException extends Exception {
 

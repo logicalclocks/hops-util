@@ -1,5 +1,7 @@
 package io.hops.util;
 
+import io.hops.util.exceptions.CredentialsNotFoundException;
+import io.hops.util.exceptions.SchemaNotFoundException;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import java.io.IOException;
@@ -26,14 +28,12 @@ public class AvroDeserializer implements DeserializationSchema<String>,
   private String schemaJson;
   private transient Schema.Parser parser = new Schema.Parser();
   private transient Schema schema;
-  private transient Injection<GenericRecord, byte[]> recordInjection
-      = GenericAvroCodecs.
-          toBinary(schema);
+  private transient Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.toBinary(schema);
   private boolean initialized = false;
 
   /**
-   * 
-   * @param topicName 
+   *
+   * @param topicName Kafka topic name
    */
   public AvroDeserializer(String topicName) {
     try {
@@ -45,36 +45,38 @@ public class AvroDeserializer implements DeserializationSchema<String>,
   }
 
   /**
-   * 
-   * @param bytes
-   * @return
-   * @throws IOException 
+   *
+   * @param message The message, as a byte array.
+   * @return The deserialized message as a String object.
+   * @throws IOException IOException
    */
   @Override
-  public String deserialize(byte[] bytes) throws IOException {
+  public String deserialize(byte[] message) throws IOException {
     if (!initialized) {
       parser = new Schema.Parser();
       schema = parser.parse(schemaJson);
       recordInjection = GenericAvroCodecs.toBinary(schema);
       initialized = true;
     }
-    GenericRecord genericRecord = recordInjection.invert(bytes).get();
+    GenericRecord genericRecord = recordInjection.invert(message).get();
     return genericRecord.toString().replaceAll("\\\\u001A", "");
   }
 
   /**
-   * 
-   * @param t
-   * @return 
+   * Method to decide whether the element signals the end of the stream. 
+   * If true is returned the element won't be emitted.
+   * @param t The element to test for the end-of-stream signal.
+   * @return false.
    */
+  @Deprecated
   @Override
   public boolean isEndOfStream(String t) {
     return false;
   }
 
   /**
-   * 
-   * @return 
+   *
+   * @return String produced type
    */
   @Override
   public TypeInformation<String> getProducedType() {
@@ -82,9 +84,9 @@ public class AvroDeserializer implements DeserializationSchema<String>,
   }
 
   /**
-   * 
-   * @param t
-   * @return 
+   *
+   * @param t input Tuple4 to serialize.
+   * @return Kafka record as byte array.
    */
   @Override
   public byte[] serialize(Tuple4<String, String, String, String> t) {

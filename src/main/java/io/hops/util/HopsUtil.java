@@ -1,5 +1,8 @@
 package io.hops.util;
 
+import io.hops.util.exceptions.CredentialsNotFoundException;
+import io.hops.util.exceptions.SchemaNotFoundException;
+import io.hops.util.exceptions.TopicNotFoundException;
 import com.google.common.io.ByteStreams;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.filter.LoggingFilter;
@@ -43,7 +46,7 @@ import org.json.JSONObject;
 /**
  * Utility class to be used by applications that want to communicate with Hopsworks.
  * Users can call the getters within their Hopsworks jobs to get the provided properties.
- * <p>
+ * 
  */
 public class HopsUtil {
 
@@ -65,6 +68,8 @@ public class HopsUtil {
   private static List<String> consumerGroups;
   private static String elasticEndPoint;
   private static SparkInfo sparkInfo;
+  
+  private static WorkflowManager workflowManager;
 
   static {
     setup();
@@ -121,9 +126,9 @@ public class HopsUtil {
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
    * <p>
-   * @param endpoint
-   * @param domain
-   * @return
+   * @param endpoint HopsWorks HTTP REST endpoint.
+   * @param domain HopsWorks domain.
+   * @return HopsUtil instance.
    */
   public synchronized HopsUtil setup(String endpoint, String domain) {
     Properties sysProps = System.getProperties();
@@ -143,15 +148,15 @@ public class HopsUtil {
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
-   *
-   * @param topicName
-   * @param restEndpoint
-   * @param keyStore
-   * @param trustStore
-   * @param domain
-   * @return
+   * 
+   * @param topic Kafka topic name.
+   * @param restEndpoint HopsWorks HTTP REST endpoint.
+   * @param keyStore keystore location.
+   * @param trustStore truststore location.
+   * @param domain HopsWorks domain.
+   * @return HopsUtil instance.
    */
-  public synchronized HopsUtil setup(String topicName, String restEndpoint,
+  public synchronized HopsUtil setup(String topic, String restEndpoint,
       String keyStore,
       String trustStore, String domain) {
     Properties sysProps = System.getProperties();
@@ -172,14 +177,14 @@ public class HopsUtil {
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
    *
-   * @param pId
-   * @param topicN
-   * @param brokerE
-   * @param restE
-   * @param keySt
-   * @param trustSt
-   * @param keystPwd
-   * @param truststPwd
+   * @param pId HopsWorks project ID.
+   * @param topicN Kafka topic names.
+   * @param brokerE Kafka broker addresses.
+   * @param restE HopsWorks HTTP REST endpoint.
+   * @param keySt Keystore location.
+   * @param trustSt Truststore location.
+   * @param keystPwd Keystore password.
+   * @param truststPwd Truststore password.
    */
   public static synchronized void setup(int pId,
       String topicN, String brokerE, String restE,
@@ -202,16 +207,16 @@ public class HopsUtil {
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
    *
-   * @param projectId
-   * @param topics
-   * @param consumerGroups
-   * @param brokerEndpoint
-   * @param restEndpoint
-   * @param keyStore
-   * @param trustStore
-   * @param keystorePwd
-   * @param truststorePwd
-   * @return
+   * @param projectId HopsWorks project ID.
+   * @param topics Kafka topic names.
+   * @param consumerGroups Kafka project consumer groups.
+   * @param brokerEndpoint Kafka broker addresses.
+   * @param restEndpoint HopsWorks HTTP REST endpoint.
+   * @param keyStore keystore location.
+   * @param trustStore truststore location.
+   * @param keystorePwd Keystore password.
+   * @param truststorePwd Truststore password.
+   * @return HopsUtil instance.
    */
   public synchronized HopsUtil setup(int projectId,
       String topics, String consumerGroups, String brokerEndpoint,
@@ -234,7 +239,7 @@ public class HopsUtil {
   /**
    * Setup the Kafka instance by using a Map of parameters.
    *
-   * @param params
+   * @param params params
    */
   public static synchronized void setup(Map<String, String> params) {
     projectId = Integer.parseInt(params.get(Constants.PROJECTID_ENV_VAR));
@@ -253,7 +258,7 @@ public class HopsUtil {
   /**
    * Get a default KafkaProperties instance.
    *
-   * @return
+   * @return KafkaProperties.
    */
   public static KafkaProperties getKafkaProperties() {
     return new KafkaProperties();
@@ -262,10 +267,10 @@ public class HopsUtil {
   /**
    * Get a HopsConsumer for a specific Kafka topic.
    *
-   * @param topic
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws CredentialsNotFoundException
+   * @param topic Kafka topic name
+   * @return HopsConsumer
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
   public static HopsConsumer getHopsConsumer(String topic) throws
       SchemaNotFoundException, CredentialsNotFoundException {
@@ -275,10 +280,10 @@ public class HopsUtil {
   /**
    * Get a HopsProducerfor a specific Kafka topic.
    *
-   * @param topic
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws CredentialsNotFoundException
+   * @param topic Kafka topic name.
+   * @return HopsProducer.
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
   public static HopsProducer getHopsProducer(String topic) throws
       SchemaNotFoundException, CredentialsNotFoundException {
@@ -288,8 +293,8 @@ public class HopsUtil {
   /**
    * Get a FlinkConsumer for a specific Kafka topic.
    *
-   * @param topic
-   * @return
+   * @param topic Kafka topic name.
+   * @return FlinkConsumer.
    */
   public static FlinkConsumer getFlinkConsumer(String topic) {
     return getFlinkConsumer(topic, new AvroDeserializer(topic));
@@ -298,9 +303,9 @@ public class HopsUtil {
   /**
    * Get a FlinkConsumer for a specific Kafka topic and DeserializationSchema.
    *
-   * @param topic
-   * @param deserializationSchema
-   * @return
+   * @param topic Kafka topic name.
+   * @param deserializationSchema deserializationSchema.
+   * @return FlinkConsumer.
    */
   public static FlinkConsumer getFlinkConsumer(String topic,
       DeserializationSchema deserializationSchema) {
@@ -311,8 +316,8 @@ public class HopsUtil {
   /**
    * Get a FlinkProducer for a specific Kafka topic.
    *
-   * @param topic
-   * @return
+   * @param topic Kafka topic name.
+   * @return FlinkProducer.
    */
   public static FlinkProducer getFlinkProducer(String topic) {
     return getFlinkProducer(topic, new AvroDeserializer(topic));
@@ -321,9 +326,9 @@ public class HopsUtil {
   /**
    * Get a FlinkProducer for a specific Kafka topic and SerializationSchema.
    *
-   * @param topic
-   * @param serializationSchema
-   * @return
+   * @param topic Kafka topic name.
+   * @param serializationSchema serializationSchema
+   * @return FlinkProducer.
    */
   public static FlinkProducer getFlinkProducer(String topic,
       SerializationSchema serializationSchema) {
@@ -334,10 +339,10 @@ public class HopsUtil {
   /**
    * Helper constructor for a Spark Kafka Producer that sets the single selected topic.
    *
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws TopicNotFoundException
-   * @throws io.hops.util.CredentialsNotFoundException
+   * @return SparkProducer
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws TopicNotFoundException TopicNotFoundException
+   * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public static SparkProducer getSparkProducer() throws
       SchemaNotFoundException, TopicNotFoundException, CredentialsNotFoundException {
@@ -352,10 +357,10 @@ public class HopsUtil {
   /**
    * Get a SparkProducer for a specific Kafka topic.
    *
-   * @param topic
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws io.hops.util.CredentialsNotFoundException
+   * @param topic Kafka topic name.
+   * @return SparkProducer
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public static SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException,
       CredentialsNotFoundException {
@@ -365,11 +370,11 @@ public class HopsUtil {
   /**
    * Get a SparkProducer for a specific Kafka topic and extra users properties.
    *
-   * @param topic
-   * @param userProps
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws io.hops.util.CredentialsNotFoundException
+   * @param topic Kafka topic name.
+   * @param userProps User-provided Spark properties.
+   * @return SparkProducer
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public static SparkProducer getSparkProducer(String topic, Properties userProps) throws SchemaNotFoundException,
       CredentialsNotFoundException {
@@ -379,7 +384,7 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer for default Kafka topics, picked up from Hopsworks.
    *
-   * @return
+   * @return SparkConsumer.
    */
   public static SparkConsumer getSparkConsumer() {
     return new SparkConsumer();
@@ -388,8 +393,8 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer and set extra user properties.
    *
-   * @param userProps
-   * @return
+   * @param userProps User-provided Spark properties.
+   * @return SparkConsumer.
    */
   public static SparkConsumer getSparkConsumer(Properties userProps) {
     return new SparkConsumer(userProps);
@@ -398,9 +403,9 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer for specific Kafka topics.
    *
-   * @param topics
-   * @return
-   * @throws TopicNotFoundException
+   * @param topics Kafka topic names.
+   * @return SparkConsumer.
+   * @throws TopicNotFoundException TopicNotFoundException.
    */
   public static SparkConsumer getSparkConsumer(Collection<String> topics) throws TopicNotFoundException {
     if (topics != null && !topics.isEmpty()) {
@@ -414,9 +419,9 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext.
    *
-   * @param jsc
-   * @return
-   * @throws TopicNotFoundException
+   * @param jsc JavaStreamingContext
+   * @return SparkConsumer
+   * @throws TopicNotFoundException TopicNotFoundException
    */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc) throws TopicNotFoundException {
     if (topics != null && !topics.isEmpty()) {
@@ -430,10 +435,10 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext and extra user properties.
    *
-   * @param jsc
-   * @param userProps
-   * @return
-   * @throws TopicNotFoundException
+   * @param jsc JavaStreamingContext
+   * @param userProps User-provided Spark properties.
+   * @return SparkConsumer
+   * @throws TopicNotFoundException TopicNotFoundException.
    */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Properties userProps) throws
       TopicNotFoundException {
@@ -448,9 +453,9 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext and specific Kafka properties.
    *
-   * @param jsc
-   * @param topics
-   * @return
+   * @param jsc JavaStreamingContext.
+   * @param topics Kafka topic names.
+   * @return SparkConsumer.
    */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     return new SparkConsumer(jsc, topics);
@@ -459,10 +464,10 @@ public class HopsUtil {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext, specific Kafka properties and extra users properties.
    *
-   * @param jsc
-   * @param topics
-   * @param userProps
-   * @return
+   * @param jsc JavaStreamingContext.
+   * @param topics Kafka topic names.
+   * @param userProps User-provided Spark properties.
+   * @return SparkConsumer.
    */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
       Collection<String> topics, Properties userProps) {
@@ -472,8 +477,8 @@ public class HopsUtil {
   /**
    * Get the AvroDesiarilzer for a Kafka topic.
    *
-   * @param topic
-   * @return
+   * @param topic Kafka topic name.
+   * @return AvroDeserializer.
    */
   public AvroDeserializer getHopsAvroSchema(String topic) {
     return new AvroDeserializer(topic);
@@ -482,19 +487,19 @@ public class HopsUtil {
   /**
    * Get the Avro schema for a particular Kafka topic.
    *
-   * @param topicName
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws CredentialsNotFoundException
+   * @param topic Kafka topic name.
+   * @return Avro schema as String object in JSON format
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
-  public static String getSchema(String topicName) throws SchemaNotFoundException, CredentialsNotFoundException {
-    return getSchema(topicName, Integer.MIN_VALUE);
+  public static String getSchema(String topic) throws SchemaNotFoundException, CredentialsNotFoundException {
+    return getSchema(topic, Integer.MIN_VALUE);
   }
 
   /**
    * Get Avro Schemas for all Kafka topics directly using topics retrieved from Hopsworks.
    *
-   * @return
+   * @return Map of schemas.
    */
   public static Map<String, Schema> getSchemas() {
     Map<String, Schema> schemas = new HashMap<>();
@@ -513,7 +518,7 @@ public class HopsUtil {
    * Get record Injections for Avro messages, using topics extracted from Spark
    * HopsWorks Jobs UI.
    *
-   * @return
+   * @return schemas as com.twitter.bijection.Injection
    */
   public static Map<String, Injection<GenericRecord, byte[]>> getRecordInjections() {
     Map<String, Schema> schemas = HopsUtil.getSchemas();
@@ -533,13 +538,13 @@ public class HopsUtil {
   /**
    * Get the Avro schema for a particular Kafka topic and its version.
    *
-   * @param topicName
-   * @param versionId
-   * @return
-   * @throws SchemaNotFoundException
-   * @throws CredentialsNotFoundException
+   * @param topic Kafka topic name.
+   * @param versionId Schema version ID
+   * @return Avro schema as String object in JSON format
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
-  public static String getSchema(String topicName, int versionId) throws SchemaNotFoundException,
+  public static String getSchema(String topic, int versionId) throws SchemaNotFoundException,
       CredentialsNotFoundException {
 
     JSONObject json = new JSONObject();
@@ -550,14 +555,14 @@ public class HopsUtil {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
-    json.append("topicName", topicName);
+    json.append("topicName", topic);
     if (versionId > 0) {
       json.append("version", versionId);
     }
     String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
         + Constants.HOPSWORKS_REST_APPSERVICE
         + "/schema";
-    LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topicName, uri});
+    LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topic, uri});
 
     ClientConfig config = new ClientConfig().register(LoggingFilter.class);
     Client client = ClientBuilder.newClient(config);
@@ -571,162 +576,12 @@ public class HopsUtil {
     return schema;
   }
 
-  /**
-   * Send an email from the Hopsworks platform.
-   *
-   * @param dest
-   * @param subject
-   * @param message
-   * @return
-   * @throws CredentialsNotFoundException
-   */
-  public static String sendEmail(String dest, String subject, String message) throws
-      CredentialsNotFoundException {
-
-    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE + "/mail";
-
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
-    JSONObject json = new JSONObject();
-    json.append("dest", dest);
-    json.append("subject", subject);
-    json.append("message", message);
-    json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
-    try {
-      json.append(Constants.JSON_KEYSTORE, keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
-    }
-    Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-    Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-    final String response = blogResponse.readEntity(String.class);
-
-    return response;
-
-  }
-
-  /**
-   * Start Hopsworks jobs with given IDs.
-   *
-   * @param jobIds
-   * @return
-   * @throws CredentialsNotFoundException
-   */
-  public static String startJobs(Integer... jobIds) throws CredentialsNotFoundException {
-    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE
-        + "/jobs/executions";
-
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
-    JSONObject json = new JSONObject();
-    json.put(Constants.JSON_JOBIDS, jobIds);
-    json.put(Constants.JSON_KEYSTOREPWD, keystorePwd);
-    try {
-      json.put(Constants.JSON_KEYSTORE, keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
-    }
-    Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-    Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-    final String response = blogResponse.readEntity(String.class);
-    return response;
-  }
-
-  /**
-   * Polls Hopsworks and waits as long as Jobs with given IDs are in a running or terminal state. Default category of
-   * states is running and polling interval is 5000 milliseconds.
-   *
-   * @param jobIds
-   * @throws io.hops.util.CredentialsNotFoundException
-   */
-  public static void waitJobs(Integer... jobIds) throws CredentialsNotFoundException {
-    waitJobs(Constants.WAIT_JOBS_INTERVAL, Constants.WAIT_JOBS_RUNNINGSTATUS, jobIds);
-  }
-
-  /**
-   * Polls Hopsworks and waits as long as Jobs with given IDs are in running or terminal state. Default category of
-   * states is running.
-   *
-   * @param jobIds
-   * @param interval Polling interval for getting Job state.
-   * @throws CredentialsNotFoundException
-   */
-  public static void waitJobs(long interval, List<Integer> jobIds) throws CredentialsNotFoundException {
-    Integer[] jobs = (Integer[]) jobIds.toArray();
-    waitJobs(interval, Constants.WAIT_JOBS_RUNNINGSTATUS, jobs);
-  }
-
-  /**
-   * Polls Hopsworks and waits as long as Jobs with given IDs are in a running or terminal state. Default interval is
-   * 5000ms.
-   *
-   * @param jobIds
-   * @param runningState
-   * @throws CredentialsNotFoundException
-   */
-  public static void waitJobs(boolean runningState, Integer... jobIds) throws CredentialsNotFoundException {
-    waitJobs(Constants.WAIT_JOBS_INTERVAL, runningState, jobIds);
-  }
-
-  /**
-   * Polls Hopsworks and waits as long as Jobs with given IDs are in a running or terminal state.
-   *
-   * @param jobIds
-   * @param runningState True for running states, false for terminal states.
-   * @param waitInterval
-   * @throws CredentialsNotFoundException
-   */
-  public static void waitJobs(long waitInterval, boolean runningState, Integer... jobIds) throws
-      CredentialsNotFoundException {
-    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE
-        + "/jobs";
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
-    JSONObject json = new JSONObject();
-    json.put(Constants.JSON_JOBIDS, jobIds);
-    json.put(Constants.JSON_JOBSTATE, runningState);
-    json.put(Constants.JSON_KEYSTOREPWD, keystorePwd);
-    try {
-      json.put(Constants.JSON_KEYSTORE, keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
-    }
-    boolean flag = true;
-    while (flag) {
-      Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-      Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-      String response = blogResponse.readEntity(String.class);
-      LOG.log(Level.INFO, "Retrieved running jobs:{0}", response);
-      JSONObject jobs = new JSONObject(response);
-      //Wait as long as job(s) are running
-      if (runningState && jobs.getJSONArray(Constants.JSON_JOBIDS).length() == 0) {
-        flag = false;
-      } //Wait as long as job(s) are NOT running
-      else if (!runningState && jobs.getJSONArray(Constants.JSON_JOBIDS).length() > 0) {
-        flag = false;
-      }
-      try {
-        Thread.sleep(waitInterval);
-      } catch (InterruptedException ex) {
-        LOG.log(Level.WARNING, null, ex);
-      }
-    }
-  }
 
   /**
    * Get keystore password from local container.
    *
-   * @return
-   * @throws CredentialsNotFoundException
+   * @return Certificate password.
+   * @throws CredentialsNotFoundException CredentialsNotFoundException.
    */
   private static String getCertPw() throws CredentialsNotFoundException {
     try (FileInputStream fis = new FileInputStream(Constants.CRYPTO_MATERIAL_PASSWORD)) {
@@ -743,7 +598,7 @@ public class HopsUtil {
   }
 
   /////////////////////////////////////////////
-  private static String keystoreEncode() throws IOException {
+  static String keystoreEncode() throws IOException {
     FileInputStream kfin = new FileInputStream(new File(keyStore));
     byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
     return Base64.encodeBase64String(kStoreBlob);
@@ -752,7 +607,7 @@ public class HopsUtil {
   /**
    * Get Kafka brokers endpoints as a List object.
    *
-   * @return
+   * @return broker endpoints.
    */
   public static List<String> getBrokerEndpointsList() {
     return brokerEndpointsList;
@@ -761,7 +616,7 @@ public class HopsUtil {
   /**
    * Get Kafka brokers endpoints as a String object.
    *
-   * @return
+   * @return broker endpoints.
    */
   public static String getBrokerEndpoints() {
     return brokerEndpoints;
@@ -770,7 +625,7 @@ public class HopsUtil {
   /**
    * Get Project ID of current job.
    *
-   * @return
+   * @return HopsWorks project ID.
    */
   public static Integer getProjectId() {
     return projectId;
@@ -779,7 +634,7 @@ public class HopsUtil {
   /**
    * Get REST Endpoint of Hopsworks.
    *
-   * @return
+   * @return REST endpoint.
    */
   public static String getRestEndpoint() {
     return restEndpoint;
@@ -788,7 +643,7 @@ public class HopsUtil {
   /**
    * Get keystore location.
    *
-   * @return
+   * @return keystore location.
    */
   public static String getKeyStore() {
     return keyStore;
@@ -797,25 +652,27 @@ public class HopsUtil {
   /**
    * Get truststore. location.
    *
-   * @return
+   * @return truststore location
    */
-  static String getTrustStore() {
+  public static String getTrustStore() {
     return trustStore;
   }
 
   /**
-   *
-   * @return
+   * Get keystore password.
+   * 
+   * @return keystore password
    */
-  static String getKeystorePwd() {
+  public static String getKeystorePwd() {
     return keystorePwd;
   }
 
   /**
-   *
-   * @return
+   * Get truststore password.
+   * 
+   * @return truststore password.
    */
-  static String getTruststorePwd() {
+  public static String getTruststorePwd() {
     return truststorePwd;
   }
 
@@ -848,67 +705,80 @@ public class HopsUtil {
   /**
    * Get a List of Kafka consumer groups for this object.
    *
-   * @return
+   * @return Kafka consumer groups.
    */
   public static List<String> getConsumerGroups() {
     return consumerGroups;
   }
 
   /**
-   *
-   * @return
+   * Get HopsWorks project name.
+   * 
+   * @return project name.
    */
   public static String getProjectName() {
     return projectName;
   }
 
   /**
-   *
-   * @return
+   * Get HopsWorks elasticsearch endpoint.
+   * @return elasticsearch endpoint.
    */
   public static String getElasticEndPoint() {
     return elasticEndPoint;
   }
 
   /**
-   *
-   * @return
+   * Get HopsWorks job name.
+   * @return job name.
    */
   public static String getJobName() {
     return jobName;
   }
 
   /**
-   *
-   * @return
+   * Get YARN applicationId for this job.
+   * 
+   * @return applicationId.
    */
   public static String getAppId() {
     return appId;
   }
 
   /**
-   *
-   * @return
+   * Get JobType.
+   * @return JobType.
    */
   public static String getJobType() {
     return jobType;
   }
 
   /**
+   * Get WorkflowManager.
+   * @return WorkflowManager.
+   */
+  public static WorkflowManager getWorkflowManager() {
+    return workflowManager;
+  }
+  
+  
+
+  /**
    * Shutdown gracefully a streaming spark job.
    *
-   * @param jssc
-   * @throws InterruptedException
+   * @param jssc The JavaStreamingContext of the current application.
+   * @throws InterruptedException InterruptedException
    */
   public static void shutdownGracefully(JavaStreamingContext jssc) throws InterruptedException {
     shutdownGracefully(jssc, 3000);
   }
 
   /**
-   *
-   * @param query
-   * @throws InterruptedException
-   * @throws StreamingQueryException
+   * Shutdown gracefully a streaming spark job.
+   * 
+   * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
+   * @throws InterruptedException InterruptedException
+   * @throws StreamingQueryException StreamingQueryException
    */
   public static void shutdownGracefully(StreamingQuery query) throws InterruptedException, StreamingQueryException {
     shutdownGracefully(query, 3000);
@@ -917,15 +787,15 @@ public class HopsUtil {
   /**
    * Shutdown gracefully a streaming spark job.
    *
-   * @param jssc
-   * @param checkIntervalMillis How often to check
-   * @throws InterruptedException
+   * @param jssc The JavaStreamingContext of the current application.
+   * @param intervalMillis How often to check if spark context has been stopped.
+   * @throws InterruptedException InterruptedException
    */
-  public static void shutdownGracefully(JavaStreamingContext jssc, int checkIntervalMillis)
+  public static void shutdownGracefully(JavaStreamingContext jssc, int intervalMillis)
       throws InterruptedException {
     boolean isStopped = false;
     while (!isStopped) {
-      isStopped = jssc.awaitTerminationOrTimeout(checkIntervalMillis);
+      isStopped = jssc.awaitTerminationOrTimeout(intervalMillis);
       if (!isStopped && sparkInfo.isShutdownRequested()) {
         LOG.info("Marker file has been removed, will attempt to stop gracefully the spark streaming context");
         jssc.stop(true, true);
@@ -936,10 +806,10 @@ public class HopsUtil {
   /**
    * Shutdown gracefully a streaming spark job and wait for specific amount of time before exiting.
    *
-   * @param query
+   * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
    * @param checkIntervalMillis whether the query has terminated or not within the checkIntervalMillis milliseconds.
-   * @throws InterruptedException
-   * @throws StreamingQueryException
+   * @throws InterruptedException InterruptedException
+   * @throws StreamingQueryException StreamingQueryException
    */
   public static void shutdownGracefully(StreamingQuery query, long checkIntervalMillis) throws InterruptedException,
       StreamingQueryException {
@@ -956,8 +826,8 @@ public class HopsUtil {
   /**
    * Shutdown gracefully non streaming jobs.
    *
-   * @param jsc
-   * @throws InterruptedException
+   * @param jsc The JavaSparkContext of the current spark Job.
+   * @throws InterruptedException InterruptedException
    */
   public static void shutdownGracefully(JavaSparkContext jsc) throws InterruptedException {
     while (!sparkInfo.isShutdownRequested()) {
@@ -970,11 +840,11 @@ public class HopsUtil {
   }
 
   /**
-   * Utility method for Flink applications that need to parse Flink system
-   * variables.
+   * Utility method for Flink applications that need to parse Flink system variables. This method will be removed
+   * when HopsWorks upgrades to latest Flink (as of time of writing, Flink 1.4).
    *
-   * @param propsStr
-   * @return
+   * @param propsStr user job parameters.
+   * @return Flink Kafka properties.
    */
   public static Map<String, String> getFlinkKafkaProps(String propsStr) {
     propsStr = propsStr.replace("-D", "").replace("\"", "").replace("'", "");
@@ -990,7 +860,7 @@ public class HopsUtil {
   /**
    * Populates the Kafka broker endpoints List with the value of the java system property passed by Hopsworks.
    *
-   * @param addresses
+   * @param addresses addresses
    */
   private static void parseBrokerEndpoints(String addresses) {
     brokerEndpoints = addresses;

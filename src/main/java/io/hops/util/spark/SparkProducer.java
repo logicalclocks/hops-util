@@ -1,8 +1,8 @@
 package io.hops.util.spark;
 
-import io.hops.util.CredentialsNotFoundException;
+import io.hops.util.exceptions.CredentialsNotFoundException;
 import io.hops.util.HopsProducer;
-import io.hops.util.SchemaNotFoundException;
+import io.hops.util.exceptions.SchemaNotFoundException;
 import java.util.Properties;
 
 /**

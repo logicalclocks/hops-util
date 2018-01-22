@@ -7,7 +7,7 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
 
 /**
  * Wrapper class for FlinkKafkaProducer.
- * <p>
+ * 
  */
 public class FlinkProducer extends FlinkKafkaProducer09 {
 

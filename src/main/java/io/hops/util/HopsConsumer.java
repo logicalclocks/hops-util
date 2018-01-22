@@ -1,5 +1,7 @@
 package io.hops.util;
 
+import io.hops.util.exceptions.CredentialsNotFoundException;
+import io.hops.util.exceptions.SchemaNotFoundException;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,7 +22,7 @@ import org.apache.avro.generic.GenericRecord;
  */
 public class HopsConsumer extends HopsProcess implements Runnable {
 
-  private static final Logger logger = Logger.getLogger(HopsConsumer.class.getName());
+  private static final Logger LOG = Logger.getLogger(HopsConsumer.class.getName());
 
   private KafkaConsumer<Integer, String> consumer;
   private boolean consume;
@@ -34,10 +36,9 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   /**
    * Start thread for consuming Kafka messages.
-   *
-   * @param path
+   * 
    */
-  public void consume(String path) {
+  public void consume() {
     this.consume = true;
     //new Thread(this).start();
     Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
@@ -55,19 +56,19 @@ public class HopsConsumer extends HopsProcess implements Runnable {
               toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
               getBytes()).get();
-          logger.log(Level.FINE, "Consumer put into queue:{0}", record.value());
+          LOG.log(Level.FINE, "Consumer put into queue:{0}", record.value());
           try {
             messages.put(record.value());
           } catch (InterruptedException ex) {
             Logger.getLogger(HopsConsumer.class.getName()).
                 log(Level.SEVERE, null, ex);
           }
-          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
+          LOG.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
         } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+          LOG.log(Level.SEVERE, "Error while consuming records", ex);
         }
       }
     } else {
@@ -82,20 +83,16 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           GenericRecord genericRecord = recordInjection.invert(record.value().
               getBytes()).get();
           consumed.append(record.value()).append("\n");
-          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
+          LOG.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
         } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+          LOG.log(Level.SEVERE, "Error while consuming records", ex);
         }
       }
       consumer.close();
     }
-  }
-
-  public void consume() {
-    consume(null);
   }
 
   /**
@@ -122,19 +119,19 @@ public class HopsConsumer extends HopsProcess implements Runnable {
               toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
               getBytes()).get();
-          logger.log(Level.FINE, "Consumer put into queue:{0}", record.value());
+          LOG.log(Level.FINE, "Consumer put into queue:{0}", record.value());
           try {
             messages.put(record.value());
           } catch (InterruptedException ex) {
             Logger.getLogger(HopsConsumer.class.getName()).
                 log(Level.SEVERE, null, ex);
           }
-          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
+          LOG.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
         } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+          LOG.log(Level.SEVERE, "Error while consuming records", ex);
         }
       }
     } else {
@@ -149,12 +146,12 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           GenericRecord genericRecord = recordInjection.invert(record.value().
               getBytes()).get();
           consumed.append(record.value()).append("\n");
-          logger.log(Level.FINE, "Consumer received message:{0}", genericRecord);
+          LOG.log(Level.FINE, "Consumer received message:{0}", genericRecord);
         }
         try {
           Thread.sleep(100);
         } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+          LOG.log(Level.SEVERE, "Error while consuming records", ex);
         }
       }
     }

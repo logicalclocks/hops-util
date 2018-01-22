@@ -1,5 +1,6 @@
 package io.hops.util;
 
+import io.hops.util.exceptions.SchemaNotFoundException;
 import com.google.common.io.ByteStreams;
 
 import io.hops.util.dela.DelaConsumer;
@@ -24,7 +25,7 @@ import org.json.JSONObject;
 
 /**
  *
- * <p>
+ * 
  */
 public class DelaHelper {
 
@@ -32,16 +33,16 @@ public class DelaHelper {
 
   /**
    *
-   * @param projectId
-   * @param topicName
-   * @param brokerEndpoint
-   * @param restEndpoint
-   * @param keyStore
-   * @param trustStore
-   * @param keystorePwd
-   * @param truststorePwd
-   * @return
-   * @throws SchemaNotFoundException
+   * @param projectId HopsWorks project ID.
+   * @param topicName Kafka topic name.
+   * @param brokerEndpoint Kafka broker address.
+   * @param restEndpoint HopsWorks REST API endpoint.
+   * @param keyStore keystore location.
+   * @param trustStore truststore location.
+   * @param keystorePwd keystore password.
+   * @param truststorePwd truststore password.
+   * @return DelaConsumer
+   * @throws SchemaNotFoundException When Avro schema for topic could not be found in HopsWorks.
    */
   public static DelaConsumer getHopsConsumer(int projectId, String topicName, String brokerEndpoint,
       String restEndpoint, String keyStore, String trustStore, String keystorePwd, String truststorePwd)
@@ -59,17 +60,17 @@ public class DelaHelper {
 
   /**
    *
-   * @param projectId
-   * @param topicName
-   * @param brokerEndpoint
-   * @param restEndpoint
-   * @param keyStore
-   * @param trustStore
-   * @param keystorePwd
-   * @param truststorePwd
-   * @param lingerDelay
-   * @return
-   * @throws SchemaNotFoundException
+   * @param projectId HopsWorks project ID
+   * @param topicName Kafka topic name
+   * @param brokerEndpoint Kafka broker address
+   * @param restEndpoint HopsWorks REST API endpoint
+   * @param keyStore keystore location
+   * @param trustStore truststore location
+   * @param keystorePwd keystore password
+   * @param truststorePwd truststore password
+   * @param lingerDelay lingerDelay
+   * @return DelaProducer
+   * @throws SchemaNotFoundException When Avro schema for topic could not be found in HopsWorks.
    */
   public static DelaProducer getHopsProducer(int projectId, String topicName, String brokerEndpoint,
       String restEndpoint, String keyStore, String trustStore, String keystorePwd, String truststorePwd,
@@ -90,11 +91,11 @@ public class DelaHelper {
 
   /**
    *
-   * @param restEndpoint
-   * @param projectId
-   * @param topicName
-   * @return
-   * @throws SchemaNotFoundException
+   * @param restEndpoint HopsWorks REST API endpoint
+   * @param projectId projectId
+   * @param topicName Kafka topic name
+   * @return Avro schema as a string in JSON format
+   * @throws SchemaNotFoundException When Avro schema for topic could not be found in HopsWorks.
    */
   public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName)
       throws SchemaNotFoundException {
@@ -103,12 +104,12 @@ public class DelaHelper {
 
   /**
    *
-   * @param restEndpoint
-   * @param projectId
-   * @param topicName
-   * @param versionId
-   * @return
-   * @throws SchemaNotFoundException
+   * @param restEndpoint HopsWorks REST API endpoint
+   * @param projectId HopsWorks project ID
+   * @param topicName Kafka topic name
+   * @param versionId Avro schema version ID
+   * @return Avro schema as a string object in JSON format
+   * @throws SchemaNotFoundException When Avro schema for topic could not be found in HopsWorks.
    */
   public static String getSchemaByTopic(String restEndpoint, int projectId, String topicName, int versionId)
       throws SchemaNotFoundException {
@@ -136,9 +137,9 @@ public class DelaHelper {
 
   /**
    *
-   * @param json
-   * @param keyStore
-   * @param keystorePwd
+   * @param json json
+   * @param keyStore keystore location
+   * @param keystorePwd keystore password
    */
   private static void jsonAddKeyStore(JSONObject json, String keyStore, String keystorePwd) {
     json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
@@ -155,22 +156,9 @@ public class DelaHelper {
 
   /**
    *
-   * @param uri
-   * @return
-   */
-  private static Response getResponse(String uri) {
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
-    Invocation.Builder invocationBuilder = webTarget.request().accept(MediaType.APPLICATION_JSON);
-    return invocationBuilder.get();
-  }
-
-  /**
-   *
-   * @param uri
-   * @param payload
-   * @return
+   * @param uri uri
+   * @param payload payload
+   * @return Response
    */
   private static Response postJsonResponse(String uri, String payload) {
     ClientConfig config = new ClientConfig().register(LoggingFilter.class);
@@ -183,7 +171,7 @@ public class DelaHelper {
   /**
    *
    * @param response
-   * @return
+   * @return Avro schema as a string object in JSON format
    */
   private static String extractSchema(Response response) {
     String content = response.readEntity(String.class);
@@ -198,7 +186,7 @@ public class DelaHelper {
    * Removes curly brackets from the schema return by Hopsworks.
    *
    * @param schema
-   * @return
+   * @return Avro schema as a string object in JSON format
    */
   private static String tempHack(String schema) {
     int actualSchema = schema.indexOf('{');

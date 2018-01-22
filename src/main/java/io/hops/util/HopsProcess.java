@@ -1,5 +1,7 @@
 package io.hops.util;
 
+import io.hops.util.exceptions.CredentialsNotFoundException;
+import io.hops.util.exceptions.SchemaNotFoundException;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -7,7 +9,7 @@ import org.apache.avro.Schema;
 
 /**
  * Defines the common characteristics of Kafka processes.
- * <p>
+ * 
  */
 public abstract class HopsProcess implements Serializable {
 
@@ -18,10 +20,10 @@ public abstract class HopsProcess implements Serializable {
 
   /**
    *
-   * @param type
-   * @param topic
-   * @throws SchemaNotFoundException
-   * @throws io.hops.util.CredentialsNotFoundException
+   * @param type HopsProcessType
+   * @param topic Kafka topic
+   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public HopsProcess(HopsProcessType type, String topic) throws
       SchemaNotFoundException, CredentialsNotFoundException {
@@ -34,6 +36,12 @@ public abstract class HopsProcess implements Serializable {
 
   }
   
+  /**
+   * 
+   * @param type HopsProcessType
+   * @param topic Kafka topic
+   * @param schema Avro schema
+   */
   public HopsProcess(HopsProcessType type, String topic, Schema schema) {
     this.type = type;
     this.topic = topic;
