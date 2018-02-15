@@ -2,10 +2,9 @@ package io.hops.util;
 
 import io.hops.util.exceptions.CredentialsNotFoundException;
 import io.hops.util.exceptions.SchemaNotFoundException;
+import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.TopicNotFoundException;
 import com.google.common.io.ByteStreams;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.filter.LoggingFilter;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
@@ -16,6 +15,10 @@ import io.hops.util.spark.SparkProducer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +28,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -46,7 +51,7 @@ import org.json.JSONObject;
 /**
  * Utility class to be used by applications that want to communicate with Hopsworks.
  * Users can call the getters within their Hopsworks jobs to get the provided properties.
- * 
+ * <p>
  */
 public class HopsUtil {
 
@@ -68,7 +73,7 @@ public class HopsUtil {
   private static List<String> consumerGroups;
   private static String elasticEndPoint;
   private static SparkInfo sparkInfo;
-  
+
   private static WorkflowManager workflowManager;
 
   static {
@@ -93,6 +98,7 @@ public class HopsUtil {
         projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
         keyStore = Constants.K_CERTIFICATE_ENV_VAR;
         trustStore = Constants.T_CERTIFICATE_ENV_VAR;
+        
         //Get keystore and truststore passwords from Hopsworks
         projectId = Integer.parseInt(sysProps.getProperty(Constants.PROJECTID_ENV_VAR));
         String pwd = getCertPw();
@@ -148,7 +154,7 @@ public class HopsUtil {
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
-   * 
+   *
    * @param topic Kafka topic name.
    * @param restEndpoint HopsWorks HTTP REST endpoint.
    * @param keyStore keystore location.
@@ -501,15 +507,11 @@ public class HopsUtil {
    *
    * @return Map of schemas.
    */
-  public static Map<String, Schema> getSchemas() {
+  public static Map<String, Schema> getSchemas() throws CredentialsNotFoundException, SchemaNotFoundException {
     Map<String, Schema> schemas = new HashMap<>();
     for (String topic : HopsUtil.getTopics()) {
-      try {
-        Schema.Parser parser = new Schema.Parser();
-        schemas.put(topic, parser.parse(getSchema(topic)));
-      } catch (SchemaNotFoundException | CredentialsNotFoundException ex) {
-        LOG.log(Level.SEVERE, "Could not get schema for topic", ex);
-      }
+      Schema.Parser parser = new Schema.Parser();
+      schemas.put(topic, parser.parse(getSchema(topic)));
     }
     return schemas;
   }
@@ -521,8 +523,13 @@ public class HopsUtil {
    * @return schemas as com.twitter.bijection.Injection
    */
   public static Map<String, Injection<GenericRecord, byte[]>> getRecordInjections() {
-    Map<String, Schema> schemas = HopsUtil.getSchemas();
-    if (schemas.isEmpty()) {
+    Map<String, Schema> schemas = null;
+    try {
+      schemas = HopsUtil.getSchemas();
+    } catch (CredentialsNotFoundException | SchemaNotFoundException e) {
+      LOG.log(Level.SEVERE, e.getMessage());
+    }
+    if (schemas == null || schemas.isEmpty()) {
       return null;
     }
     Map<String, Injection<GenericRecord, byte[]>> recordInjections
@@ -544,10 +551,35 @@ public class HopsUtil {
    * @throws SchemaNotFoundException SchemaNotFoundException
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
-  public static String getSchema(String topic, int versionId) throws SchemaNotFoundException,
-      CredentialsNotFoundException {
-
+  public static String getSchema(String topic, int versionId) throws
+      CredentialsNotFoundException, SchemaNotFoundException {
+    LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topic});
+  
     JSONObject json = new JSONObject();
+    json.append("topicName", topic);
+    if (versionId > 0) {
+      json.append("version", versionId);
+    }
+    Response response = null;
+    try {
+      response = clientWrapper(json, "schema");
+    } catch (HTTPSClientInitializationException e) {
+      throw new SchemaNotFoundException(e.getMessage());
+    }
+    LOG.log(Level.INFO,"******* response.getStatusInfo():"+response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new SchemaNotFoundException("No schema found for topic:" + topic);
+    }
+    final String responseEntity = response.readEntity(String.class);
+    //Extract fields from json
+    json = new JSONObject(responseEntity);
+    String schema = json.getString("contents");
+    
+    return schema;
+  }
+  
+  protected static Response clientWrapper(JSONObject json, String resource) throws CredentialsNotFoundException,
+      HTTPSClientInitializationException {
     json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
     try {
       json.append(Constants.JSON_KEYSTORE, keystoreEncode());
@@ -555,27 +587,24 @@ public class HopsUtil {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
-    json.append("topicName", topic);
-    if (versionId > 0) {
-      json.append("version", versionId);
+    
+    Client client;
+    try {
+      client = initClient();
+    } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+      throw new HTTPSClientInitializationException(e.getMessage());
     }
-    String uri = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
+    WebTarget webTarget = client.target(HopsUtil.getRestEndpoint() + "/").path(Constants.HOPSWORKS_REST_RESOURCE
+        + "/"
         + Constants.HOPSWORKS_REST_APPSERVICE
-        + "/schema";
-    LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topic, uri});
-
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
+        + "/" + resource);
+    LOG.info("webTarget.getUri().getHost():" + webTarget.getUri().getHost());
+    LOG.info("webTarget.getUri().getPort():" + webTarget.getUri().getPort());
+    LOG.info("webTarget.getUri().getPath():" + webTarget.getUri().getPath());
     Invocation.Builder invocationBuilder = webTarget.request().accept(MediaType.APPLICATION_JSON);
-    final Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-    final String blog = blogResponse.readEntity(String.class);
-    //Extract fields from json
-    json = new JSONObject(blog);
-    String schema = json.getString("contents");
-    return schema;
+    return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
   }
-
+  
 
   /**
    * Get keystore password from local container.
@@ -660,7 +689,7 @@ public class HopsUtil {
 
   /**
    * Get keystore password.
-   * 
+   *
    * @return keystore password
    */
   public static String getKeystorePwd() {
@@ -669,7 +698,7 @@ public class HopsUtil {
 
   /**
    * Get truststore password.
-   * 
+   *
    * @return truststore password.
    */
   public static String getTruststorePwd() {
@@ -713,7 +742,7 @@ public class HopsUtil {
 
   /**
    * Get HopsWorks project name.
-   * 
+   *
    * @return project name.
    */
   public static String getProjectName() {
@@ -722,6 +751,7 @@ public class HopsUtil {
 
   /**
    * Get HopsWorks elasticsearch endpoint.
+   *
    * @return elasticsearch endpoint.
    */
   public static String getElasticEndPoint() {
@@ -730,6 +760,7 @@ public class HopsUtil {
 
   /**
    * Get HopsWorks job name.
+   *
    * @return job name.
    */
   public static String getJobName() {
@@ -738,7 +769,7 @@ public class HopsUtil {
 
   /**
    * Get YARN applicationId for this job.
-   * 
+   *
    * @return applicationId.
    */
   public static String getAppId() {
@@ -747,6 +778,7 @@ public class HopsUtil {
 
   /**
    * Get JobType.
+   *
    * @return JobType.
    */
   public static String getJobType() {
@@ -755,13 +787,12 @@ public class HopsUtil {
 
   /**
    * Get WorkflowManager.
+   *
    * @return WorkflowManager.
    */
   public static WorkflowManager getWorkflowManager() {
     return workflowManager;
   }
-  
-  
 
   /**
    * Shutdown gracefully a streaming spark job.
@@ -775,7 +806,7 @@ public class HopsUtil {
 
   /**
    * Shutdown gracefully a streaming spark job.
-   * 
+   *
    * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
    * @throws InterruptedException InterruptedException
    * @throws StreamingQueryException StreamingQueryException
@@ -865,6 +896,31 @@ public class HopsUtil {
   private static void parseBrokerEndpoints(String addresses) {
     brokerEndpoints = addresses;
     brokerEndpointsList = Arrays.asList(addresses.split(","));
+  }
+  
+  private static Client initClient() throws KeyStoreException, IOException,
+      NoSuchAlgorithmException,
+      CertificateException {
+    KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
+    
+    try (FileInputStream trustStoreIS = new FileInputStream(Constants.DOMAIN_CA_TRUSTSTORE)) {
+      truststore.load(trustStoreIS, null);
+    }
+    return ClientBuilder.newBuilder().trustStore(truststore).
+        hostnameVerifier(InsecureHostnameVerifier.INSTANCE).build();
+  }
+  
+  private static class InsecureHostnameVerifier implements HostnameVerifier {
+    
+    static InsecureHostnameVerifier INSTANCE = new InsecureHostnameVerifier();
+    
+    InsecureHostnameVerifier() {
+    }
+    
+    @Override
+    public boolean verify(String string, SSLSession ssls) {
+      return string.equals(restEndpoint.split(":"));
+    }
   }
 
 }
