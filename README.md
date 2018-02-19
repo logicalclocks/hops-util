@@ -12,11 +12,11 @@ This generates under target/hops-util-0.1-0.jar a fat-jar that includes all the 
 ## API
 HopsUtil provides an API that automatically sets up Apache Kafka producers and consumers for both Apache Spark and Apache Flink as well as providing methods for discovering endpoints of various Hops services such as InfluxDB.
 
-**Javadoc for HopsUtil is available** [here](http://snurran.sics.se/hops/hops-util-javadoc/0.1.0/).
+**Javadoc for HopsUtil is available** [here](http://snurran.sics.se/hops/hops-util-javadoc/0.3.0/).
 
 ### Job Workflows
 It is also possible to build simple Hopsworks job workflows using HopsUtil. The two methods provided are:
-* **startJobs**: Gets a number of job IDs as input parameter and starts the respective jobs of the project for which the user invoking the jobs is also their creator. It can be used like `HopsUtil.startJobs(1);`
+* **startJobs**: Gets a number of job IDs as input parameter and starts the respective jobs of the project for which the user invoking the jobs is also their creator. It can be used like `Hops.startJobs(1);`
 * **waitJobs**: Waits for jobs (supplied as comma-separated job IDs) to transition to a running (default) state or not_running, depending whether an optional boolean parameter is true or not. It can be used like `waitJobs(1,5,11);`, which means the method will return when all three jobs with IDs 1,5,11 are not running, or `waitJobs(false, 1,5,11);` which means the method will return when all jobs have entered the running state.
 
 The ID of a job is displayed in the Hopsworks Job Details page, as shown below.
@@ -53,12 +53,12 @@ and the following repository under your repositories list,
 ## Example
 To create a Kafka Spark StructuredStreaming consumer using HopsUtil is as simple as this,
 ```
-DataStreamReader dsr = HopsUtil.getSparkConsumer().getKafkaDataStreamReader();
+DataStreamReader dsr = Hops.getSparkConsumer().getKafkaDataStreamReader();
 ```
 
 and to gracefully shut it down you can do
 ```
-HopsUtil.shutdownGracefully(queryFile);
+Hops.shutdownGracefully(queryFile);
 ```
 where queryFile is the Spark *StreamingQuery* object.
 
