@@ -50,9 +50,9 @@ public class DelaHelper {
     LOGGER.log(Level.INFO, "projectId:{0}, topicName:{1}, brokerE:{2}, restE:{3}, keyS:{4}, trustS:{5}, keysP:{6}, "
         + "trustsP:{7}", new Object[]{projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore,
           keystorePwd, truststorePwd});
-    HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd,
+    Hops.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd,
         truststorePwd);
-    String stringSchema = getSchemaByTopic(HopsUtil.getRestEndpoint(), projectId, topicName);
+    String stringSchema = getSchemaByTopic(Hops.getRestEndpoint(), projectId, topicName);
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
     return new DelaConsumer(topicName, schema);
@@ -80,9 +80,9 @@ public class DelaHelper {
         + "trustsP:{7}, linger:{8}", new Object[]{projectId, topicName, brokerEndpoint, restEndpoint, keyStore,
           trustStore,
           keystorePwd, truststorePwd, lingerDelay});
-    HopsUtil.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd,
+    Hops.setup(projectId, topicName, brokerEndpoint, restEndpoint, keyStore, trustStore, keystorePwd,
         truststorePwd);
-    String stringSchema = getSchemaByTopic(HopsUtil.getRestEndpoint(), projectId, topicName);
+    String stringSchema = getSchemaByTopic(Hops.getRestEndpoint(), projectId, topicName);
     LOGGER.log(Level.INFO, "schema:{0}", new Object[]{stringSchema});
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
@@ -115,13 +115,13 @@ public class DelaHelper {
       throws SchemaNotFoundException {
 
     JSONObject json = new JSONObject();
-    jsonAddKeyStore(json, HopsUtil.getKeyStore(), HopsUtil.getKeystorePwd());
+    jsonAddKeyStore(json, Hops.getKeyStore(), Hops.getKeystorePwd());
     json.append(Constants.JSON_SCHEMA_TOPICNAME, topicName);
     if (versionId > 0) {
       json.append(Constants.JSON_SCHEMA_VERSION, versionId);
     }
 
-    String uri = HopsUtil.getRestEndpoint() + "/schema";
+    String uri = Hops.getRestEndpoint() + "/schema";
     LOGGER.log(Level.INFO, "getting schema:{0}", uri);
     Response response = postJsonResponse(uri, json.toString());
     if (response == null) {

@@ -1,19 +1,13 @@
 package io.hops.util;
 
 import io.hops.util.exceptions.CredentialsNotFoundException;
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.filter.LoggingFilter;
+
+import io.hops.util.exceptions.HTTPSClientInitializationException;
+import io.hops.util.exceptions.WorkflowManagerException;
 import org.json.JSONObject;
 
 /**
@@ -37,7 +31,8 @@ public class WorkflowManager {
    * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    * @throws java.lang.InterruptedException InterruptedException
    */
-  public static boolean waitForJobs(Integer... jobs) throws CredentialsNotFoundException, InterruptedException {
+  public static boolean waitForJobs(Integer... jobs)
+      throws CredentialsNotFoundException, InterruptedException, WorkflowManagerException {
     return WorkflowManager.waitForJobs(Constants.WAIT_JOBS_TIMEOUT, Constants.WAIT_JOBS_TIMEOUT_TIMEUNIT, jobs);
   }
 
@@ -54,9 +49,10 @@ public class WorkflowManager {
    * @return true if the {@code waitOnJobState} is no longer the current job state, false if the timeout was exceeded.
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws java.lang.InterruptedException InterruptedException
+   * @throws WorkflowManagerException WorkflowManagerException
    */
   public static boolean waitForJobs(long timeout, TimeUnit timeoutUnit, Integer[] jobs) throws
-      CredentialsNotFoundException, InterruptedException {
+      CredentialsNotFoundException, InterruptedException, WorkflowManagerException{
     return WorkflowManager.waitForJobs(Constants.WAIT_JOBS_TIMEOUT, Constants.WAIT_JOBS_TIMEOUT_TIMEUNIT,
         Constants.WAIT_JOBS_RUNNING_STATE, jobs);
   }
@@ -76,9 +72,10 @@ public class WorkflowManager {
    * @return true if the {@code waitOnJobState} is no longer the current job state, false if the timeout was exceeded.
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws java.lang.InterruptedException InterruptedException
+   * @throws WorkflowManagerException WorkflowManagerException
    */
   public static boolean waitForJobs(long timeout, TimeUnit timeoutUnit, boolean waitOnJobState, Integer... jobs) throws
-      CredentialsNotFoundException, InterruptedException {
+      CredentialsNotFoundException, InterruptedException, WorkflowManagerException {
     return WorkflowManager.waitForJobs(Constants.WAIT_JOBS_INTERVAL, TimeUnit.MILLISECONDS, timeout, timeoutUnit,
         waitOnJobState, jobs);
   }
@@ -100,35 +97,29 @@ public class WorkflowManager {
    * @return true if the {@code currentJobState} has transitioned, false if the timeout was exceeded.
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws java.lang.InterruptedException java.lang.InterruptedException
+   * @throws WorkflowManagerException WorkflowManagerException
    */
   public static boolean waitForJobs(long pollingInterval, TimeUnit pollingIntervalUnit, long timeout,
       TimeUnit timeoutUnit, boolean waitOnJobState, Integer... jobs) throws
-      CredentialsNotFoundException, InterruptedException {
-    String uri
-        = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE + "/jobs";
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
+      CredentialsNotFoundException, InterruptedException, WorkflowManagerException {
+    
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_JOBIDS, jobs);
     json.put(Constants.JSON_JOBSTATE, waitOnJobState);
-    json.put(Constants.JSON_KEYSTOREPWD, HopsUtil.getKeystorePwd());
-    try {
-      json.put(Constants.JSON_KEYSTORE, HopsUtil.keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
-    }
+    
     boolean flag = true;
     long startTime = System.nanoTime();
     long elapsed;
     timeout = timeoutUnit.toNanos(timeout);
     pollingInterval = pollingIntervalUnit.toMillis(pollingInterval);
     while (flag) {
-      Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-      Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-      String response = blogResponse.readEntity(String.class);
+      String response;
+      try {
+        response = Hops.clientWrapper(json, "jobs").readEntity(String.class);
+      } catch (HTTPSClientInitializationException e) {
+        throw new WorkflowManagerException(e.getMessage());
+      }
+      
       LOG.log(Level.INFO, "Retrieved running jobs:{0}", response);
       JSONObject jobsJSON = new JSONObject(response);
       //Wait on job(s) which are currently running
@@ -155,29 +146,19 @@ public class WorkflowManager {
    * @param message Email message body.
    * @return Response of HTTP REST API call to HopsWorks.
    * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws WorkflowManagerException WorkflowManagerException
    */
   public static Response sendEmail(String dest, String subject, String message) throws
-      CredentialsNotFoundException {
-    String uri
-        = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE + "/mail";
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
+      CredentialsNotFoundException, WorkflowManagerException {
     JSONObject json = new JSONObject();
     json.append("dest", dest);
     json.append("subject", subject);
     json.append("message", message);
-    json.append(Constants.JSON_KEYSTOREPWD, HopsUtil.getKeystorePwd());
     try {
-      json.append(Constants.JSON_KEYSTORE, HopsUtil.keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
+      return Hops.clientWrapper(json, "mail");
+    } catch (HTTPSClientInitializationException e) {
+      throw new WorkflowManagerException(e.getMessage());
     }
-    Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-    Response response = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-    return response;
   }
 
   /**
@@ -186,26 +167,16 @@ public class WorkflowManager {
    * @param jobIds IDs of the jobs to start.
    * @return Response object of the HTTP REST call.
    * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws WorkflowManagerException WorkflowManagerException
    */
-  public static Response startJobs(Integer... jobIds) throws CredentialsNotFoundException {
-    String uri
-        = HopsUtil.getRestEndpoint() + "/" + Constants.HOPSWORKS_REST_RESOURCE + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE + "/jobs/executions";
-    ClientConfig config = new ClientConfig().register(LoggingFilter.class);
-    Client client = ClientBuilder.newClient(config);
-    WebTarget webTarget = client.target(uri);
+  public static Response startJobs(Integer... jobIds) throws CredentialsNotFoundException, WorkflowManagerException {
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_JOBIDS, jobIds);
-    json.put(Constants.JSON_KEYSTOREPWD, HopsUtil.getKeystorePwd());
     try {
-      json.put(Constants.JSON_KEYSTORE, HopsUtil.keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
+      return Hops.clientWrapper(json, "mail");
+    } catch (HTTPSClientInitializationException e) {
+      throw new WorkflowManagerException(e.getMessage());
     }
-    Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
-    Response response = invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-    return response;
   }
 
 }

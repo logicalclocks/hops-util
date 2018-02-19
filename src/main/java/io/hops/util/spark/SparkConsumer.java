@@ -1,6 +1,7 @@
 package io.hops.util.spark;
 
-import io.hops.util.HopsUtil;
+import io.hops.util.Hops;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -32,18 +33,18 @@ public class SparkConsumer {
   private SparkSession sparkSession;
 
   public SparkConsumer() {
-    this.topics = HopsUtil.getTopics();
-    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
+    this.topics = Hops.getTopics();
+    this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap();
   }
 
   public SparkConsumer(Collection<String> topics) {
     this.topics = topics;
-    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
+    this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap();
   }
 
   public SparkConsumer(Properties userProps) {
-    this.topics = HopsUtil.getTopics();
-    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap(userProps);
+    this.topics = Hops.getTopics();
+    this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap(userProps);
   }
 
   /**
@@ -54,13 +55,13 @@ public class SparkConsumer {
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     this.jsc = jsc;
     this.topics = topics;
-    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap();
+    this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap();
   }
 
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics, Properties userProps) {
     this.jsc = jsc;
     this.topics = topics;
-    this.kafkaParams = HopsUtil.getKafkaProperties().getSparkConsumerConfigMap(userProps);
+    this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap(userProps);
   }
 
   /**
@@ -104,14 +105,14 @@ public class SparkConsumer {
   public DataStreamReader getKafkaDataStreamReader(Map<String, String> userOptions) {
     sparkSession = SparkSession
         .builder()
-        .appName(HopsUtil.getJobName())
+        .appName(Hops.getJobName())
         .getOrCreate();
 
     // Create DataSet representing the stream of input lines from kafka
     return sparkSession
         .readStream()
         .format("kafka")
-        .options(HopsUtil.getKafkaProperties().getSparkStructuredStreamingKafkaProps(userOptions));
+        .options(Hops.getKafkaProperties().getSparkStructuredStreamingKafkaProps(userOptions));
   }
 
   /**

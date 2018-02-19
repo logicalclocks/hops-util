@@ -2,9 +2,10 @@ package io.hops.util.dela;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
+import io.hops.util.Hops;
 import io.hops.util.HopsProcess;
 import io.hops.util.HopsProcessType;
-import io.hops.util.HopsUtil;
+
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -28,7 +29,7 @@ public class DelaProducer extends HopsProcess {
 
   public DelaProducer(String topic, Schema schema, long lingerDelay) {
     super(HopsProcessType.PRODUCER, topic, schema);
-    Properties props = HopsUtil.getKafkaProperties().defaultProps();
+    Properties props = Hops.getKafkaProperties().defaultProps();
     props.put(ProducerConfig.CLIENT_ID_CONFIG, "DelaProducer");
     props.put(ProducerConfig.LINGER_MS_CONFIG, lingerDelay);
     producer = new KafkaProducer<>(props);

@@ -4,7 +4,7 @@ import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import io.hops.util.HopsProcess;
 import io.hops.util.HopsProcessType;
-import io.hops.util.HopsUtil;
+import io.hops.util.Hops;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -44,7 +44,7 @@ public class DelaConsumer extends HopsProcess implements Runnable {
   
   @Override
   public void run() {
-    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
+    Properties props = Hops.getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
