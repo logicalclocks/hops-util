@@ -21,15 +21,15 @@ public class SparkInfo {
   protected SparkInfo(String jobName) {
     hdfsConf = new Configuration();
     //Write marker file to hdfs
-    marker = new org.apache.hadoop.fs.Path("/" +Constants.PROJECT_ROOT_DIR + "/" + HopsUtil.getProjectName()
-        + "/" + Constants.PROJECT_STAGING_DIR + File.separator + ".marker-" + HopsUtil.getJobType().toLowerCase() + "-"
-        + HopsUtil.getJobName() + "-" + HopsUtil.getAppId());
+    marker = new org.apache.hadoop.fs.Path("/" +Constants.PROJECT_ROOT_DIR + "/" + Hops.getProjectName()
+        + "/" + Constants.PROJECT_STAGING_DIR + File.separator + ".marker-" + Hops.getJobType().toLowerCase() + "-"
+        + Hops.getJobName() + "-" + Hops.getAppId());
 
     try {
       FileSystem hdfs = marker.getFileSystem(hdfsConf);
       hdfs.createNewFile(marker);
     } catch (IOException ex) {
-      LOG.log(Level.SEVERE, "Could not create marker file for job:" + HopsUtil.getJobName() + ", appId:" + HopsUtil.
+      LOG.log(Level.SEVERE, "Could not create marker file for job:" + Hops.getJobName() + ", appId:" + Hops.
           getAppId(), ex);
 
     }

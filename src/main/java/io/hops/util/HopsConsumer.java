@@ -41,7 +41,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
   public void consume() {
     this.consume = true;
     //new Thread(this).start();
-    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
+    Properties props = Hops.getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
@@ -104,7 +104,7 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   @Override
   public void run() {
-    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
+    Properties props = Hops.getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));

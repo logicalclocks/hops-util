@@ -31,7 +31,7 @@ public abstract class HopsProcess implements Serializable {
     Schema.Parser parser = new Schema.Parser();
     LOGGER.log(Level.INFO, "Trying to get schema for topic:{0}", topic);
 
-    schema = parser.parse(HopsUtil.getSchema(topic));
+    schema = parser.parse(Hops.getSchema(topic));
     LOGGER.log(Level.INFO, "Got schema:{0}", schema);
 
   }

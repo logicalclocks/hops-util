@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  *
- * Constants used by HopsUtil.
+ * Constants used by Hops.
  */
 public class Constants {
 

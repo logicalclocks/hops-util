@@ -115,7 +115,7 @@ public class WorkflowManager {
     while (flag) {
       String response;
       try {
-        response = HopsUtil.clientWrapper(json, "jobs").readEntity(String.class);
+        response = Hops.clientWrapper(json, "jobs").readEntity(String.class);
       } catch (HTTPSClientInitializationException e) {
         throw new WorkflowManagerException(e.getMessage());
       }
@@ -155,7 +155,7 @@ public class WorkflowManager {
     json.append("subject", subject);
     json.append("message", message);
     try {
-      return HopsUtil.clientWrapper(json, "mail");
+      return Hops.clientWrapper(json, "mail");
     } catch (HTTPSClientInitializationException e) {
       throw new WorkflowManagerException(e.getMessage());
     }
@@ -173,7 +173,7 @@ public class WorkflowManager {
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_JOBIDS, jobIds);
     try {
-      return HopsUtil.clientWrapper(json, "mail");
+      return Hops.clientWrapper(json, "mail");
     } catch (HTTPSClientInitializationException e) {
       throw new WorkflowManagerException(e.getMessage());
     }
