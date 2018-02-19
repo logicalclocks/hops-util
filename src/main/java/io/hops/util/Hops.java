@@ -573,9 +573,7 @@ public class Hops {
     final String responseEntity = response.readEntity(String.class);
     //Extract fields from json
     json = new JSONObject(responseEntity);
-    String schema = json.getString("contents");
-    
-    return schema;
+    return json.getString("contents");
   }
   
   protected static Response clientWrapper(JSONObject json, String resource) throws CredentialsNotFoundException,
@@ -721,9 +719,7 @@ public class Hops {
    */
   public static String getTopicsAsCSV() {
     StringBuilder sb = new StringBuilder();
-    topics.forEach((topic) -> {
-        sb.append(topic).append(",");
-      });
+    topics.forEach((topic) -> sb.append(topic).append(","));
     //Delete last comma
     if (sb.charAt(sb.length() - 1) == ',') {
       return sb.substring(0, sb.length() - 1);
@@ -842,7 +838,7 @@ public class Hops {
    * @throws InterruptedException InterruptedException
    * @throws StreamingQueryException StreamingQueryException
    */
-  public static void shutdownGracefully(StreamingQuery query, long checkIntervalMillis) throws InterruptedException,
+  public static void shutdownGracefully(StreamingQuery query, long checkIntervalMillis) throws
       StreamingQueryException {
     boolean isStopped = false;
     while (!isStopped) {
@@ -919,7 +915,7 @@ public class Hops {
     
     @Override
     public boolean verify(String string, SSLSession ssls) {
-      return string.equals(restEndpoint.split(":"));
+      return string.equals(restEndpoint.split(":")[0]);
     }
   }
 
