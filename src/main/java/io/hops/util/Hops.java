@@ -51,7 +51,7 @@ import org.json.JSONObject;
 /**
  * Utility class to be used by applications that want to communicate with Hopsworks.
  * Users can call the getters within their Hopsworks jobs to get the provided properties.
- * <p>
+ *
  */
 public class Hops {
 
@@ -506,6 +506,8 @@ public class Hops {
    * Get Avro Schemas for all Kafka topics directly using topics retrieved from Hopsworks.
    *
    * @return Map of schemas.
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws SchemaNotFoundException SchemaNotFoundException
    */
   public static Map<String, Schema> getSchemas() throws CredentialsNotFoundException, SchemaNotFoundException {
     Map<String, Schema> schemas = new HashMap<>();
@@ -835,7 +837,6 @@ public class Hops {
    *
    * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
    * @param checkIntervalMillis whether the query has terminated or not within the checkIntervalMillis milliseconds.
-   * @throws InterruptedException InterruptedException
    * @throws StreamingQueryException StreamingQueryException
    */
   public static void shutdownGracefully(StreamingQuery query, long checkIntervalMillis) throws

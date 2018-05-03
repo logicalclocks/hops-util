@@ -18,7 +18,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 
 /**
  * Hops Dela wrapper for a Kafka producer.
- * <p>
+ *
  */
 public class DelaProducer extends HopsProcess {
 

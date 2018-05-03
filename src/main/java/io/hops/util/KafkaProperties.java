@@ -13,7 +13,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 /**
  * Default Kafka properties class.
- * <p>
+ *
  */
 public class KafkaProperties {
 

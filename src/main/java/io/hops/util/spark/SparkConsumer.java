@@ -47,11 +47,7 @@ public class SparkConsumer {
     this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap(userProps);
   }
 
-  /**
-   *
-   * @param jsc
-   * @param topics
-   */
+  
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics) {
     this.jsc = jsc;
     this.topics = topics;
@@ -64,12 +60,7 @@ public class SparkConsumer {
     this.kafkaParams = Hops.getKafkaProperties().getSparkConsumerConfigMap(userProps);
   }
 
-  /**
-   *
-   * @param jsc
-   * @param topics
-   * @param kafkaParams
-   */
+  
   public SparkConsumer(JavaStreamingContext jsc, Collection<String> topics,
       Map<String, Object> kafkaParams) {
     this.jsc = jsc;

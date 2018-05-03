@@ -13,7 +13,7 @@ import org.json.JSONObject;
 /**
  * Class providing methods for building Spark job workflows in HopsWorks.
  * Detailed documentation on building workflows is available in the online Hops documentation.
- * <p>
+ *
  */
 public class WorkflowManager {
 
@@ -30,6 +30,7 @@ public class WorkflowManager {
    * @return true if the {@code waitOnJobState} is no longer the current job state, false if the timeout was exceeded.
    * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    * @throws java.lang.InterruptedException InterruptedException
+   * @throws WorkflowManagerException WorkflowManagerException
    */
   public static boolean waitForJobs(Integer... jobs)
       throws CredentialsNotFoundException, InterruptedException, WorkflowManagerException {
