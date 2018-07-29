@@ -289,6 +289,13 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- Needed by Spark programs that want to read/write .tfrecords files   -->
+    <dependency>
+      <groupId>org.tensorflow</groupId>
+      <artifactId>spark-connector_2.11</artifactId>
+      <version>1.9.0</version>
+    </dependency>
+
   </dependencies>
   
   <repositories>
