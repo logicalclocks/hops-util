@@ -265,6 +265,12 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/Azure/mmlspark -->
+    <dependency>
+      <groupId>Azure</groupId>
+      <artifactId>mmlspark</artifactId>
+      <version>0.13</version>
+    </dependency>
     <dependency>
       <groupId>io.hops</groupId>
       <artifactId>hadoop-common</artifactId>
