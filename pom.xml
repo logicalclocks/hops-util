@@ -279,6 +279,18 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/Azure/mmlspark -->
+    <!--<dependency>-->
+      <!--<groupId>Azure</groupId>-->
+      <!--<artifactId>mmlspark</artifactId>-->
+      <!--<version>0.13</version>-->
+      <!--<exclusions>-->
+        <!--<exclusion>-->
+          <!--<groupId>com.microsoft.cntk</groupId>-->
+          <!--<artifactId>cntk</artifactId>-->
+        <!--</exclusion>-->
+      <!--</exclusions>-->
+    <!--</dependency>-->
     <dependency>
       <groupId>io.hops</groupId>
       <artifactId>hadoop-common</artifactId>
@@ -303,9 +315,23 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- Needed by Spark programs that want to read/write .tfrecords files   -->
+    <!--<dependency>-->
+      <!--<groupId>org.tensorflow</groupId>-->
+      <!--<artifactId>spark-connector_2.11</artifactId>-->
+      <!--<version>1.9.0</version>-->
+    <!--</dependency>-->
+
   </dependencies>
-  
+
   <repositories>
+
+    <!--<repository>-->
+      <!--<id>SparkPackagesRepo</id>-->
+      <!--<name>SparkPackagesRepo</name>-->
+      <!--<url>http://dl.bintray.com/spark-packages/maven</url>-->
+    <!--</repository>-->
+
     <repository>
       <id>sics-release</id>
       <name>SICS Release Repository</name>
@@ -326,25 +352,22 @@
       <snapshots>
       </snapshots>
     </repository>
-  </repositories>  
-  
+  </repositories>
+
   <distributionManagement>
     <repository>
-      <id>sics-release-repository</id>
-      <name>SICS Repository</name>
-      <url>scpexe://kompics.i.sics.se/home/maven/repository</url>
+      <id>Hops</id>
+      <name>Hops Repo</name>
+      <url>https://bbc1.sics.se/archiva/repository/Hops/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
-    <snapshotRepository>
-      <id>sics-snapshot-repository</id>
-      <name>SICS Snapshot Repository</name>
-      <url>scpexe://kompics.i.sics.se/home/maven/snapshotrepository</url>
-    </snapshotRepository>
-    <site>
-      <id>kompics-site</id>
-      <url>scpexe://kompics.i.sics.se/var/www/kompics/report/trunk</url>
-    </site>
-    <downloadUrl>http://kompics.i.sics.se/maven/repository</downloadUrl>
   </distributionManagement>
+
   <build>
     <plugins>
       <plugin>
@@ -375,6 +398,7 @@
                 </filter>
               </filters>
               <createDependencyReducedPom>false</createDependencyReducedPom>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
             </configuration>
           </execution>
         </executions>

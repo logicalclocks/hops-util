@@ -18,20 +18,12 @@ echo ""
 echo "Deploying version: $VERSION ... to maven ${REPOSITORY_TYPE} repository"
 echo ""
 
-#mvn  deploy:deploy-file -Durl=scpexe://kompics.i.sics.se/home/maven/${REPOSITORY_URL_TYPE}repository \
-#                      -DrepositoryId=sics-${REPOSITORY_TYPE}-repository \
-#                      -Dfile=./target/hops-util-${VERSION}.jar \
-#                      -DgroupId=io.hops \
-#                      -DartifactId=hops-util \
-#                      -Dversion=${VERSION} \
-#                      -Dpackaging=jar \
-#                      -DpomFile=./pom.xml \
-#-DgeneratePom.description="HopsWorks Services Utility"
+mvn deploy
 
 echo ""
 echo "Deploying hops-util-${VERSION}.jar to snurran.sics.se"
 echo ""
-scp target/hops-util-${VERSION}.jar glassfish@snurran.sics.se:/var/www/hops
+scp target/hops-util-${VERSION}-shaded.jar glassfish@snurran.sics.se:/var/www/hops/hops-util-${VERSION}.jar
 
 
 echo ""
