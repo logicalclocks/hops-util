@@ -30,7 +30,7 @@ To include hops-util in your maven project, you should include the following dep
 <dependency>
   <groupId>io.hops</groupId>
   <artifactId>hops-util</artifactId>
-  <version>${project.version}</version>
+  <version>0.6.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -53,7 +53,7 @@ and the following repository under your repositories list,
 hops-util provides an API that automatically sets up Apache Kafka producers and consumers for both Apache Spark and 
 Apache Flink as well as providing methods for discovering endpoints of various Hopsworks services such as InfluxDB.
 
-**Javadoc for hops-util is available** [here](http://snurran.sics.se/hops/hops-util-javadoc/${project.version}/).
+**Javadoc for hops-util is available** [here](http://snurran.sics.se/hops/hops-util-javadoc/0.6.0-SNAPSHOT).
 
 ### Job Workflows
 It is also possible to build simple Hopsworks job workflows using hops-util. The two methods provided are:
