@@ -31,7 +31,6 @@ To include HopsUtil in your maven project, you should include the following depe
 <dependency>
   <groupId>io.hops</groupId>
   <artifactId>hops-util</artifactId>
-  <version>0.6.0-SNAPSHOT</version>
 </dependency>
 ```
 
