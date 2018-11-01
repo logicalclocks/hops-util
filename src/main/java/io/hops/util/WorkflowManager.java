@@ -15,14 +15,15 @@
 package io.hops.util;
 
 import io.hops.util.exceptions.CredentialsNotFoundException;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.ws.rs.core.Response;
-
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.WorkflowManagerException;
 import org.json.JSONObject;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.Response;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class providing methods for building Spark job workflows in HopsWorks.
@@ -130,7 +131,7 @@ public class WorkflowManager {
     while (flag) {
       String response;
       try {
-        response = Hops.clientWrapper(json, "jobs").readEntity(String.class);
+        response = Hops.clientWrapper(json, "jobs", HttpMethod.POST).readEntity(String.class);
       } catch (HTTPSClientInitializationException e) {
         throw new WorkflowManagerException(e.getMessage());
       }
@@ -170,7 +171,7 @@ public class WorkflowManager {
     json.append("subject", subject);
     json.append("message", message);
     try {
-      return Hops.clientWrapper(json, "mail");
+      return Hops.clientWrapper(json, "mail", HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new WorkflowManagerException(e.getMessage());
     }
@@ -188,7 +189,7 @@ public class WorkflowManager {
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_JOBIDS, jobIds);
     try {
-      return Hops.clientWrapper(json, "mail");
+      return Hops.clientWrapper(json, "mail", HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new WorkflowManagerException(e.getMessage());
     }

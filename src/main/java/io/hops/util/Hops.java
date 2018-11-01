@@ -14,18 +14,61 @@
 
 package io.hops.util;
 
-import io.hops.util.exceptions.CredentialsNotFoundException;
-import io.hops.util.exceptions.SchemaNotFoundException;
-import io.hops.util.exceptions.HTTPSClientInitializationException;
-import io.hops.util.exceptions.TopicNotFoundException;
 import com.google.common.io.ByteStreams;
-
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
+import io.hops.util.exceptions.CredentialsNotFoundException;
+import io.hops.util.exceptions.DataframeIsEmpty;
+import io.hops.util.exceptions.FeaturegroupCreationError;
+import io.hops.util.exceptions.FeaturegroupDeletionError;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
+import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.FeaturestoresNotFound;
+import io.hops.util.exceptions.HTTPSClientInitializationException;
+import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
+import io.hops.util.exceptions.SchemaNotFoundException;
+import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.TopicNotFoundException;
+import io.hops.util.exceptions.TrainingDatasetCreationError;
+import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
+import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
+import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.FeaturestoreHelper;
+import io.hops.util.featurestore.feature.FeatureDTO;
+import io.hops.util.featurestore.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.stats.StatisticsDTO;
+import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.flink.FlinkConsumer;
 import io.hops.util.flink.FlinkProducer;
 import io.hops.util.spark.SparkConsumer;
 import io.hops.util.spark.SparkProducer;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.net.util.Base64;
+import org.apache.flink.streaming.util.serialization.DeserializationSchema;
+import org.apache.flink.streaming.util.serialization.SerializationSchema;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.streaming.StreamingQuery;
+import org.apache.spark.sql.streaming.StreamingQueryException;
+import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,6 +76,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -42,30 +86,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.net.util.Base64;
-import org.apache.flink.streaming.util.serialization.DeserializationSchema;
-import org.apache.flink.streaming.util.serialization.SerializationSchema;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.streaming.StreamingQuery;
-import org.apache.spark.sql.streaming.StreamingQueryException;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.json.JSONObject;
+import java.util.stream.Collectors;
 
 /**
  * Utility class to be used by applications that want to communicate with Hopsworks.
  * Users can call the getters within their Hopsworks jobs to get the provided properties.
- *
  */
 public class Hops {
 
@@ -112,7 +137,7 @@ public class Hops {
         projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
         keyStore = Constants.K_CERTIFICATE_ENV_VAR;
         trustStore = Constants.T_CERTIFICATE_ENV_VAR;
-        
+
         //Get keystore and truststore passwords from Hopsworks
         projectId = Integer.parseInt(sysProps.getProperty(Constants.PROJECTID_ENV_VAR));
         String pwd = getCertPw();
@@ -146,8 +171,9 @@ public class Hops {
    * Endpoint is where the REST API listens for requests. I.e.
    * http://localhost:8080/. Similarly set domain to "localhost"
    * <p>
+   *
    * @param endpoint HopsWorks HTTP REST endpoint.
-   * @param domain HopsWorks domain.
+   * @param domain   HopsWorks domain.
    * @return Hops instance.
    */
   public synchronized Hops setup(String endpoint, String domain) {
@@ -169,16 +195,16 @@ public class Hops {
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
    *
-   * @param topic Kafka topic name.
+   * @param topic        Kafka topic name.
    * @param restEndpoint HopsWorks HTTP REST endpoint.
-   * @param keyStore keystore location.
-   * @param trustStore truststore location.
-   * @param domain HopsWorks domain.
+   * @param keyStore     keystore location.
+   * @param trustStore   truststore location.
+   * @param domain       HopsWorks domain.
    * @return Hops instance.
    */
   public synchronized Hops setup(String topic, String restEndpoint,
-      String keyStore,
-      String trustStore, String domain) {
+                                 String keyStore,
+                                 String trustStore, String domain) {
     Properties sysProps = System.getProperties();
 
     //validate arguments first
@@ -197,19 +223,19 @@ public class Hops {
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
    *
-   * @param pId HopsWorks project ID.
-   * @param topicN Kafka topic names.
-   * @param brokerE Kafka broker addresses.
-   * @param restE HopsWorks HTTP REST endpoint.
-   * @param keySt Keystore location.
-   * @param trustSt Truststore location.
-   * @param keystPwd Keystore password.
+   * @param pId        HopsWorks project ID.
+   * @param topicN     Kafka topic names.
+   * @param brokerE    Kafka broker addresses.
+   * @param restE      HopsWorks HTTP REST endpoint.
+   * @param keySt      Keystore location.
+   * @param trustSt    Truststore location.
+   * @param keystPwd   Keystore password.
    * @param truststPwd Truststore password.
    */
   public static synchronized void setup(int pId,
-      String topicN, String brokerE, String restE,
-      String keySt, String trustSt, String keystPwd,
-      String truststPwd) {
+                                        String topicN, String brokerE, String restE,
+                                        String keySt, String trustSt, String keystPwd,
+                                        String truststPwd) {
     parseBrokerEndpoints(brokerE);
     restEndpoint = restE;
     keyStore = keySt;
@@ -227,22 +253,22 @@ public class Hops {
    * http://localhost:8080/. Similarly set domain to "localhost"
    * KeyStore and TrustStore locations should on the local machine.
    *
-   * @param projectId HopsWorks project ID.
-   * @param topics Kafka topic names.
+   * @param projectId      HopsWorks project ID.
+   * @param topics         Kafka topic names.
    * @param consumerGroups Kafka project consumer groups.
    * @param brokerEndpoint Kafka broker addresses.
-   * @param restEndpoint HopsWorks HTTP REST endpoint.
-   * @param keyStore keystore location.
-   * @param trustStore truststore location.
-   * @param keystorePwd Keystore password.
-   * @param truststorePwd Truststore password.
+   * @param restEndpoint   HopsWorks HTTP REST endpoint.
+   * @param keyStore       keystore location.
+   * @param trustStore     truststore location.
+   * @param keystorePwd    Keystore password.
+   * @param truststorePwd  Truststore password.
    * @return Hops instance.
    */
   public synchronized Hops setup(int projectId,
-      String topics, String consumerGroups, String brokerEndpoint,
-      String restEndpoint,
-      String keyStore, String trustStore, String keystorePwd,
-      String truststorePwd) {
+                                 String topics, String consumerGroups, String brokerEndpoint,
+                                 String restEndpoint,
+                                 String keyStore, String trustStore, String keystorePwd,
+                                 String truststorePwd) {
     this.projectId = projectId;
     parseBrokerEndpoints(brokerEndpoint);
     this.restEndpoint = restEndpoint;
@@ -289,7 +315,7 @@ public class Hops {
    *
    * @param topic Kafka topic name
    * @return HopsConsumer
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException      SchemaNotFoundException
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
   public static HopsConsumer getHopsConsumer(String topic) throws
@@ -302,7 +328,7 @@ public class Hops {
    *
    * @param topic Kafka topic name.
    * @return HopsProducer.
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException      SchemaNotFoundException
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
   public static HopsProducer getHopsProducer(String topic) throws
@@ -323,12 +349,12 @@ public class Hops {
   /**
    * Get a FlinkConsumer for a specific Kafka topic and DeserializationSchema.
    *
-   * @param topic Kafka topic name.
+   * @param topic                 Kafka topic name.
    * @param deserializationSchema deserializationSchema.
    * @return FlinkConsumer.
    */
   public static FlinkConsumer getFlinkConsumer(String topic,
-      DeserializationSchema deserializationSchema) {
+                                               DeserializationSchema deserializationSchema) {
     return new FlinkConsumer(topic, deserializationSchema,
         getKafkaProperties().getConsumerConfig());
   }
@@ -346,12 +372,12 @@ public class Hops {
   /**
    * Get a FlinkProducer for a specific Kafka topic and SerializationSchema.
    *
-   * @param topic Kafka topic name.
+   * @param topic               Kafka topic name.
    * @param serializationSchema serializationSchema
    * @return FlinkProducer.
    */
   public static FlinkProducer getFlinkProducer(String topic,
-      SerializationSchema serializationSchema) {
+                                               SerializationSchema serializationSchema) {
     return new FlinkProducer(topic, serializationSchema,
         getKafkaProperties().defaultProps());
   }
@@ -360,8 +386,8 @@ public class Hops {
    * Helper constructor for a Spark Kafka Producer that sets the single selected topic.
    *
    * @return SparkProducer
-   * @throws SchemaNotFoundException SchemaNotFoundException
-   * @throws TopicNotFoundException TopicNotFoundException
+   * @throws SchemaNotFoundException                              SchemaNotFoundException
+   * @throws TopicNotFoundException                               TopicNotFoundException
    * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public static SparkProducer getSparkProducer() throws
@@ -379,7 +405,7 @@ public class Hops {
    *
    * @param topic Kafka topic name.
    * @return SparkProducer
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException                              SchemaNotFoundException
    * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public static SparkProducer getSparkProducer(String topic) throws SchemaNotFoundException,
@@ -390,10 +416,10 @@ public class Hops {
   /**
    * Get a SparkProducer for a specific Kafka topic and extra users properties.
    *
-   * @param topic Kafka topic name.
+   * @param topic     Kafka topic name.
    * @param userProps User-provided Spark properties.
    * @return SparkProducer
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException                              SchemaNotFoundException
    * @throws io.hops.util.exceptions.CredentialsNotFoundException CredentialsNotFoundException
    */
   public static SparkProducer getSparkProducer(String topic, Properties userProps) throws SchemaNotFoundException,
@@ -455,7 +481,7 @@ public class Hops {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext and extra user properties.
    *
-   * @param jsc JavaStreamingContext
+   * @param jsc       JavaStreamingContext
    * @param userProps User-provided Spark properties.
    * @return SparkConsumer
    * @throws TopicNotFoundException TopicNotFoundException.
@@ -473,7 +499,7 @@ public class Hops {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext and specific Kafka properties.
    *
-   * @param jsc JavaStreamingContext.
+   * @param jsc    JavaStreamingContext.
    * @param topics Kafka topic names.
    * @return SparkConsumer.
    */
@@ -484,13 +510,13 @@ public class Hops {
   /**
    * Get a SparkConsumer for a specific JavaStreamingContext, specific Kafka properties and extra users properties.
    *
-   * @param jsc JavaStreamingContext.
-   * @param topics Kafka topic names.
+   * @param jsc       JavaStreamingContext.
+   * @param topics    Kafka topic names.
    * @param userProps User-provided Spark properties.
    * @return SparkConsumer.
    */
   public static SparkConsumer getSparkConsumer(JavaStreamingContext jsc,
-      Collection<String> topics, Properties userProps) {
+                                               Collection<String> topics, Properties userProps) {
     return new SparkConsumer(jsc, topics, userProps);
   }
 
@@ -509,7 +535,7 @@ public class Hops {
    *
    * @param topic Kafka topic name.
    * @return Avro schema as String object in JSON format
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException      SchemaNotFoundException
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
   public static String getSchema(String topic) throws SchemaNotFoundException, CredentialsNotFoundException {
@@ -521,7 +547,7 @@ public class Hops {
    *
    * @return Map of schemas.
    * @throws CredentialsNotFoundException CredentialsNotFoundException
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException      SchemaNotFoundException
    */
   public static Map<String, Schema> getSchemas() throws CredentialsNotFoundException, SchemaNotFoundException {
     Map<String, Schema> schemas = new HashMap<>();
@@ -561,16 +587,16 @@ public class Hops {
   /**
    * Get the Avro schema for a particular Kafka topic and its version.
    *
-   * @param topic Kafka topic name.
+   * @param topic     Kafka topic name.
    * @param versionId Schema version ID
    * @return Avro schema as String object in JSON format
-   * @throws SchemaNotFoundException SchemaNotFoundException
+   * @throws SchemaNotFoundException      SchemaNotFoundException
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    */
   public static String getSchema(String topic, int versionId) throws
       CredentialsNotFoundException, SchemaNotFoundException {
     LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topic});
-  
+
     JSONObject json = new JSONObject();
     json.append("topicName", topic);
     if (versionId > 0) {
@@ -578,11 +604,11 @@ public class Hops {
     }
     Response response = null;
     try {
-      response = clientWrapper(json, "schema");
+      response = clientWrapper(json, "schema", HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new SchemaNotFoundException(e.getMessage());
     }
-    LOG.log(Level.INFO,"******* response.getStatusInfo():"+response.getStatusInfo());
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
     if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
       throw new SchemaNotFoundException("No schema found for topic:" + topic);
     }
@@ -591,8 +617,9 @@ public class Hops {
     json = new JSONObject(responseEntity);
     return json.getString("contents");
   }
-  
-  protected static Response clientWrapper(JSONObject json, String resource) throws CredentialsNotFoundException,
+
+  protected static Response clientWrapper(JSONObject json, String resource, String httpMethod)
+      throws CredentialsNotFoundException,
       HTTPSClientInitializationException {
     json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
     try {
@@ -601,7 +628,7 @@ public class Hops {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize Hops properties.");
     }
-    
+
     Client client;
     try {
       client = initClient();
@@ -616,9 +643,12 @@ public class Hops {
     LOG.info("webTarget.getUri().getPort():" + webTarget.getUri().getPort());
     LOG.info("webTarget.getUri().getPath():" + webTarget.getUri().getPath());
     Invocation.Builder invocationBuilder = webTarget.request().accept(MediaType.APPLICATION_JSON);
-    return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+    if (httpMethod.equals(HttpMethod.PUT))
+      return invocationBuilder.put(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+    else
+      return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
   }
-  
+
 
   /**
    * Get keystore password from local container.
@@ -820,7 +850,7 @@ public class Hops {
    * Shutdown gracefully a streaming spark job.
    *
    * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
-   * @throws InterruptedException InterruptedException
+   * @throws InterruptedException    InterruptedException
    * @throws StreamingQueryException StreamingQueryException
    */
   public static void shutdownGracefully(StreamingQuery query) throws InterruptedException, StreamingQueryException {
@@ -830,7 +860,7 @@ public class Hops {
   /**
    * Shutdown gracefully a streaming spark job.
    *
-   * @param jssc The JavaStreamingContext of the current application.
+   * @param jssc           The JavaStreamingContext of the current application.
    * @param intervalMillis How often to check if spark context has been stopped.
    * @throws InterruptedException InterruptedException
    */
@@ -849,7 +879,7 @@ public class Hops {
   /**
    * Shutdown gracefully a streaming spark job and wait for specific amount of time before exiting.
    *
-   * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
+   * @param query               StreamingQuery to wait on and then shutdown spark context gracefully.
    * @param checkIntervalMillis whether the query has terminated or not within the checkIntervalMillis milliseconds.
    * @throws StreamingQueryException StreamingQueryException
    */
@@ -859,7 +889,8 @@ public class Hops {
     while (!isStopped) {
       isStopped = query.awaitTermination(checkIntervalMillis);
       if (!isStopped && sparkInfo.isShutdownRequested()) {
-        LOG.info("Marker file has been removed, will attempt to stop gracefully the spark structured streaming query");
+        LOG.info("Marker file has been removed, will attempt " +
+            "to stop gracefully the spark structured streaming query");
         query.stop();
       }
     }
@@ -889,7 +920,8 @@ public class Hops {
    * @return Flink Kafka properties.
    */
   public static Map<String, String> getFlinkKafkaProps(String propsStr) {
-    propsStr = propsStr.replace("-D", "").replace("\"", "").replace("'", "");
+    propsStr = propsStr.replace("-D", "")
+        .replace("\"", "").replace("'", "");
     Map<String, String> props = new HashMap<>();
     String[] propsArray = propsStr.split(",");
     for (String kafkaProperty : propsArray) {
@@ -908,26 +940,1090 @@ public class Hops {
     brokerEndpoints = addresses;
     brokerEndpointsList = Arrays.asList(addresses.split(","));
   }
-  
+
   private static Client initClient() throws KeyStoreException, IOException,
       NoSuchAlgorithmException,
       CertificateException {
     KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
-    
+
     try (FileInputStream trustStoreIS = new FileInputStream(Constants.DOMAIN_CA_TRUSTSTORE)) {
       truststore.load(trustStoreIS, null);
     }
     return ClientBuilder.newBuilder().trustStore(truststore).
         hostnameVerifier(InsecureHostnameVerifier.INSTANCE).build();
   }
-  
+
+
+  /**
+   * Gets the project's featurestore name (project_featurestore)
+   *
+   * @return the featurestore name (hive db)
+   */
+  public static String getProjectFeaturestore() {
+    return FeaturestoreHelper.getProjectFeaturestore();
+  }
+
+  /**
+   * Makes a REST call to Hopsworks Appservice to get metadata about a featurestore, this metadata is then used by
+   * hops-util to infer how to JOIN featuregroups together etc.
+   *
+   * @param featurestore the featurestore to query metadata about
+   * @return a list of featuregroups metadata
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  private static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataRest(String featurestore)
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    LOG.log(Level.FINE, "Getting featuregroups for featurestore " + featurestore);
+
+    JSONObject json = new JSONObject();
+    json.append(Constants.JSON_FEATURESTORE_NAME, featurestore);
+    Response response = null;
+    try {
+      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_FEATURESTORE_RESOURCE, HttpMethod.POST);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturestoreNotFound(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new FeaturestoreNotFound("Could not fetch featuregroups for featurestore:" + featurestore);
+    }
+    final String responseEntity = response.readEntity(String.class);
+
+    JSONObject featurestoreMetadata = new JSONObject(responseEntity);
+    return FeaturestoreHelper.parseFeaturestoreMetadataJson(featurestoreMetadata);
+  }
+
+  /**
+   * Makes a REST call to Hopsworks for deleting
+   * the contents of the featuregroup but keeps the featuregroup metadata
+   *
+   * @param featurestore        the featurestore where the featuregroup resides
+   * @param featuregroup        the featuregroup to drop the contents of
+   * @param featuregroupVersion the version of the featurergroup
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  private static void deleteTableContents(
+      String featurestore, String featuregroup, int featuregroupVersion)
+      throws CredentialsNotFoundException, FeaturegroupDeletionError {
+    LOG.log(Level.FINE, "Deleting table contents of featuregroup " + featuregroup +
+        "version: " + featuregroupVersion + " in featurestore: " + featurestore);
+
+    JSONObject json = new JSONObject();
+    json.append(Constants.JSON_FEATURESTORE_NAME, featurestore);
+    json.append(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
+    json.append(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
+    try {
+      Response response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_CLEAR_FEATUREGROUP_RESOURCE,
+          HttpMethod.POST);
+      LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+      if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+        throw new FeaturegroupDeletionError("Could not clear the contents of featuregroup:" + featuregroup);
+      }
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupDeletionError(e.getMessage());
+    }
+  }
+
+  /**
+   * Makes a REST call to Hopsworks for creating a new featuregroup from a spark dataframe.
+   *
+   * @param featurestore        the featurestore where the group will be created
+   * @param featuregroup        the name of the featuregroup
+   * @param featuregroupVersion the version of the featuregroup
+   * @param description         the description of the featuregroup
+   * @param jobId               the id of the job to compute the featuregroup
+   * @param dependencies        a list of dependencies (datasets that this featuregroup depends on)
+   * @param featuresSchema      schema of features for the featuregroup
+   * @param statisticsDTO       statistics about the featuregroup
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws FeaturegroupCreationError
+   */
+  private static void createFeaturegroupRest(
+      String featurestore, String featuregroup, int featuregroupVersion, String description,
+      Integer jobId, List<String> dependencies, List<FeatureDTO> featuresSchema, StatisticsDTO statisticsDTO)
+      throws CredentialsNotFoundException, JAXBException, FeaturegroupCreationError {
+    LOG.log(Level.FINE, "Creating featuregroup " + featuregroup +
+        " in featurestore: " + featurestore);
+    JSONObject json = new JSONObject();
+    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
+    json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
+    json.put(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
+    json.put(Constants.JSON_FEATUREGROUP_DESCRIPTION, description);
+    json.put(Constants.JSON_FEATUREGROUP_JOBID, jobId);
+    json.put(Constants.JSON_FEATUREGROUP_DEPENDENCIES, dependencies);
+    json.put(Constants.JSON_FEATUREGROUP_FEATURES,
+        FeaturestoreHelper.convertFeatureDTOsToJsonObjects(featuresSchema));
+    json.put(Constants.JSON_FEATUREGROUP_FEATURE_CORRELATION,
+        FeaturestoreHelper.convertFeatureCorrelationMatrixDTOToJsonObject(
+            statisticsDTO.getFeatureCorrelationMatrixDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_DESC_STATS,
+        FeaturestoreHelper.convertDescriptiveStatsDTOToJsonObject(statisticsDTO.getDescriptiveStatsDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_FEATURES_HISTOGRAM, FeaturestoreHelper
+        .convertFeatureDistributionsDTOToJsonObject(statisticsDTO.getFeatureDistributionsDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_CLUSTER_ANALYSIS, FeaturestoreHelper
+        .convertClusterAnalysisDTOToJsonObject(statisticsDTO.getClusterAnalysisDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_UPDATE_METADATA, false);
+    json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, false);
+    Response response;
+    try {
+      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_CREATE_FEATUREGROUP_RESOURCE, HttpMethod.POST);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupCreationError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.CREATED.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = parseHopsworksErrorResponse(response);
+      throw new FeaturegroupCreationError("Could not create featuregroup:" + featuregroup +
+          " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+          + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+  }
+
+  /**
+   * Makes a REST call to Hopsworks for creating a new training dataset from a spark dataframe
+   *
+   * @param featurestore           the featurestore where the group will be created
+   * @param trainingDataset
+   * @param trainingDatasetVersion the version of the featuregroup
+   * @param description            the description of the featuregroup
+   * @param jobId                  the id of the job to compute the featuregroup
+   * @param dependencies           a list of dependencies (datasets that this featuregroup depends on)
+   * @param featuresSchema         schema of features for the featuregroup
+   * @param statisticsDTO          statistics about the featuregroup
+   * @param dataFormat             format of the dataset (e.g tfrecords)
+   * @return
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws TrainingDatasetCreationError
+   */
+  private static Response createTrainingDatasetRest(
+      String featurestore, String trainingDataset, int trainingDatasetVersion, String description,
+      Integer jobId, String dataFormat, List<String> dependencies, List<FeatureDTO> featuresSchema,
+      StatisticsDTO statisticsDTO) throws CredentialsNotFoundException, JAXBException, TrainingDatasetCreationError {
+    LOG.log(Level.FINE, "Creating Training Dataset " + trainingDataset +
+        " in featurestore: " + featurestore);
+    JSONObject json = new JSONObject();
+    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
+    json.put(Constants.JSON_TRAINING_DATASET_NAME, trainingDataset);
+    json.put(Constants.JSON_TRAINING_DATASET_VERSION, trainingDatasetVersion);
+    json.put(Constants.JSON_TRAINING_DATASET_DESCRIPTION, description);
+    json.put(Constants.JSON_TRAINING_DATASET_JOBID, jobId);
+    json.put(Constants.JSON_TRAINING_DATASET_DEPENDENCIES, dependencies);
+    json.put(Constants.JSON_TRAINING_DATASET_FORMAT, dataFormat);
+    json.put(Constants.JSON_TRAINING_DATASET_SCHEMA,
+        FeaturestoreHelper.convertFeatureDTOsToJsonObjects(featuresSchema));
+    json.put(Constants.JSON_TRAINING_DATASET_FEATURE_CORRELATION,
+        FeaturestoreHelper.convertFeatureCorrelationMatrixDTOToJsonObject(
+            statisticsDTO.getFeatureCorrelationMatrixDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_DESC_STATS,
+        FeaturestoreHelper.convertDescriptiveStatsDTOToJsonObject(statisticsDTO.getDescriptiveStatsDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_FEATURES_HISTOGRAM, FeaturestoreHelper
+        .convertFeatureDistributionsDTOToJsonObject(statisticsDTO.getFeatureDistributionsDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_CLUSTER_ANALYSIS, FeaturestoreHelper
+        .convertClusterAnalysisDTOToJsonObject(statisticsDTO.getClusterAnalysisDTO()));
+    Response response;
+    try {
+      response = clientWrapper(json,
+          Constants.HOPSWORKS_REST_APPSERVICE_CREATE_TRAINING_DATASET_RESOURCE, HttpMethod.POST);
+    } catch (HTTPSClientInitializationException e) {
+      throw new TrainingDatasetCreationError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.CREATED.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = parseHopsworksErrorResponse(response);
+      throw new TrainingDatasetCreationError("Could not create trainingDataset:" + trainingDataset +
+          " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+          + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+    return response;
+  }
+
+  /**
+   * Utility method for parsing the JSON response thrown by Hopsworks in case of errors
+   *
+   * @param response the JSON response to parse
+   * @return a DTO with the parsed result
+   */
+  private static HopsworksErrorResponseDTO parseHopsworksErrorResponse(Response response) {
+    String jsonStrResponse = response.readEntity(String.class);
+    JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
+    int errorCode = -1;
+    String errorMsg = "";
+    String userMsg = "";
+    if (jsonObjResponse.has(Constants.JSON_ERROR_CODE))
+      errorCode = jsonObjResponse.getInt(Constants.JSON_ERROR_CODE);
+    if (jsonObjResponse.has(Constants.JSON_ERROR_MSG))
+      errorMsg = jsonObjResponse.getString(Constants.JSON_ERROR_MSG);
+    if (jsonObjResponse.has(Constants.JSON_USR_MSG))
+      userMsg = jsonObjResponse.getString(Constants.JSON_USR_MSG);
+    return new HopsworksErrorResponseDTO(errorCode, errorMsg, userMsg);
+  }
+
+  /**
+   * Gets a list of featurestores accessible in the project (i.e the project's own featurestore
+   * and the featurestores shared with the project)
+   *
+   * @return a list of names of the featurestores accessible by this project
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  private static List<String> getFeaturestoresForProject()
+      throws CredentialsNotFoundException, FeaturestoresNotFound {
+    LOG.log(Level.FINE, "Getting featurestores for current project");
+
+    JSONObject json = new JSONObject();
+    Response response = null;
+    try {
+      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_FEATURESTORES_RESOURCE, HttpMethod.POST);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturestoresNotFound(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new FeaturestoresNotFound("Could not fetch featurestores for the current project");
+    }
+    final String responseEntity = response.readEntity(String.class);
+    JSONArray featurestoresJson = new JSONArray(responseEntity);
+    List<String> featurestores = new ArrayList();
+    for (int i = 0; i < featurestoresJson.length(); i++) {
+      JSONObject featurestoreJson = featurestoresJson.getJSONObject(i);
+      String featurestoreName = featurestoreJson.getString(Constants.JSON_FEATURESTORE_NAME);
+      featurestores.add(featurestoreName);
+    }
+    return featurestores;
+  }
+
+  /**
+   * Inserts a spark dataframe into a featuregroup
+   *
+   * @param sparkDf             the spark dataframe to insert
+   * @param sparkSession        the spark session
+   * @param featuregroup        the name of the featuregroup to insert into
+   * @param featurestore        the name of the featurestore where the featuregroup resides
+   * @param featuregroupVersion the version of the featuregroup
+   * @param mode                the mode to use when inserting (append/overwrite)
+   * @param descriptiveStats    a boolean flag whether to compute descriptive statistics of the new data
+   * @param featureCorr         a boolean flag whether to compute feature correlation analysis of the new data
+   * @param featureHistograms   a boolean flag whether to compute feature histograms of the new data
+   * @param clusterAnalysis     a boolean flag whether to compute cluster analysis of the new data
+   * @param statColumns         a list of columns to compute statistics for (defaults to all columns that are numeric)
+   * @param numBins             number of bins to use for computing histograms
+   * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
+   * @param numClusters         number of clusters to use for cluster analysis
+   * @throws CredentialsNotFoundException
+   * @throws FeaturegroupDeletionError
+   * @throws JAXBException
+   * @throws FeaturegroupUpdateStatsError
+   * @throws DataframeIsEmpty
+   * @throws SparkDataTypeNotRecognizedError
+   */
+  public static void insertIntoFeaturegroup(
+      SparkSession sparkSession, Dataset<Row> sparkDf, String featuregroup,
+      String featurestore, int featuregroupVersion, String mode, Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters)
+      throws CredentialsNotFoundException, FeaturegroupDeletionError, JAXBException, FeaturegroupUpdateStatsError,
+      DataframeIsEmpty, SparkDataTypeNotRecognizedError {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    if (corrMethod == null) {
+      corrMethod = Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    if (numBins == null) {
+      numBins = 20;
+    }
+    if (numClusters == null) {
+      numClusters = 5;
+    }
+    sparkSession.sparkContext().setJobGroup(
+        "Inserting dataframe into featuregroup",
+        "Inserting into featuregroup:" + featuregroup + " in the featurestore:" +
+            featurestore, true);
+    if (!mode.equalsIgnoreCase("append") && !mode.equalsIgnoreCase("overwrite"))
+      throw new IllegalArgumentException("The supplied write mode: " + mode +
+          " does not match any of the supported modes: overwrite, append");
+    if (mode.equalsIgnoreCase("overwrite")) {
+      deleteTableContents(featurestore, featuregroup, featuregroupVersion);
+    }
+    sparkSession.sparkContext().setJobGroup("", "", true);
+    FeaturestoreHelper.insertIntoFeaturegroup(sparkDf, sparkSession, featuregroup,
+        featurestore, featuregroupVersion);
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(featuregroup, sparkSession, sparkDf,
+        featurestore, featuregroupVersion,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+    updateFeaturegroupStatsRest(featuregroup, featurestore, featuregroupVersion, statisticsDTO);
+  }
+
+  /**
+   * Inserts a spark dataframe into an existing training dataset (append/overwrite)
+   *
+   * @param sparkDf                the spark dataframe to insert
+   * @param sparkSession           the spark session
+   * @param trainingDataset        the name of the training dataset to insert into
+   * @param featurestore           the name of the featurestore where the training dataset resides
+   * @param trainingDatasetVersion the version of the training dataset
+   * @param descriptiveStats       a boolean flag whether to compute descriptive statistics of the new data
+   * @param featureCorr            a boolean flag whether to compute feature correlation analysis of the new data
+   * @param featureHistograms      a boolean flag whether to compute feature histograms of the new data
+   * @param clusterAnalysis        a boolean flag whether to compute cluster analysis of the new data
+   * @param statColumns            a list of columns to compute statistics for (defaults to all columns
+   *                               that are numeric)
+   * @param numBins                number of bins to use for computing histograms
+   * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
+   * @param numClusters            number of clusters to use for cluster analysis
+   * @param writeMode              the spark write mode (append/overwrite)
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws FeaturestoreNotFound
+   * @throws TrainingDatasetDoesNotExistError
+   * @throws DataframeIsEmpty
+   * @throws FeaturegroupUpdateStatsError
+   * @throws TrainingDatasetFormatNotSupportedError
+   * @throws SparkDataTypeNotRecognizedError
+   */
+  public static void insertIntoTrainingDataset(
+      SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
+      String featurestore, int trainingDatasetVersion,
+      Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters, String writeMode)
+      throws CredentialsNotFoundException, JAXBException, FeaturestoreNotFound,
+      TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
+      TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    if (corrMethod == null) {
+      corrMethod = Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    if (numBins == null) {
+      numBins = 20;
+    }
+    if (numClusters == null) {
+      numClusters = 5;
+    }
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<TrainingDatasetDTO> trainingDatasetDTOList = featuregroupsAndTrainingDatasetsDTO.getTrainingDatasets();
+    FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
+        trainingDataset, trainingDatasetVersion);
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession,
+        sparkDf,
+        featurestore, trainingDatasetVersion,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+    Response response = updateTrainingDatasetStatsRest(trainingDataset, featurestore, trainingDatasetVersion,
+        statisticsDTO);
+    String jsonStrResponse = response.readEntity(String.class);
+    JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
+    TrainingDatasetDTO updatedTrainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
+    String hdfsPath = updatedTrainingDatasetDTO.getHdfsStorePath() + "/" + trainingDataset;
+    FeaturestoreHelper.writeTrainingDatasetHdfs(sparkSession, sparkDf, hdfsPath,
+        updatedTrainingDatasetDTO.getDataFormat(), writeMode);
+    if (updatedTrainingDatasetDTO.getDataFormat() == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
+      try {
+        JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
+        FeaturestoreHelper.writeTfRecordSchemaJson(updatedTrainingDatasetDTO.getHdfsStorePath()
+            + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+            tfRecordSchemaJson.toString());
+      } catch (Exception e) {
+        LOG.log(Level.SEVERE, "Could not save tf record schema json to HDFS for training dataset: "
+            + trainingDataset, e);
+      }
+    }
+  }
+
+
+  /**
+   * Gets a featuregroup from a particular featurestore
+   *
+   * @param sparkSession        the spark session
+   * @param featuregroup        the featuregroup to get
+   * @param featurestore        the featurestore to query
+   * @param featuregroupVersion the version of the featuregroup to get
+   * @return a spark dataframe with the featuregroup
+   */
+  public static Dataset<Row> getFeaturegroup(SparkSession sparkSession, String featuregroup,
+                                             String featurestore, int featuregroupVersion) {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    return FeaturestoreHelper.getFeaturegroup(sparkSession, featuregroup, featurestore, featuregroupVersion);
+  }
+
+  /**
+   * Gets a training dataset from a featurestore
+   *
+   * @param sparkSession           the spark session
+   * @param trainingDataset        the training dataset to get
+   * @param featurestore           the featurestore where the training dataset resides
+   * @param trainingDatasetVersion the version of the training dataset
+   * @return a spark dataframe with the training dataset
+   */
+  public static Dataset<Row> getTrainingDataset(
+      SparkSession sparkSession, String trainingDataset,
+      String featurestore, int trainingDatasetVersion)
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException, TrainingDatasetDoesNotExistError,
+      TrainingDatasetFormatNotSupportedError, IOException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<TrainingDatasetDTO> trainingDatasetDTOList = featuregroupsAndTrainingDatasetsDTO.getTrainingDatasets();
+    TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
+        trainingDataset, trainingDatasetVersion);
+    String hdfsPath = Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath() +
+        Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
+    return FeaturestoreHelper.getTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
+        hdfsPath);
+  }
+
+  /**
+   * Gets a feature from a featurestore and infers the featuregroup where the feature is located
+   *
+   * @param sparkSession the spark session
+   * @param feature      the feature to get
+   * @param featurestore the featurestore to query
+   * @return A dataframe with the feature
+   */
+  public static Dataset<Row> getFeature(
+      SparkSession sparkSession, String feature,
+      String featurestore) throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<FeaturegroupDTO> featuregroupsMetadata = featuregroupsAndTrainingDatasetsDTO.getFeaturegroups();
+    return FeaturestoreHelper.getFeature(sparkSession, feature, featurestore, featuregroupsMetadata);
+  }
+
+  /**
+   * Gets a feature from a featurestore and a specific featuregroup.
+   *
+   * @param sparkSession        the spark session
+   * @param feature             the feature to get
+   * @param featurestore        the featurestore to query
+   * @param featuregroup        the featuregroup where the feature is located
+   * @param featuregroupVersion the version of the featuregroup
+   * @return a spark dataframe with the feature
+   */
+  public static Dataset<Row> getFeature(SparkSession sparkSession, String feature, String featurestore,
+                                        String featuregroup, int featuregroupVersion) {
+    return FeaturestoreHelper.getFeature(sparkSession, feature, featurestore, featuregroup, featuregroupVersion);
+  }
+
+  /**
+   * Method for updating the statistics of a featuregroup (recomputing the statistics)
+   *
+   * @param sparkSession        the spark session
+   * @param featuregroup        the name of the featuregroup to update statistics for
+   * @param featurestore        the name of the featurestore where the featuregroup resides
+   * @param featuregroupVersion the version of the featuregroup
+   * @param descriptiveStats    a boolean flag whether to compute descriptive statistics of the new data
+   * @param featureCorr         a boolean flag whether to compute feature correlation analysis of the new data
+   * @param featureHistograms   a boolean flag whether to compute feature histograms of the new data
+   * @param clusterAnalysis     a boolean flag whether to compute cluster analysis of the new data
+   * @param statColumns         a list of columns to compute statistics for (defaults to all columns that are numeric)
+   * @param numBins             number of bins to use for computing histograms
+   * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
+   * @param numClusters         number of clusters to use for cluster analysis
+   * @throws DataframeIsEmpty
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws FeaturegroupUpdateStatsError
+   * @throws SparkDataTypeNotRecognizedError
+   */
+  public static void updateFeaturegroupStats(
+      SparkSession sparkSession, String featuregroup, String featurestore,
+      int featuregroupVersion, Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters) throws DataframeIsEmpty, CredentialsNotFoundException, JAXBException,
+      FeaturegroupUpdateStatsError, SparkDataTypeNotRecognizedError {
+    if (featurestore == null) {
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    }
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    if (corrMethod == null) {
+      corrMethod = Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    if (numBins == null) {
+      numBins = 20;
+    }
+    if (numClusters == null) {
+      numClusters = 5;
+    }
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(featuregroup, sparkSession, null,
+        featurestore, featuregroupVersion,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+    updateFeaturegroupStatsRest(featuregroup, featurestore, featuregroupVersion, statisticsDTO);
+  }
+
+  /**
+   * Method for updating the statistics of a training dataset (recomputing the statistics)
+   *
+   * @param sparkSession           the spark session
+   * @param trainingDataset        the name of the training datasaet to update statistics for
+   * @param featurestore           the name of the featurestore where the featuregroup resides
+   * @param trainingDatasetVersion the version of the training dataset
+   * @param descriptiveStats       a boolean flag whether to compute descriptive statistics of the new data
+   * @param featureCorr            a boolean flag whether to compute feature correlation analysis of the new data
+   * @param featureHistograms      a boolean flag whether to compute feature histograms of the new data
+   * @param clusterAnalysis        a boolean flag whether to compute cluster analysis of the new data
+   * @param statColumns            a list of columns to compute statistics for (defaults to all
+   *                               columns that are numeric)
+   * @param numBins                number of bins to use for computing histograms
+   * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
+   * @param numClusters            number of clusters to use for cluster analysis
+   * @throws DataframeIsEmpty
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws SparkDataTypeNotRecognizedError
+   */
+  public static void updateTrainingDatasetStats(
+      SparkSession sparkSession, String trainingDataset, String featurestore,
+      int trainingDatasetVersion, Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters) throws DataframeIsEmpty, CredentialsNotFoundException, JAXBException,
+      FeaturegroupUpdateStatsError, SparkDataTypeNotRecognizedError, TrainingDatasetFormatNotSupportedError,
+      FeaturestoreNotFound, TrainingDatasetDoesNotExistError, IOException {
+    if (featurestore == null) {
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    }
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    if (corrMethod == null) {
+      corrMethod = Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    if (numBins == null) {
+      numBins = 20;
+    }
+    if (numClusters == null) {
+      numClusters = 5;
+    }
+    Dataset<Row> sparkDf = getTrainingDataset(sparkSession, trainingDataset, featurestore, trainingDatasetVersion);
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession, sparkDf,
+        featurestore, trainingDatasetVersion,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+    updateTrainingDatasetStatsRest(trainingDataset, featurestore, trainingDatasetVersion, statisticsDTO);
+  }
+
+  /**
+   * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method is used if the user
+   * has itself provided a set of featuregroups where the features are located and should be queried from
+   * and a join key, it does not infer the featuregroups.
+   *
+   * @param sparkSession             the spark session
+   * @param features                 the list of features to get
+   * @param featurestore             the featurestore to query
+   * @param featuregroupsAndVersions a map of (featuregroup --> version) where the featuregroups are located
+   * @param joinKey                  the key to join on
+   * @return a spark dataframe with the features
+   */
+  public static Dataset<Row> getFeatures(SparkSession sparkSession, List<String> features, String featurestore,
+                                         Map<String, Integer> featuregroupsAndVersions, String joinKey) {
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsAndVersions, joinKey);
+  }
+
+  /**
+   * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method is used if the user
+   * has itself provided a set of featuregroups where the features are located and should be queried from
+   * but not a join key, it does not infer the featuregroups but infers the join key
+   *
+   * @param sparkSession             the spark session
+   * @param features                 the list of features to get
+   * @param featurestore             the featurestore to query
+   * @param featuregroupsAndVersions a map of (featuregroup --> version) where the featuregroups are located
+   * @return a spark dataframe with the features
+   */
+  public static Dataset<Row> getFeatures(
+      SparkSession sparkSession, List<String> features, String featurestore,
+      Map<String, Integer> featuregroupsAndVersions)
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<FeaturegroupDTO> featuregroupsMetadata = featuregroupsAndTrainingDatasetsDTO.getFeaturegroups();
+    List<FeaturegroupDTO> filteredFeaturegroupsMetadata =
+        FeaturestoreHelper.filterFeaturegroupsBasedOnMap(featuregroupsAndVersions, featuregroupsMetadata);
+    String joinKey = FeaturestoreHelper.getJoinColumn(filteredFeaturegroupsMetadata);
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsAndVersions, joinKey);
+  }
+
+
+  /**
+   * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
+   * in which featuregroups the features belong but uses a user-supplied join key
+   *
+   * @param sparkSession the spark session
+   * @param features     the list of features to get
+   * @param featurestore the featurestore to query
+   * @param joinKey      the key to join on
+   * @return a spark dataframe with the features
+   */
+  public static Dataset<Row> getFeatures(
+      SparkSession sparkSession, List<String> features,
+      String featurestore, String joinKey) throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<FeaturegroupDTO> featuregroupsMetadata = featuregroupsAndTrainingDatasetsDTO.getFeaturegroups();
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMetadata, joinKey);
+  }
+
+  /**
+   * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
+   * in which featuregroups the features belong and which join_key to use using metadata from the metastore
+   *
+   * @param sparkSession the spark session
+   * @param features     the list of features to get
+   * @param featurestore the featurestore to query
+   * @return a spark dataframe with the features
+   */
+  public static Dataset<Row> getFeatures(
+      SparkSession sparkSession, List<String> features,
+      String featurestore) throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<FeaturegroupDTO> featuregroupsMetadata = featuregroupsAndTrainingDatasetsDTO.getFeaturegroups();
+    List<FeaturegroupDTO> featuregroupsMatching =
+        FeaturestoreHelper.findFeaturegroupsThatContainsFeatures(featuregroupsMetadata, features, featurestore);
+    String joinKey = FeaturestoreHelper.getJoinColumn(featuregroupsMatching);
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMatching, joinKey);
+  }
+
+  /**
+   * Runs an SQL query on the project's featurestore
+   *
+   * @param sparkSession the spark session
+   * @param query        the query to run
+   * @param featurestore the featurestore to query
+   * @return the resulting Spark dataframe
+   */
+  public static Dataset<Row> queryFeaturestore(SparkSession sparkSession, String query, String featurestore) {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    return FeaturestoreHelper.queryFeaturestore(sparkSession, query, featurestore);
+  }
+
+  /**
+   * Gets a list of featurestores accessible by the current project
+   *
+   * @return a list of names of the featurestores
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  public static List<String> getProjectFeaturestores() throws CredentialsNotFoundException, FeaturestoresNotFound {
+    return getFeaturestoresForProject();
+  }
+
+  /**
+   * Gets a list of all featuregroups in a featurestore
+   *
+   * @return a list of names of the feature groups
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  public static List<String> getFeaturegroups(String featurestore) throws
+      CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    return getFeaturestoreMetadata(featurestore).
+        getFeaturegroups().stream()
+        .map(fg -> FeaturestoreHelper.getTableName(fg.getName(), fg.getVersion())).collect(Collectors.toList());
+  }
+
+  /**
+   * Gets a list of all feature names in a featurestore
+   *
+   * @return a list of names of the features in the feature store
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  public static List<String> getFeaturesList(String featurestore) throws
+      CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    List<List<String>> featureNamesLists =getFeaturestoreMetadata(featurestore).
+        getFeaturegroups().stream()
+        .map(fg -> fg.getFeatures().stream().map(f-> f.getName())
+            .collect(Collectors.toList())).collect(Collectors.toList());
+    List<String> featureNames = new ArrayList<>();
+    featureNamesLists.stream().forEach(flist -> featureNames.addAll(flist));
+    return featureNames;
+  }
+
+  /**
+   * Gets a list of all training datasets in a featurestore
+   *
+   * @return a list of names of the trainin datasets
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoresNotFound
+   */
+  public static List<String> getTrainingDatasets(String featurestore) throws CredentialsNotFoundException,
+      FeaturestoreNotFound, JAXBException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    return getFeaturestoreMetadata(featurestore).
+        getTrainingDatasets().stream()
+        .map(td -> FeaturestoreHelper.getTableName(td.getName(), td.getVersion())).collect(Collectors.toList());
+  }
+
+  /**
+   * Gets the HDFS path to a training dataset with a specific name and version in a featurestore
+   *
+   * @param trainingDataset        name of the training dataset
+   * @param featurestore           featurestore that the training dataset is linked to
+   * @param trainingDatasetVersion version of the training dataset
+   * @return
+   * @throws TrainingDatasetDoesNotExistError
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoreNotFound
+   * @throws JAXBException
+   */
+  public static String getTrainingDatasetPath(String trainingDataset, String featurestore,
+                                              int trainingDatasetVersion) throws
+      TrainingDatasetDoesNotExistError, CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<TrainingDatasetDTO> trainingDatasetDTOList = featuregroupsAndTrainingDatasetsDTO.getTrainingDatasets();
+    TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
+        trainingDataset, trainingDatasetVersion);
+    return Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath() +
+        Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
+  }
+
+  /**
+   * Gets the metadata for the specified featurestore from the metastore
+   *
+   * @param featurestore the featurestore to query metadata from
+   * @return a list of metadata about all the featuregroups in the featurestore
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoreNotFound
+   */
+  public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadata(String featurestore)
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    return getFeaturestoreMetadataRest(featurestore);
+  }
+
+  /**
+   * Makes a REST call to Hopsworks for updating the statistics of a featuregroup
+   *
+   * @param featuregroup        the name of the featuregroup
+   * @param featurestore        the name of the featurestore where the featuregroup resides
+   * @param featuregroupVersion the version of the featuregroup
+   * @param statisticsDTO       the new statistics of the featuregroup
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws FeaturegroupUpdateStatsError
+   */
+  public static void updateFeaturegroupStatsRest(
+      String featuregroup, String featurestore, int featuregroupVersion, StatisticsDTO statisticsDTO)
+      throws CredentialsNotFoundException,
+      JAXBException, FeaturegroupUpdateStatsError {
+    LOG.log(Level.FINE, "Updating featuregroup stats for: " + featuregroup +
+        " in featurestore: " + featurestore);
+    JSONObject json = new JSONObject();
+    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
+    json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
+    json.put(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
+    json.put(Constants.JSON_FEATUREGROUP_FEATURE_CORRELATION,
+        FeaturestoreHelper.convertFeatureCorrelationMatrixDTOToJsonObject(
+            statisticsDTO.getFeatureCorrelationMatrixDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_DESC_STATS,
+        FeaturestoreHelper.convertDescriptiveStatsDTOToJsonObject(statisticsDTO.getDescriptiveStatsDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_FEATURES_HISTOGRAM, FeaturestoreHelper
+        .convertFeatureDistributionsDTOToJsonObject(statisticsDTO.getFeatureDistributionsDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_CLUSTER_ANALYSIS, FeaturestoreHelper
+        .convertClusterAnalysisDTOToJsonObject(statisticsDTO.getClusterAnalysisDTO()));
+    json.put(Constants.JSON_FEATUREGROUP_UPDATE_METADATA, false);
+    json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, true);
+    Response response = null;
+    try {
+      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_UPDATE_FEATUREGROUP_RESOURCE, HttpMethod.PUT);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupUpdateStatsError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = parseHopsworksErrorResponse(response);
+      throw new FeaturegroupUpdateStatsError("Could not update statistics for featuregroup:" + featuregroup +
+          " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+          + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+  }
+
+  /**
+   * @param trainingDataset        the name of the training dataset
+   * @param featurestore           the name of the featurestore where the training dataset resides
+   * @param trainingDatasetVersion the version of the training dataset
+   * @param statisticsDTO          the new statistics of the training dataset
+   * @return the JSON response
+   * @throws CredentialsNotFoundException
+   * @throws JAXBException
+   * @throws FeaturegroupUpdateStatsError
+   */
+  public static Response updateTrainingDatasetStatsRest(
+      String trainingDataset, String featurestore, int trainingDatasetVersion, StatisticsDTO statisticsDTO)
+      throws CredentialsNotFoundException,
+      JAXBException, FeaturegroupUpdateStatsError {
+    LOG.log(Level.FINE, "Updating training dataset stats for: " + trainingDataset +
+        " in featurestore: " + featurestore);
+    JSONObject json = new JSONObject();
+    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
+    json.put(Constants.JSON_TRAINING_DATASET_NAME, trainingDataset);
+    json.put(Constants.JSON_TRAINING_DATASET_VERSION, trainingDatasetVersion);
+    json.put(Constants.JSON_TRAINING_DATASET_FEATURE_CORRELATION,
+        FeaturestoreHelper.convertFeatureCorrelationMatrixDTOToJsonObject(
+            statisticsDTO.getFeatureCorrelationMatrixDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_DESC_STATS,
+        FeaturestoreHelper.convertDescriptiveStatsDTOToJsonObject(statisticsDTO.getDescriptiveStatsDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_FEATURES_HISTOGRAM, FeaturestoreHelper
+        .convertFeatureDistributionsDTOToJsonObject(statisticsDTO.getFeatureDistributionsDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_CLUSTER_ANALYSIS, FeaturestoreHelper
+        .convertClusterAnalysisDTOToJsonObject(statisticsDTO.getClusterAnalysisDTO()));
+    json.put(Constants.JSON_TRAINING_DATASET_UPDATE_METADATA, false);
+    json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, true);
+    Response response = null;
+    try {
+      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_UPDATE_TRAINING_DATASET_RESOURCE,
+          HttpMethod.PUT);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupUpdateStatsError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = parseHopsworksErrorResponse(response);
+      throw new FeaturegroupUpdateStatsError("Could not update statistics for trainingDataset:" + trainingDataset +
+          " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+          + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+    return response;
+  }
+
+  /**
+   * Creates a new featuregroup from a spark dataframe
+   *
+   * @param sparkSession        the spark session
+   * @param featuregroupDf      the spark dataframe
+   * @param featuregroup        the name of the featuregroup
+   * @param featurestore        the featurestore of the featuregroup (defaults to the project's featurestore)
+   * @param featuregroupVersion the version of the featuregroup (defaults to 1)
+   * @param description         a description of the featuregroup
+   * @param jobId               a description of the featuregroup
+   * @param dependencies        list of the datasets that this featuregroup depends on (e.g input datasets to the
+   *                            feature engineering job)
+   * @param primaryKey          the primary key of the new featuregroup, if not specified, the first column in the
+   *                            dataframe will be used as primary
+   * @param descriptiveStats    a bolean flag whether to compute descriptive statistics (min,max,mean etc) for the
+   *                            featuregroup
+   * @param featureCorr         a boolean flag whether to compute a feature correlation matrix for the numeric
+   *                            columns in the featuregroup
+   * @param featureHistograms   a boolean flag whether to compute histograms for the numeric columns in the
+   *                            featuregroup
+   * @param clusterAnalysis     a boolean flag whether to compute cluster analysis for the numeric columns in the
+   *                            featuregroup
+   * @param statColumns         a list of columns to compute statistics for (defaults to all columns that are numeric)
+   * @param numBins             number of bins to use for computing histograms
+   * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
+   * @param numClusters         the number of clusters to use for cluster analysis
+   * @throws InvalidPrimaryKeyForFeaturegroup
+   * @throws CredentialsNotFoundException
+   * @throws DataframeIsEmpty
+   * @throws JAXBException
+   * @throws FeaturegroupCreationError
+   * @throws SparkDataTypeNotRecognizedError
+   */
+  public static void createFeaturegroup(
+      SparkSession sparkSession, Dataset<Row> featuregroupDf, String featuregroup, String featurestore,
+      int featuregroupVersion, String description, Integer jobId,
+      List<String> dependencies, String primaryKey, Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters)
+      throws InvalidPrimaryKeyForFeaturegroup,
+      CredentialsNotFoundException, DataframeIsEmpty, JAXBException, FeaturegroupCreationError,
+      SparkDataTypeNotRecognizedError {
+    FeaturestoreHelper.validateMetadata(featuregroup, featuregroupDf.dtypes(), dependencies, description);
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    if (primaryKey == null) {
+      primaryKey = FeaturestoreHelper.getDefaultPrimaryKey(featuregroupDf);
+    }
+    if (corrMethod == null) {
+      corrMethod = Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    if (numBins == null) {
+      numBins = 20;
+    }
+    if (numClusters == null) {
+      numClusters = 5;
+    }
+    FeaturestoreHelper.validatePrimaryKey(featuregroupDf, primaryKey);
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(featuregroup, sparkSession, featuregroupDf,
+        featurestore, featuregroupVersion,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(featuregroupDf.schema(), primaryKey);
+    createFeaturegroupRest(featurestore, featuregroup, featuregroupVersion, description,
+        jobId, dependencies, featuresSchema, statisticsDTO);
+    FeaturestoreHelper.insertIntoFeaturegroup(featuregroupDf, sparkSession, featuregroup,
+        featurestore, featuregroupVersion);
+  }
+
+  /**
+   * Creates a new training dataset from a spark dataframe, saves metadata about the training dataset to the database
+   * and saves the materialized dataset on hdfs
+   *
+   * @param sparkSession           the spark session
+   * @param trainingDatasetDf      the spark dataframe to create the training dataset from
+   * @param trainingDataset        the name of the training dataset
+   * @param featurestore           the featurestore that the training dataset is linked to
+   * @param trainingDatasetVersion the version of the training dataset (defaults to 1)
+   * @param description            a description of the training dataset
+   * @param jobId                  the id of the job to compute the training dataset
+   * @param dataFormat             the format of the materialized training dataset
+   * @param dependencies           list of the datasets that this training dataset depends on
+   *                               (e.g input datasets to the feature engineering job)
+   * @param descriptiveStats       a bolean flag whether to compute descriptive statistics
+   *                               (min,max,mean etc) for the featuregroup
+   * @param featureCorr            a boolean flag whether to compute a feature correlation matrix for the
+   *                               numeric columns in the featuregroup
+   * @param featureHistograms      a boolean flag whether to compute histograms for the numeric columns in the
+   *                               featuregroup
+   * @param clusterAnalysis        a boolean flag whether to compute cluster analysis for the numeric columns in the
+   *                               featuregroup
+   * @param statColumns            a list of columns to compute statistics for (defaults to all columns
+   *                               that are numeric)
+   * @param numBins                number of bins to use for computing histograms
+   * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
+   * @param numClusters            number of clusters to use for cluster analysis
+   * @throws CredentialsNotFoundException
+   * @throws DataframeIsEmpty
+   * @throws JAXBException
+   * @throws TrainingDatasetCreationError
+   * @throws TrainingDatasetFormatNotSupportedError
+   */
+  public static void createTrainingDataset(
+      SparkSession sparkSession, Dataset<Row> trainingDatasetDf, String trainingDataset, String featurestore,
+      int trainingDatasetVersion, String description, Integer jobId, String dataFormat,
+      List<String> dependencies, Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters)
+      throws CredentialsNotFoundException, DataframeIsEmpty, JAXBException, TrainingDatasetCreationError,
+      TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError {
+    FeaturestoreHelper.validateMetadata(trainingDataset, trainingDatasetDf.dtypes(), dependencies, description);
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    if (sparkSession == null)
+      sparkSession = findSpark();
+    if (dataFormat == null) {
+      dataFormat = Constants.TRAINING_DATASET_TFRECORDS_FORMAT;
+    }
+    if (corrMethod == null) {
+      corrMethod = Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    if (numBins == null) {
+      numBins = 20;
+    }
+    if (numClusters == null) {
+      numClusters = 5;
+    }
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession,
+        trainingDatasetDf, featurestore, trainingDatasetVersion,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(trainingDatasetDf.schema(),
+        null);
+    Response response = createTrainingDatasetRest(featurestore, trainingDataset, trainingDatasetVersion, description,
+        jobId, dataFormat, dependencies, featuresSchema, statisticsDTO);
+    String jsonStrResponse = response.readEntity(String.class);
+    JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
+    TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
+    String hdfsPath = trainingDatasetDTO.getHdfsStorePath() + Constants.SLASH_DELIMITER + trainingDataset;
+    FeaturestoreHelper.writeTrainingDatasetHdfs(
+        sparkSession, trainingDatasetDf, hdfsPath, dataFormat, Constants.SPARK_OVERWRITE_MODE);
+    if (dataFormat == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
+      try {
+        JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(trainingDatasetDf);
+        FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getHdfsStorePath()
+            + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+            tfRecordSchemaJson.toString());
+      } catch (Exception e) {
+        LOG.log(Level.SEVERE, "Could not save tf record schema json to HDFS for training dataset: "
+            + trainingDataset, e);
+      }
+    }
+  }
+
+  /**
+   * Gets the latest version of a feature group in the feature store, returns 0 if no version exists
+   *
+   * @param featuregroupName the name of the featuregroup to get the latest version of
+   * @param featurestore the featurestore where the featuregroup resides
+   * @return
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoreNotFound
+   * @throws JAXBException
+   * @throws FeaturegroupDoesNotExistError
+   */
+  public static int getLatestFeaturegroupVersion(
+      String featuregroupName, String featurestore)
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException, FeaturegroupDoesNotExistError {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<FeaturegroupDTO> featuregroupDTOList = featuregroupsAndTrainingDatasetsDTO.getFeaturegroups();
+    return FeaturestoreHelper.getLatestFeaturegroupVersion(featuregroupDTOList, featuregroupName);
+  }
+
+  /**
+   * Gets the latest version of a training dataset in the feature store, returns 0 if no version exists
+   *
+   * @param trainingDatasetName the name of the trainingDataset to get the latest version of
+   * @param featurestore the featurestore where the training dataset resides
+   * @return
+   * @throws CredentialsNotFoundException
+   * @throws FeaturestoreNotFound
+   * @throws JAXBException
+   * @throws FeaturegroupDoesNotExistError
+   */
+  public static int getLatestTrainingDatasetVersion(
+      String trainingDatasetName, String featurestore)
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException, FeaturegroupDoesNotExistError {
+    if (featurestore == null)
+      featurestore = FeaturestoreHelper.getProjectFeaturestore();
+    FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
+    List<TrainingDatasetDTO> trainingDatasetDTOS = featuregroupsAndTrainingDatasetsDTO.getTrainingDatasets();
+    return FeaturestoreHelper.getLatestTrainingDatasetVersion(trainingDatasetDTOS, trainingDatasetName);
+  }
+
+  /**
+   * Finds the spark session dynamically if it is not provided by the user-request
+   *
+   * @return spark session
+   */
+  public static SparkSession findSpark() {
+    return SparkSession.builder().getOrCreate();
+  }
+
   private static class InsecureHostnameVerifier implements HostnameVerifier {
-    
+
     static InsecureHostnameVerifier INSTANCE = new InsecureHostnameVerifier();
-    
+
     InsecureHostnameVerifier() {
     }
-    
+
     @Override
     public boolean verify(String string, SSLSession ssls) {
       return string.equals(restEndpoint.split(":")[0]);
