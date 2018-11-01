@@ -1441,7 +1441,7 @@ public class FeaturestoreHelper {
     }
     return matches.get(0);
   }
-  
+
   /**
    * Writes the tf records schema for a training dataset to HDFS
    *
@@ -1466,7 +1466,7 @@ public class FeaturestoreHelper {
       }
     }
   }
-  
+
   /**
    * Gets the TFRecords schema in JSON format for a spark dataframe
    *
@@ -1560,5 +1560,3 @@ public class FeaturestoreHelper {
   }
 
 }
-
-
