@@ -553,9 +553,9 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Converts a map of (featuregroup --> version) to a list of featuregroupDTOs
+   * Converts a map of (featuregroup to version) to a list of featuregroupDTOs
    *
-   * @param featuregroupsAndVersions the map of (featuregroup --> version)
+   * @param featuregroupsAndVersions the map of (featuregroup to version)
    * @return a list of featuregroupDTOs
    */
   private static List<FeaturegroupDTO> convertFeaturegroupAndVersionToDTOs(
@@ -578,7 +578,7 @@ public class FeaturestoreHelper {
    * @param sparkSession             the spark session
    * @param features                 the list of features to get
    * @param featurestore             the featurestore to query
-   * @param featuregroupsAndVersions a map of (featuregroup --> version) where the featuregroups are located
+   * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @param joinKey                  the key to join on
    * @return the resulting spark dataframe with the features
    */
@@ -673,9 +673,9 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Filters a list of featuregroups based on a user-provided map of featuregroup --> version
+   * Filters a list of featuregroups based on a user-provided map of featuregroup to version
    *
-   * @param featuregroupsAndVersions the map of featuregroup --> version
+   * @param featuregroupsAndVersions the map of featuregroup to version
    * @param featuregroupsMetadata    the list of featuregroups to filter
    * @return filtered list of featuregroups
    */
