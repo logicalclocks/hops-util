@@ -30,9 +30,9 @@ public abstract class FeaturestoreStatisticValue {
    * As found in Effective Java, the equals contract cannot be satisfied for
    * inheritance hierarchies that add fields in subclasses. Since this is the
    * main goal of extension of this class, these objects should not be compared.
-   * <p/>
-   * @param o
-   * @return
+   *
+   * @param o object to compare
+   * @return boolean boolean
    */
   @Override
   public final boolean equals(Object o) {

@@ -1539,7 +1539,7 @@ public class Hops {
    * @param sparkSession             the spark session
    * @param features                 the list of features to get
    * @param featurestore             the featurestore to query
-   * @param featuregroupsAndVersions a map of (featuregroup --> version) where the featuregroups are located
+   * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @param joinKey                  the key to join on
    * @return a spark dataframe with the features
    */
@@ -1556,7 +1556,7 @@ public class Hops {
    * @param sparkSession             the spark session
    * @param features                 the list of features to get
    * @param featurestore             the featurestore to query
-   * @param featuregroupsAndVersions a map of (featuregroup --> version) where the featuregroups are located
+   * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @return a spark dataframe with the features
    * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
@@ -1647,9 +1647,10 @@ public class Hops {
   /**
    * Gets a list of all featuregroups in a featurestore
    *
+   * @param featurestore the featurestore to get the featuregroups for
    * @return a list of names of the feature groups
    * @throws CredentialsNotFoundException CredentialsNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static List<String> getFeaturegroups(String featurestore) throws
@@ -1664,9 +1665,10 @@ public class Hops {
   /**
    * Gets a list of all feature names in a featurestore
    *
+   * @param featurestore the featurestore to get the features for
    * @return a list of names of the features in the feature store
    * @throws CredentialsNotFoundException CredentialsNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static List<String> getFeaturesList(String featurestore) throws
@@ -1685,9 +1687,10 @@ public class Hops {
   /**
    * Gets a list of all training datasets in a featurestore
    *
+   * @param featurestore the featurestore to get the training datasets for
    * @return a list of names of the trainin datasets
    * @throws CredentialsNotFoundException CredentialsNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static List<String> getTrainingDatasets(String featurestore) throws CredentialsNotFoundException,
