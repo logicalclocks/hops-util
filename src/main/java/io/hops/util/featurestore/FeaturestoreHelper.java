@@ -680,8 +680,7 @@ public class FeaturestoreHelper {
       Map<String, Integer> featuregroupsAndVersions, List<FeaturegroupDTO> featuregroupsMetadata) {
     return featuregroupsMetadata.stream().filter(
         fgm -> featuregroupsAndVersions.get(fgm.getName()) != null
-            && fgm.getVersion() ==
-            featuregroupsAndVersions.get(fgm.getName())).collect(Collectors.toList());
+            && fgm.getVersion().equals(featuregroupsAndVersions.get(fgm.getName()))).collect(Collectors.toList());
   }
 
   /**
@@ -1442,7 +1441,14 @@ public class FeaturestoreHelper {
     }
     return matches.get(0);
   }
-
+  
+  /**
+   * Writes the tf records schema for a training dataset to HDFS
+   *
+   * @param hdfsPath the path to write to
+   * @param tfRecordSchemaJson the JSON schema to write
+   * @throws IOException
+   */
   public static void writeTfRecordSchemaJson(String hdfsPath, String tfRecordSchemaJson) throws IOException {
     Configuration hdfsConf = new Configuration();
     Path filePath = new org.apache.hadoop.fs.Path(hdfsPath);
@@ -1460,7 +1466,13 @@ public class FeaturestoreHelper {
       }
     }
   }
-
+  
+  /**
+   * Gets the TFRecords schema in JSON format for a spark dataframe
+   *
+   * @param sparkDf
+   * @return the TFRecords schema as a JSONObject
+   */
   public static JSONObject getDataframeTfRecordSchemaJson(Dataset<Row> sparkDf) {
     JSONObject tfRecordJsonSchema = new JSONObject();
     for (int i = 0; i < sparkDf.schema().fields().length; i++) {

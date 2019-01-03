@@ -53,7 +53,7 @@ and the following repository under your repositories list,
 HopsUtil provides an API that automatically sets up Apache Kafka producers and consumers for both Apache Spark and
 Apache Flink as well as providing methods for discovering endpoints of various Hopsworks services such as InfluxDB. Moreover the API provides utility methods for interacting with the Hopsworks Feature Store
 
-**Javadoc for HopsUtil is available** [here](http://snurran.sics.se/hops/hops-util-javadoc/0.6.0-SNAPSHOT).
+**Javadoc for HopsUtil is available** [here](http://snurran.sics.se/hops/hops-util-javadoc).
 
 ### Job Workflows
 It is also possible to build simple Hopsworks job workflows using HopsUtil. The two methods provided are:
@@ -86,7 +86,7 @@ example on how to use HopsUtil for implementing a Kafka Spark-Streaming app is a
 
 ### Feature Store API
 
-The Hops-Util API makes it easy to write/read to Hopsworks Feature Store.
+The HopsUtil API makes it easy to write/read to Hopsworks Feature Store.
 
 #### Read a list of features from the Feature Store
 

@@ -850,7 +850,7 @@ public class Hops {
    * Shutdown gracefully a streaming spark job.
    *
    * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
-   * @throws InterruptedException    InterruptedException
+   * @throws InterruptedException InterruptedException
    * @throws StreamingQueryException StreamingQueryException
    */
   public static void shutdownGracefully(StreamingQuery query) throws InterruptedException, StreamingQueryException {
@@ -879,7 +879,7 @@ public class Hops {
   /**
    * Shutdown gracefully a streaming spark job and wait for specific amount of time before exiting.
    *
-   * @param query               StreamingQuery to wait on and then shutdown spark context gracefully.
+   * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
    * @param checkIntervalMillis whether the query has terminated or not within the checkIntervalMillis milliseconds.
    * @throws StreamingQueryException StreamingQueryException
    */
@@ -889,8 +889,7 @@ public class Hops {
     while (!isStopped) {
       isStopped = query.awaitTermination(checkIntervalMillis);
       if (!isStopped && sparkInfo.isShutdownRequested()) {
-        LOG.info("Marker file has been removed, will attempt " +
-            "to stop gracefully the spark structured streaming query");
+        LOG.info("Marker file has been removed, will attempt to stop gracefully the spark structured streaming query");
         query.stop();
       }
     }
@@ -1330,7 +1329,7 @@ public class Hops {
       try {
         JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
         FeaturestoreHelper.writeTfRecordSchemaJson(updatedTrainingDatasetDTO.getHdfsStorePath()
-            + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+                + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
             tfRecordSchemaJson.toString());
       } catch (Exception e) {
         LOG.log(Level.SEVERE, "Could not save tf record schema json to HDFS for training dataset: "
@@ -1650,9 +1649,9 @@ public class Hops {
       CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
     if (featurestore == null)
       featurestore = FeaturestoreHelper.getProjectFeaturestore();
-    List<List<String>> featureNamesLists =getFeaturestoreMetadata(featurestore).
+    List<List<String>> featureNamesLists = getFeaturestoreMetadata(featurestore).
         getFeaturegroups().stream()
-        .map(fg -> fg.getFeatures().stream().map(f-> f.getName())
+        .map(fg -> fg.getFeatures().stream().map(f -> f.getName())
             .collect(Collectors.toList())).collect(Collectors.toList());
     List<String> featureNames = new ArrayList<>();
     featureNamesLists.stream().forEach(flist -> featureNames.addAll(flist));
@@ -1957,7 +1956,7 @@ public class Hops {
       try {
         JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(trainingDatasetDf);
         FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getHdfsStorePath()
-            + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+                + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
             tfRecordSchemaJson.toString());
       } catch (Exception e) {
         LOG.log(Level.SEVERE, "Could not save tf record schema json to HDFS for training dataset: "
@@ -1970,7 +1969,7 @@ public class Hops {
    * Gets the latest version of a feature group in the feature store, returns 0 if no version exists
    *
    * @param featuregroupName the name of the featuregroup to get the latest version of
-   * @param featurestore the featurestore where the featuregroup resides
+   * @param featurestore     the featurestore where the featuregroup resides
    * @return
    * @throws CredentialsNotFoundException
    * @throws FeaturestoreNotFound
@@ -1991,7 +1990,7 @@ public class Hops {
    * Gets the latest version of a training dataset in the feature store, returns 0 if no version exists
    *
    * @param trainingDatasetName the name of the trainingDataset to get the latest version of
-   * @param featurestore the featurestore where the training dataset resides
+   * @param featurestore        the featurestore where the training dataset resides
    * @return
    * @throws CredentialsNotFoundException
    * @throws FeaturestoreNotFound
