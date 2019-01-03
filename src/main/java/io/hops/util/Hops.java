@@ -21,7 +21,6 @@ import io.hops.util.exceptions.CredentialsNotFoundException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
-import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
@@ -850,10 +849,9 @@ public class Hops {
    * Shutdown gracefully a streaming spark job.
    *
    * @param query StreamingQuery to wait on and then shutdown spark context gracefully.
-   * @throws InterruptedException InterruptedException
    * @throws StreamingQueryException StreamingQueryException
    */
-  public static void shutdownGracefully(StreamingQuery query) throws InterruptedException, StreamingQueryException {
+  public static void shutdownGracefully(StreamingQuery query) throws StreamingQueryException {
     shutdownGracefully(query, 3000);
   }
 
@@ -968,8 +966,9 @@ public class Hops {
    *
    * @param featurestore the featurestore to query metadata about
    * @return a list of featuregroups metadata
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws JAXBException JAXBException
    */
   private static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataRest(String featurestore)
       throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
@@ -1000,8 +999,8 @@ public class Hops {
    * @param featurestore        the featurestore where the featuregroup resides
    * @param featuregroup        the featuregroup to drop the contents of
    * @param featuregroupVersion the version of the featurergroup
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
    */
   private static void deleteTableContents(
       String featurestore, String featuregroup, int featuregroupVersion)
@@ -1036,9 +1035,9 @@ public class Hops {
    * @param dependencies        a list of dependencies (datasets that this featuregroup depends on)
    * @param featuresSchema      schema of features for the featuregroup
    * @param statisticsDTO       statistics about the featuregroup
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws FeaturegroupCreationError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
    */
   private static void createFeaturegroupRest(
       String featurestore, String featuregroup, int featuregroupVersion, String description,
@@ -1093,10 +1092,10 @@ public class Hops {
    * @param featuresSchema         schema of features for the featuregroup
    * @param statisticsDTO          statistics about the featuregroup
    * @param dataFormat             format of the dataset (e.g tfrecords)
-   * @return
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws TrainingDatasetCreationError
+   * @return the JSON response
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws TrainingDatasetCreationError TrainingDatasetCreationError
    */
   private static Response createTrainingDatasetRest(
       String featurestore, String trainingDataset, int trainingDatasetVersion, String description,
@@ -1166,8 +1165,8 @@ public class Hops {
    * and the featurestores shared with the project)
    *
    * @return a list of names of the featurestores accessible by this project
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
    */
   private static List<String> getFeaturestoresForProject()
       throws CredentialsNotFoundException, FeaturestoresNotFound {
@@ -1212,12 +1211,12 @@ public class Hops {
    * @param numBins             number of bins to use for computing histograms
    * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
    * @param numClusters         number of clusters to use for cluster analysis
-   * @throws CredentialsNotFoundException
-   * @throws FeaturegroupDeletionError
-   * @throws JAXBException
-   * @throws FeaturegroupUpdateStatsError
-   * @throws DataframeIsEmpty
-   * @throws SparkDataTypeNotRecognizedError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturegroupDeletionError FeaturegroupDeletionError
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    */
   public static void insertIntoFeaturegroup(
       SparkSession sparkSession, Dataset<Row> sparkDf, String featuregroup,
@@ -1277,14 +1276,14 @@ public class Hops {
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
    * @param writeMode              the spark write mode (append/overwrite)
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws FeaturestoreNotFound
-   * @throws TrainingDatasetDoesNotExistError
-   * @throws DataframeIsEmpty
-   * @throws FeaturegroupUpdateStatsError
-   * @throws TrainingDatasetFormatNotSupportedError
-   * @throws SparkDataTypeNotRecognizedError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    */
   public static void insertIntoTrainingDataset(
       SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
@@ -1365,6 +1364,12 @@ public class Hops {
    * @param featurestore           the featurestore where the training dataset resides
    * @param trainingDatasetVersion the version of the training dataset
    * @return a spark dataframe with the training dataset
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws IOException IOException
    */
   public static Dataset<Row> getTrainingDataset(
       SparkSession sparkSession, String trainingDataset,
@@ -1392,6 +1397,9 @@ public class Hops {
    * @param feature      the feature to get
    * @param featurestore the featurestore to query
    * @return A dataframe with the feature
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeature(
       SparkSession sparkSession, String feature,
@@ -1435,11 +1443,11 @@ public class Hops {
    * @param numBins             number of bins to use for computing histograms
    * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
    * @param numClusters         number of clusters to use for cluster analysis
-   * @throws DataframeIsEmpty
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws FeaturegroupUpdateStatsError
-   * @throws SparkDataTypeNotRecognizedError
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    */
   public static void updateFeaturegroupStats(
       SparkSession sparkSession, String featuregroup, String featurestore,
@@ -1484,10 +1492,15 @@ public class Hops {
    * @param numBins                number of bins to use for computing histograms
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
-   * @throws DataframeIsEmpty
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws SparkDataTypeNotRecognizedError
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   * @throws IOException IOException
    */
   public static void updateTrainingDatasetStats(
       SparkSession sparkSession, String trainingDataset, String featurestore,
@@ -1545,6 +1558,9 @@ public class Hops {
    * @param featurestore             the featurestore to query
    * @param featuregroupsAndVersions a map of (featuregroup --> version) where the featuregroups are located
    * @return a spark dataframe with the features
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
       SparkSession sparkSession, List<String> features, String featurestore,
@@ -1568,6 +1584,9 @@ public class Hops {
    * @param featurestore the featurestore to query
    * @param joinKey      the key to join on
    * @return a spark dataframe with the features
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
       SparkSession sparkSession, List<String> features,
@@ -1585,6 +1604,9 @@ public class Hops {
    * @param features     the list of features to get
    * @param featurestore the featurestore to query
    * @return a spark dataframe with the features
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
       SparkSession sparkSession, List<String> features,
@@ -1615,8 +1637,8 @@ public class Hops {
    * Gets a list of featurestores accessible by the current project
    *
    * @return a list of names of the featurestores
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
    */
   public static List<String> getProjectFeaturestores() throws CredentialsNotFoundException, FeaturestoresNotFound {
     return getFeaturestoresForProject();
@@ -1626,8 +1648,9 @@ public class Hops {
    * Gets a list of all featuregroups in a featurestore
    *
    * @return a list of names of the feature groups
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws JAXBException JAXBException
    */
   public static List<String> getFeaturegroups(String featurestore) throws
       CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
@@ -1642,8 +1665,9 @@ public class Hops {
    * Gets a list of all feature names in a featurestore
    *
    * @return a list of names of the features in the feature store
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws JAXBException JAXBException
    */
   public static List<String> getFeaturesList(String featurestore) throws
       CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
@@ -1662,8 +1686,9 @@ public class Hops {
    * Gets a list of all training datasets in a featurestore
    *
    * @return a list of names of the trainin datasets
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoresNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws JAXBException JAXBException
    */
   public static List<String> getTrainingDatasets(String featurestore) throws CredentialsNotFoundException,
       FeaturestoreNotFound, JAXBException {
@@ -1680,11 +1705,11 @@ public class Hops {
    * @param trainingDataset        name of the training dataset
    * @param featurestore           featurestore that the training dataset is linked to
    * @param trainingDatasetVersion version of the training dataset
-   * @return
-   * @throws TrainingDatasetDoesNotExistError
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
+   * @return the hdfs path to the training dataset
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static String getTrainingDatasetPath(String trainingDataset, String featurestore,
                                               int trainingDatasetVersion) throws
@@ -1704,8 +1729,9 @@ public class Hops {
    *
    * @param featurestore the featurestore to query metadata from
    * @return a list of metadata about all the featuregroups in the featurestore
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoreNotFound
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadata(String featurestore)
       throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
@@ -1721,9 +1747,9 @@ public class Hops {
    * @param featurestore        the name of the featurestore where the featuregroup resides
    * @param featuregroupVersion the version of the featuregroup
    * @param statisticsDTO       the new statistics of the featuregroup
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws FeaturegroupUpdateStatsError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    */
   public static void updateFeaturegroupStatsRest(
       String featuregroup, String featurestore, int featuregroupVersion, StatisticsDTO statisticsDTO)
@@ -1767,9 +1793,9 @@ public class Hops {
    * @param trainingDatasetVersion the version of the training dataset
    * @param statisticsDTO          the new statistics of the training dataset
    * @return the JSON response
-   * @throws CredentialsNotFoundException
-   * @throws JAXBException
-   * @throws FeaturegroupUpdateStatsError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    */
   public static Response updateTrainingDatasetStatsRest(
       String trainingDataset, String featurestore, int trainingDatasetVersion, StatisticsDTO statisticsDTO)
@@ -1835,12 +1861,12 @@ public class Hops {
    * @param numBins             number of bins to use for computing histograms
    * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
    * @param numClusters         the number of clusters to use for cluster analysis
-   * @throws InvalidPrimaryKeyForFeaturegroup
-   * @throws CredentialsNotFoundException
-   * @throws DataframeIsEmpty
-   * @throws JAXBException
-   * @throws FeaturegroupCreationError
-   * @throws SparkDataTypeNotRecognizedError
+   * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    */
   public static void createFeaturegroup(
       SparkSession sparkSession, Dataset<Row> featuregroupDf, String featuregroup, String featurestore,
@@ -1907,11 +1933,12 @@ public class Hops {
    * @param numBins                number of bins to use for computing histograms
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
-   * @throws CredentialsNotFoundException
-   * @throws DataframeIsEmpty
-   * @throws JAXBException
-   * @throws TrainingDatasetCreationError
-   * @throws TrainingDatasetFormatNotSupportedError
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws JAXBException JAXBException
+   * @throws TrainingDatasetCreationError TrainingDatasetCreationError
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    */
   public static void createTrainingDataset(
       SparkSession sparkSession, Dataset<Row> trainingDatasetDf, String trainingDataset, String featurestore,
@@ -1970,15 +1997,14 @@ public class Hops {
    *
    * @param featuregroupName the name of the featuregroup to get the latest version of
    * @param featurestore     the featurestore where the featuregroup resides
-   * @return
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
-   * @throws FeaturegroupDoesNotExistError
+   * @return the latest version of the feature group
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws  FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static int getLatestFeaturegroupVersion(
       String featuregroupName, String featurestore)
-      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException, FeaturegroupDoesNotExistError {
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
     if (featurestore == null)
       featurestore = FeaturestoreHelper.getProjectFeaturestore();
     FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);
@@ -1991,15 +2017,14 @@ public class Hops {
    *
    * @param trainingDatasetName the name of the trainingDataset to get the latest version of
    * @param featurestore        the featurestore where the training dataset resides
-   * @return
-   * @throws CredentialsNotFoundException
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
-   * @throws FeaturegroupDoesNotExistError
+   * @return the latest version of the training dataset
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static int getLatestTrainingDatasetVersion(
       String trainingDatasetName, String featurestore)
-      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException, FeaturegroupDoesNotExistError {
+      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
     if (featurestore == null)
       featurestore = FeaturestoreHelper.getProjectFeaturestore();
     FeaturegroupsAndTrainingDatasetsDTO featuregroupsAndTrainingDatasetsDTO = getFeaturestoreMetadata(featurestore);

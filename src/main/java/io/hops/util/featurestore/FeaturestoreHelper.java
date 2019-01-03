@@ -295,7 +295,10 @@ public class FeaturestoreHelper {
    * @param dataFormat   the data format of the training dataset
    * @param hdfsPath     the hdfs path to the dataset
    * @return a spark dataframe with the dataset
-   * @throws TrainingDatasetFormatNotSupportedError
+   * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
+   * tfrecords, tsv, csv, and parquet
+   * @throws IOException IOException IOException
+   * @throws TrainingDatasetDoesNotExistError if the hdfsPath is not found
    */
   public static Dataset<Row> getTrainingDataset(SparkSession sparkSession, String dataFormat, String hdfsPath)
       throws TrainingDatasetFormatNotSupportedError, IOException, TrainingDatasetDoesNotExistError {
@@ -765,7 +768,7 @@ public class FeaturestoreHelper {
    * @param featuregroupDf the spark dataframe to create the featuregroup from
    * @param primaryKey     the provided primary key
    * @return true or false depending on if primary key is valid or not
-   * @throws InvalidPrimaryKeyForFeaturegroup
+   * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
    */
   public static Boolean validatePrimaryKey(Dataset<Row> featuregroupDf, String primaryKey)
       throws InvalidPrimaryKeyForFeaturegroup {
@@ -812,7 +815,7 @@ public class FeaturestoreHelper {
       throw new IllegalArgumentException("THe list of data dependencies contains duplicates: " + dependenciesStr);
     }
 
-    if(dependencies.size() > 2000)
+    if(description.length() > 2000)
       throw new IllegalArgumentException("Feature group/Training dataset description should not exceed " +
           "the maximum length of 2000 characters, " +
           "the provided description has length:" + dependencies.size());
@@ -823,7 +826,7 @@ public class FeaturestoreHelper {
    *
    * @param featureDTOS the list of FeatureDTOs to convert
    * @return a JSONArray with the features
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static JSONArray convertFeatureDTOsToJsonObjects(List<FeatureDTO> featureDTOS) throws JAXBException {
     JSONArray features = new JSONArray();
@@ -839,7 +842,7 @@ public class FeaturestoreHelper {
    * @param marshaller the JAXB marshaller to use for the conversion
    * @param object     the object to convert
    * @return the converted JSONObject
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static JSONObject dtoToJson(Marshaller marshaller, Object object) throws JAXBException {
     if (object == null)
@@ -854,7 +857,7 @@ public class FeaturestoreHelper {
    *
    * @param jaxbContext the jaxb context to get the unmarshaller for
    * @return the unmarshaller
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static Unmarshaller getUnmarshaller(JAXBContext jaxbContext) throws JAXBException {
     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
@@ -868,7 +871,7 @@ public class FeaturestoreHelper {
    *
    * @param featureCorrelationMatrixDTO the DTO to convert
    * @return the JSONObject
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static JSONObject convertFeatureCorrelationMatrixDTOToJsonObject(
       FeatureCorrelationMatrixDTO featureCorrelationMatrixDTO) throws JAXBException {
@@ -880,7 +883,7 @@ public class FeaturestoreHelper {
    *
    * @param descriptiveStatsDTO the DTO to convert
    * @return the JSON object
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static JSONObject convertDescriptiveStatsDTOToJsonObject(
       DescriptiveStatsDTO descriptiveStatsDTO) throws JAXBException {
@@ -892,7 +895,7 @@ public class FeaturestoreHelper {
    *
    * @param featureDistributionsDTO the DTO to convert
    * @return the JSON object
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static JSONObject convertFeatureDistributionsDTOToJsonObject(
       FeatureDistributionsDTO featureDistributionsDTO) throws JAXBException {
@@ -904,7 +907,7 @@ public class FeaturestoreHelper {
    *
    * @param clusterAnalysisDTO the DTO to convert
    * @return the JSON object
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static JSONObject convertClusterAnalysisDTOToJsonObject(
       ClusterAnalysisDTO clusterAnalysisDTO) throws JAXBException {
@@ -916,7 +919,7 @@ public class FeaturestoreHelper {
    *
    * @param featurestoreMetadata the JSON to parse
    * @return the DTO
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static FeaturegroupsAndTrainingDatasetsDTO parseFeaturestoreMetadataJson(JSONObject featurestoreMetadata)
       throws JAXBException {
@@ -930,7 +933,7 @@ public class FeaturestoreHelper {
    *
    * @param trainingDatasetJson the JSON to parse
    * @return the DTO
-   * @throws JAXBException
+   * @throws JAXBException JAXBException
    */
   public static TrainingDatasetDTO parseTrainingDatasetJson(JSONObject trainingDatasetJson)
       throws JAXBException {
@@ -1177,6 +1180,7 @@ public class FeaturestoreHelper {
    * @param sparkDf the spark dataframe to compute statistics for
    * @param numBins the number of bins to use for the histograms
    * @return the computed statistics
+   * @throws SparkDataTypeNotRecognizedError if the spark datatype is not recognized
    */
   private static FeatureDistributionsDTO computeFeatureHistograms(Dataset<Row> sparkDf, int numBins)
       throws SparkDataTypeNotRecognizedError {
@@ -1252,7 +1256,8 @@ public class FeaturestoreHelper {
    * @param numClusters           the number of clusters to use for cluster analysis (k-means)
    * @param correlationMethod     the method to compute feature correlation with (pearson or spearman)
    * @return the computed statistics in a DTO
-   * @throws DataframeIsEmpty
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    */
   public static StatisticsDTO computeDataFrameStats(
       String name, SparkSession sparkSession, Dataset<Row> sparkDf, String featurestore,
@@ -1350,7 +1355,8 @@ public class FeaturestoreHelper {
    * @param hdfsPath     the HDFS path
    * @param dataFormat   the format to serialize to
    * @param writeMode    the spark write mode (append/overwrite)
-   * @throws TrainingDatasetFormatNotSupportedError
+   * @throws TrainingDatasetFormatNotSupportedError if the provided dataframe format is not supported, supported formats
+   * are tfrecords, csv, tsv, and parquet
    */
   public static void writeTrainingDatasetHdfs(SparkSession sparkSession, Dataset<Row> sparkDf,
                                               String hdfsPath, String dataFormat, String writeMode) throws
@@ -1396,7 +1402,8 @@ public class FeaturestoreHelper {
    * @param trainingDatasetName    name of the training dataset to search for
    * @param trainingDatasetVersion version of the training dataset to search for
    * @return the trainingdatasetDTO with the correct name and version
-   * @throws TrainingDatasetDoesNotExistError
+   * @throws TrainingDatasetDoesNotExistError if the name and version combination of the training dataset cannot be
+   * resolved.
    */
   public static TrainingDatasetDTO findTrainingDataset(
       List<TrainingDatasetDTO> trainingDatasetDTOList, String trainingDatasetName, int trainingDatasetVersion)
@@ -1423,7 +1430,7 @@ public class FeaturestoreHelper {
    * @param featuregroupName    name of the feature group to search for
    * @param featuregroupVersion version of the feature group to search for
    * @return the featuregroupDTO with the correct name and version
-   * @throws TrainingDatasetDoesNotExistError
+   * @throws FeaturegroupDoesNotExistError of the name and version combination of the feature group cannot be resolved.
    */
   public static FeaturegroupDTO findFeaturegroup(
       List<FeaturegroupDTO> featuregroupDTOList, String featuregroupName, int featuregroupVersion)
@@ -1441,13 +1448,13 @@ public class FeaturestoreHelper {
     }
     return matches.get(0);
   }
-  
+
   /**
    * Writes the tf records schema for a training dataset to HDFS
    *
    * @param hdfsPath the path to write to
    * @param tfRecordSchemaJson the JSON schema to write
-   * @throws IOException
+   * @throws IOException IOException
    */
   public static void writeTfRecordSchemaJson(String hdfsPath, String tfRecordSchemaJson) throws IOException {
     Configuration hdfsConf = new Configuration();
@@ -1466,7 +1473,7 @@ public class FeaturestoreHelper {
       }
     }
   }
-  
+
   /**
    * Gets the TFRecords schema in JSON format for a spark dataframe
    *
@@ -1560,5 +1567,3 @@ public class FeaturestoreHelper {
   }
 
 }
-
-
