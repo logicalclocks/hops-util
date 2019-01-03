@@ -7,7 +7,7 @@
 
 HopsUtil is automatically deployed when users run jobs/notebooks in Hopsworks. If users need to make
 changes to the library itself, they can build it and provide it as an additional resource to their job/notebook (see
- [doc](https://hops.readthedocs.io/en/latest/user_guide/hopsworks/jupyter.html)).
+ [doc](https://hopsworks.readthedocs.io/en/latest/user_guide/hopsworks/jupyter.html)).
 
 ## Build
 To build HopsUtil you need to have maven installed. Then simply do,
