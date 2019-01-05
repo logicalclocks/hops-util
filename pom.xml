@@ -17,7 +17,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.hops</groupId>
   <artifactId>hops-util</artifactId>
-  <version>0.8.0</version>
+  <version>0.8.1-SNAPSHOT</version>
   <name>hops-util</name>
   <packaging>jar</packaging>
   <properties>
