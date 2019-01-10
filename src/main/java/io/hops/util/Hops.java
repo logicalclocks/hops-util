@@ -1031,7 +1031,7 @@ public class Hops {
    * @param featuregroup        the name of the featuregroup
    * @param featuregroupVersion the version of the featuregroup
    * @param description         the description of the featuregroup
-   * @param jobId               the id of the job to compute the featuregroup
+   * @param jobName               the name of the job to compute the featuregroup
    * @param dependencies        a list of dependencies (datasets that this featuregroup depends on)
    * @param featuresSchema      schema of features for the featuregroup
    * @param statisticsDTO       statistics about the featuregroup
@@ -1041,7 +1041,8 @@ public class Hops {
    */
   private static void createFeaturegroupRest(
       String featurestore, String featuregroup, int featuregroupVersion, String description,
-      Integer jobId, List<String> dependencies, List<FeatureDTO> featuresSchema, StatisticsDTO statisticsDTO)
+      String jobName, List<String> dependencies, List<FeatureDTO> featuresSchema,
+    StatisticsDTO statisticsDTO)
       throws CredentialsNotFoundException, JAXBException, FeaturegroupCreationError {
     LOG.log(Level.FINE, "Creating featuregroup " + featuregroup +
         " in featurestore: " + featurestore);
@@ -1050,7 +1051,7 @@ public class Hops {
     json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
     json.put(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     json.put(Constants.JSON_FEATUREGROUP_DESCRIPTION, description);
-    json.put(Constants.JSON_FEATUREGROUP_JOBID, jobId);
+    json.put(Constants.JSON_FEATUREGROUP_JOBNAME, jobName);
     json.put(Constants.JSON_FEATUREGROUP_DEPENDENCIES, dependencies);
     json.put(Constants.JSON_FEATUREGROUP_FEATURES,
         FeaturestoreHelper.convertFeatureDTOsToJsonObjects(featuresSchema));
@@ -1087,7 +1088,7 @@ public class Hops {
    * @param trainingDataset
    * @param trainingDatasetVersion the version of the featuregroup
    * @param description            the description of the featuregroup
-   * @param jobId                  the id of the job to compute the featuregroup
+   * @param jobName                  the name of the job to compute the featuregroup
    * @param dependencies           a list of dependencies (datasets that this featuregroup depends on)
    * @param featuresSchema         schema of features for the featuregroup
    * @param statisticsDTO          statistics about the featuregroup
@@ -1099,7 +1100,7 @@ public class Hops {
    */
   private static Response createTrainingDatasetRest(
       String featurestore, String trainingDataset, int trainingDatasetVersion, String description,
-      Integer jobId, String dataFormat, List<String> dependencies, List<FeatureDTO> featuresSchema,
+      String jobName, String dataFormat, List<String> dependencies, List<FeatureDTO> featuresSchema,
       StatisticsDTO statisticsDTO) throws CredentialsNotFoundException, JAXBException, TrainingDatasetCreationError {
     LOG.log(Level.FINE, "Creating Training Dataset " + trainingDataset +
         " in featurestore: " + featurestore);
@@ -1108,7 +1109,7 @@ public class Hops {
     json.put(Constants.JSON_TRAINING_DATASET_NAME, trainingDataset);
     json.put(Constants.JSON_TRAINING_DATASET_VERSION, trainingDatasetVersion);
     json.put(Constants.JSON_TRAINING_DATASET_DESCRIPTION, description);
-    json.put(Constants.JSON_TRAINING_DATASET_JOBID, jobId);
+    json.put(Constants.JSON_TRAINING_DATASET_JOBNAME, jobName);
     json.put(Constants.JSON_TRAINING_DATASET_DEPENDENCIES, dependencies);
     json.put(Constants.JSON_TRAINING_DATASET_FORMAT, dataFormat);
     json.put(Constants.JSON_TRAINING_DATASET_SCHEMA,
@@ -1847,7 +1848,7 @@ public class Hops {
    * @param featurestore        the featurestore of the featuregroup (defaults to the project's featurestore)
    * @param featuregroupVersion the version of the featuregroup (defaults to 1)
    * @param description         a description of the featuregroup
-   * @param jobId               a description of the featuregroup
+   * @param jobName             name of the job to compute the feature group
    * @param dependencies        list of the datasets that this featuregroup depends on (e.g input datasets to the
    *                            feature engineering job)
    * @param primaryKey          the primary key of the new featuregroup, if not specified, the first column in the
@@ -1873,7 +1874,7 @@ public class Hops {
    */
   public static void createFeaturegroup(
       SparkSession sparkSession, Dataset<Row> featuregroupDf, String featuregroup, String featurestore,
-      int featuregroupVersion, String description, Integer jobId,
+      int featuregroupVersion, String description, String jobName,
       List<String> dependencies, String primaryKey, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
@@ -1904,7 +1905,7 @@ public class Hops {
         corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(featuregroupDf.schema(), primaryKey);
     createFeaturegroupRest(featurestore, featuregroup, featuregroupVersion, description,
-        jobId, dependencies, featuresSchema, statisticsDTO);
+        jobName, dependencies, featuresSchema, statisticsDTO);
     FeaturestoreHelper.insertIntoFeaturegroup(featuregroupDf, sparkSession, featuregroup,
         featurestore, featuregroupVersion);
   }
@@ -1919,7 +1920,7 @@ public class Hops {
    * @param featurestore           the featurestore that the training dataset is linked to
    * @param trainingDatasetVersion the version of the training dataset (defaults to 1)
    * @param description            a description of the training dataset
-   * @param jobId                  the id of the job to compute the training dataset
+   * @param jobName                the name of the job to compute the training dataset
    * @param dataFormat             the format of the materialized training dataset
    * @param dependencies           list of the datasets that this training dataset depends on
    *                               (e.g input datasets to the feature engineering job)
@@ -1945,7 +1946,7 @@ public class Hops {
    */
   public static void createTrainingDataset(
       SparkSession sparkSession, Dataset<Row> trainingDatasetDf, String trainingDataset, String featurestore,
-      int trainingDatasetVersion, String description, Integer jobId, String dataFormat,
+      int trainingDatasetVersion, String description, String jobName, String dataFormat,
       List<String> dependencies, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
@@ -1975,7 +1976,7 @@ public class Hops {
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(trainingDatasetDf.schema(),
         null);
     Response response = createTrainingDatasetRest(featurestore, trainingDataset, trainingDatasetVersion, description,
-        jobId, dataFormat, dependencies, featuresSchema, statisticsDTO);
+        jobName, dataFormat, dependencies, featuresSchema, statisticsDTO);
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
