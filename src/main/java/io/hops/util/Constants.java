@@ -148,6 +148,7 @@ public class Constants {
   public static final String SPARK_SHORT_TYPE = "short";
   public static final String SPARK_BYTE_TYPE = "byte";
   public static final String SPARK_INTEGER_TYPE = "integer";
+  public static final String SPARK_BIGINT_TYPE = "bigint";
 
   //Hive Config
   public static final List<String> HIVE_DATA_TYPES = Arrays.asList("TINYINT", "SMALLINT", "INT", "BIGINT",

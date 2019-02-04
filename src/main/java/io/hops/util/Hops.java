@@ -14,6 +14,7 @@
 
 package io.hops.util;
 
+import com.google.common.base.Strings;
 import com.google.common.io.ByteStreams;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
@@ -1326,14 +1327,21 @@ public class Hops {
     FeaturestoreHelper.writeTrainingDatasetHdfs(sparkSession, sparkDf, hdfsPath,
         updatedTrainingDatasetDTO.getDataFormat(), writeMode);
     if (updatedTrainingDatasetDTO.getDataFormat() == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
-      try {
-        JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
-        FeaturestoreHelper.writeTfRecordSchemaJson(updatedTrainingDatasetDTO.getHdfsStorePath()
-                + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+      JSONObject tfRecordSchemaJson = null;
+      try{
+        tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
+      } catch (Exception e){
+        LOG.log(Level.WARNING, "Could not infer the TF-record schema for the training dataset");
+      }
+      if(tfRecordSchemaJson != null){
+        try {
+          FeaturestoreHelper.writeTfRecordSchemaJson(updatedTrainingDatasetDTO.getHdfsStorePath()
+              + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
             tfRecordSchemaJson.toString());
-      } catch (Exception e) {
-        LOG.log(Level.SEVERE, "Could not save tf record schema json to HDFS for training dataset: "
+        } catch (Exception e) {
+          LOG.log(Level.WARNING, "Could not save tf record schema json to HDFS for training dataset: "
             + trainingDataset, e);
+        }
       }
     }
   }
@@ -1898,6 +1906,9 @@ public class Hops {
     if (numClusters == null) {
       numClusters = 5;
     }
+    if(Strings.isNullOrEmpty(jobName)){
+      jobName = getJobName();
+    }
     FeaturestoreHelper.validatePrimaryKey(featuregroupDf, primaryKey);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(featuregroup, sparkSession, featuregroupDf,
         featurestore, featuregroupVersion,
@@ -1968,6 +1979,9 @@ public class Hops {
     }
     if (numClusters == null) {
       numClusters = 5;
+    }
+    if(Strings.isNullOrEmpty(jobName)){
+      jobName = getJobName();
     }
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession,
         trainingDatasetDf, featurestore, trainingDatasetVersion,
