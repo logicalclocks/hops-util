@@ -14,6 +14,7 @@
 
 package io.hops.util;
 
+import com.google.common.base.Strings;
 import com.google.common.io.ByteStreams;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
@@ -1905,7 +1906,7 @@ public class Hops {
     if (numClusters == null) {
       numClusters = 5;
     }
-    if(jobName == null || jobName.isEmpty()){
+    if(Strings.isNullOrEmpty(jobName)){
       jobName = getJobName();
     }
     FeaturestoreHelper.validatePrimaryKey(featuregroupDf, primaryKey);
@@ -1979,7 +1980,7 @@ public class Hops {
     if (numClusters == null) {
       numClusters = 5;
     }
-    if(jobName == null || jobName.isEmpty()){
+    if(Strings.isNullOrEmpty(jobName)){
       jobName = getJobName();
     }
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession,

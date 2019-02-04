@@ -17,7 +17,6 @@ package io.hops.util.exceptions;
 /**
  * Exception thrown when a the TF-record schema of a spark dataframe could not be inferred
  * be created
- * 
  */
 public class InferTFRecordSchemaError extends Exception {
 
