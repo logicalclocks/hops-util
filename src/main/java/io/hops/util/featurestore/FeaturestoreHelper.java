@@ -176,7 +176,7 @@ public class FeaturestoreHelper {
    */
   public static String getProjectFeaturestore() {
     String projectName = Hops.getProjectName();
-    return projectName + "_featurestore";
+    return projectName.toLowerCase() + "_featurestore";
   }
 
   /**
