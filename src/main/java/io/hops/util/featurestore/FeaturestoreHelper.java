@@ -19,6 +19,7 @@ import io.hops.util.Constants;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.InferTFRecordSchemaError;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
@@ -55,6 +56,7 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.DoubleType;
@@ -810,9 +812,9 @@ public class FeaturestoreHelper {
             " and must match the regular expression: ^[a-zA-Z0-9-_]+$, the provided feature name: " + dtypes[i]._1 +
             " is not valid");
     }
-    if (!(new HashSet<>(dependencies).size() == dependencies.size())) {
+    if (new HashSet<>(dependencies).size() != dependencies.size()) {
       String dependenciesStr = StringUtils.join(dependencies, ",");
-      throw new IllegalArgumentException("THe list of data dependencies contains duplicates: " + dependenciesStr);
+      throw new IllegalArgumentException("The list of data dependencies contains duplicates: " + dependenciesStr);
     }
 
     if(description.length() > 2000)
@@ -1480,7 +1482,7 @@ public class FeaturestoreHelper {
    * @param sparkDf
    * @return the TFRecords schema as a JSONObject
    */
-  public static JSONObject getDataframeTfRecordSchemaJson(Dataset<Row> sparkDf) {
+  public static JSONObject getDataframeTfRecordSchemaJson(Dataset<Row> sparkDf) throws InferTFRecordSchemaError {
     JSONObject tfRecordJsonSchema = new JSONObject();
     for (int i = 0; i < sparkDf.schema().fields().length; i++) {
       if (sparkDf.schema().fields()[i].dataType() instanceof IntegerType) {
@@ -1524,6 +1526,84 @@ public class FeaturestoreHelper {
         featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_FIXED);
         featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_STRING_TYPE);
         tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+      }
+      if (sparkDf.schema().fields()[i].dataType() instanceof ArrayType) {
+        Row first = sparkDf.first();
+        if(first.schema().fields().length > 1) {
+          throw new InferTFRecordSchemaError("Cannot Infer TF-Record Schema for spark dataframes with more than one " +
+            "nested levels");
+        }
+        if (first.schema().fields()[i].dataType() instanceof IntegerType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_INT_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof LongType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_INT_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof FloatType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_FLOAT_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof DoubleType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_FLOAT_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof DecimalType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_FLOAT_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof StringType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_STRING_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof BinaryType){
+          JSONObject featureType = new JSONObject();
+          featureType.put(Constants.TF_RECORD_SCHEMA_FEATURE, Constants.TF_RECORD_SCHEMA_FEATURE_VAR);
+          featureType.put(Constants.TF_RECORD_SCHEMA_TYPE, Constants.TF_RECORD_STRING_TYPE);
+          tfRecordJsonSchema.put(sparkDf.schema().fields()[i].name(), featureType);
+        }
+        if (first.schema().fields()[i].dataType() instanceof ArrayType){
+          throw new InferTFRecordSchemaError("Can only infer tf record schema for dataframes with one level of nested" +
+            " arrays, this dataframe has two levels.");
+        }
+        if(!(first.schema().fields()[i].dataType() instanceof IntegerType) &&
+          !(first.schema().fields()[i].dataType() instanceof LongType) &&
+          !(first.schema().fields()[i].dataType() instanceof FloatType) &&
+          !(first.schema().fields()[i].dataType() instanceof DoubleType) &&
+          !(first.schema().fields()[i].dataType() instanceof DecimalType) &&
+          !(first.schema().fields()[i].dataType() instanceof StringType) &&
+          !(first.schema().fields()[i].dataType() instanceof BinaryType)) {
+          throw new InferTFRecordSchemaError("Could not infer the tf record schema, an array column has the datatype:" +
+            " " +
+            first.schema().fields()[i].dataType().toString() + " which is not in the list of recognized types: " +
+            " IntegerType, LongType, FloatType, DoubleType, DecimalType, StringType, and BinaryType");
+        }
+      }
+      if(!(sparkDf.schema().fields()[i].dataType() instanceof IntegerType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof LongType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof FloatType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof DoubleType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof DecimalType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof StringType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof BinaryType) &&
+        !(sparkDf.schema().fields()[i].dataType() instanceof ArrayType)
+      ){
+        throw new InferTFRecordSchemaError("Could not infer the tf record schema, a row has the datatype: " +
+          sparkDf.schema().fields()[i].dataType().toString() + " which is not in the list of recognized types: " +
+          " IntegerType, LongType, FloatType, DoubleType, DecimalType, StringType, BinaryType, and ArrayType");
       }
     }
     LOG.log(Level.INFO, "Inferred TFRecordsSchema: " + tfRecordJsonSchema.toString());
