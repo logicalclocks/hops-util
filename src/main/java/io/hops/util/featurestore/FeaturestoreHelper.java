@@ -15,6 +15,7 @@
 package io.hops.util.featurestore;
 
 
+import com.google.common.base.Strings;
 import io.hops.util.Constants;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
@@ -126,6 +127,11 @@ public class FeaturestoreHelper {
   private static Marshaller featureMarshaller;
   private static Marshaller featuregroupsAndTrainingDatasetsMarshaller;
   private static Marshaller trainingDatasetMarshaller;
+  
+  /**
+   * Featurestore Metadata Cache
+   */
+  private static FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadataCache = null;
 
   static {
     try {
@@ -169,8 +175,7 @@ public class FeaturestoreHelper {
       LOG.log(Level.SEVERE, "An error occurred while initializing JAXBContext", e);
     }
   }
-
-
+  
   /**
    * Gets the project's featurestore name (project_featurestore)
    *
@@ -1645,5 +1650,119 @@ public class FeaturestoreHelper {
       return Collections.max(matches.stream().map(fg -> fg.getVersion()).collect(Collectors.toList()));
     }
   }
-
+  
+  /**
+   * Get the cached metadata of the feature store
+   *
+   * @return the feature store metadata cache
+   */
+  public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataCache() {
+    return featurestoreMetadataCache;
+  }
+  
+  /**
+   * Update cache of the feature store metadata
+   *
+   * @param featurestoreMetadataCache the new value of the cache
+   */
+  public static void setFeaturestoreMetadataCache(
+    FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadataCache) {
+    FeaturestoreHelper.featurestoreMetadataCache = featurestoreMetadataCache;
+  }
+  
+  /**
+   * If featurestore is specififed return it, otherwise return default value
+   *
+   * @param featurestore featurestore
+   * @return featurestore or default value
+   */
+  public static String featurestoreGetOrDefault(String featurestore){
+    if (featurestore == null)
+      return FeaturestoreHelper.getProjectFeaturestore();
+    return featurestore;
+  }
+  
+  /**
+   * If sparkSession is specififed return it, otherwise return default value
+   * @param sparkSession sparkSession
+   * @return sparkSession or default value
+   */
+  public static SparkSession sparkGetOrDefault(SparkSession sparkSession){
+    if (sparkSession == null)
+      return Hops.findSpark();
+    return sparkSession;
+  }
+  
+  /**
+   * If primaryKey is specififed return it, otherwise return default value
+   * @param primaryKey primaryKey
+   * @param df dataframe
+   * @return primaryKey or default value
+   */
+  public static String primaryKeyGetOrDefault(String primaryKey, Dataset<Row> df){
+    if (primaryKey == null) {
+      return FeaturestoreHelper.getDefaultPrimaryKey(df);
+    }
+    return primaryKey;
+  }
+  
+  /**
+   * If corrMethod is specififed return it, otherwise return default value
+   * @param corrMethod corrMethod
+   * @return corrMethod or default value
+   */
+  public static String correlationMethodGetOrDefault(String corrMethod){
+    if (corrMethod == null) {
+      return Constants.CORRELATION_ANALYSIS_DEFAULT_METHOD;
+    }
+    return corrMethod;
+  }
+  
+  /**
+   * If numBins is specififed return it, otherwise return default value
+   * @param numBins numBins
+   * @return numBins or default value
+   */
+  public static Integer numBinsGetOrDefault(Integer numBins){
+    if (numBins == null) {
+      return  20;
+    }
+    return numBins;
+  }
+  
+  /**
+   * If numClusters is specififed return it, otherwise return default value
+   * @param numClusters numClusters
+   * @return numClusters or default value
+   */
+  public static Integer numClustersGetOrDefault(Integer numClusters){
+    if (numClusters == null) {
+      return 5;
+    }
+    return numClusters;
+  }
+  
+  /**
+   * If jobName is specififed return it, otherwise return default value
+   * @param jobName jobName
+   * @return jobName or default value
+   */
+  public static String jobNameGetOrDefault(String jobName){
+    if(Strings.isNullOrEmpty(jobName)){
+      return Hops.getJobName();
+    }
+    return jobName;
+  }
+  
+  /**
+   * If dataFormat is specififed return it, otherwise return default value
+   * @param dataFormat dataFormat
+   * @return dataFormat or default value
+   */
+  public static String dataFormatGetOrDefault(String dataFormat){
+    if (dataFormat == null) {
+      return Constants.TRAINING_DATASET_TFRECORDS_FORMAT;
+    }
+    return dataFormat;
+  }
 }
