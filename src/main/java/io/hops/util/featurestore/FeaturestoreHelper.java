@@ -18,8 +18,10 @@ package io.hops.util.featurestore;
 import com.google.common.base.Strings;
 import io.hops.util.Constants;
 import io.hops.util.Hops;
+import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.InferTFRecordSchemaError;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -303,7 +305,7 @@ public class FeaturestoreHelper {
    * @param hdfsPath     the hdfs path to the dataset
    * @return a spark dataframe with the dataset
    * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
-   * tfrecords, tsv, csv, and parquet
+   * tfrecords, tsv, csv, avro, orc, image and parquet
    * @throws IOException IOException IOException
    * @throws TrainingDatasetDoesNotExistError if the hdfsPath is not found
    */
@@ -364,6 +366,51 @@ public class FeaturestoreHelper {
                 + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
           }
         }
+      case Constants.TRAINING_DATASET_AVRO_FORMAT:
+        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        hdfs = filePath.getFileSystem(hdfsConf);
+        if (hdfs.exists(filePath)) {
+          return sparkSession.read().format(dataFormat).load(hdfsPath);
+        } else {
+          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+          hdfs = filePath.getFileSystem(hdfsConf);
+          if (hdfs.exists(filePath)) {
+            return sparkSession.read().format(dataFormat).load(hdfsPath + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+          } else {
+            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+          }
+        }
+      case Constants.TRAINING_DATASET_ORC_FORMAT:
+        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        hdfs = filePath.getFileSystem(hdfsConf);
+        if (hdfs.exists(filePath)) {
+          return sparkSession.read().format(dataFormat).load(hdfsPath);
+        } else {
+          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_ORC_SUFFIX);
+          hdfs = filePath.getFileSystem(hdfsConf);
+          if (hdfs.exists(filePath)) {
+            return sparkSession.read().format(dataFormat).load(hdfsPath + Constants.TRAINING_DATASET_ORC_SUFFIX);
+          } else {
+            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_ORC_SUFFIX);
+          }
+        }
+      case Constants.TRAINING_DATASET_IMAGE_FORMAT:
+        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        hdfs = filePath.getFileSystem(hdfsConf);
+        if (hdfs.exists(filePath)) {
+          return sparkSession.read().format(dataFormat).load(hdfsPath);
+        } else {
+          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+          hdfs = filePath.getFileSystem(hdfsConf);
+          if (hdfs.exists(filePath)) {
+            return sparkSession.read().format(dataFormat).load(hdfsPath + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+          } else {
+            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+          }
+        }
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
         filePath = new org.apache.hadoop.fs.Path(hdfsPath);
         hdfs = filePath.getFileSystem(hdfsConf);
@@ -388,7 +435,11 @@ public class FeaturestoreHelper {
             Constants.TRAINING_DATASET_CSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TFRECORDS_FORMAT + "," +
-            Constants.TRAINING_DATASET_PARQUET_FORMAT + ",");
+            Constants.TRAINING_DATASET_PARQUET_FORMAT + "," +
+            Constants.TRAINING_DATASET_AVRO_FORMAT + "," +
+            Constants.TRAINING_DATASET_ORC_FORMAT + "," +
+            Constants.TRAINING_DATASET_IMAGE_FORMAT + ","
+        );
     }
   }
 
@@ -694,27 +745,6 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Converts the name of a spark datatype to the corresponding hive datatype
-   *
-   * @param sparkDtype the spark datatype name to convert
-   * @return the hive datatype name
-   */
-  private static String convertSparkDTypeToHiveDtype(String sparkDtype) {
-    if (Constants.HIVE_DATA_TYPES.contains(sparkDtype.toUpperCase())) {
-      return sparkDtype.toUpperCase();
-    }
-    if (sparkDtype.equalsIgnoreCase("long"))
-      return "BIGINT";
-    if (sparkDtype.equalsIgnoreCase("short"))
-      return "INT";
-    if (sparkDtype.equalsIgnoreCase("byte"))
-      return "CHAR";
-    if (sparkDtype.equalsIgnoreCase("integer"))
-      return "INT";
-    return null;
-  }
-
-  /**
    * Converts a spark schema field into a FeatureDTO
    *
    * @param field      the field to convert
@@ -723,7 +753,7 @@ public class FeaturestoreHelper {
    */
   private static FeatureDTO convertFieldToFeature(StructField field, String primaryKey) {
     String featureName = field.name();
-    String featureType = convertSparkDTypeToHiveDtype(field.dataType().typeName());
+    String featureType = field.dataType().catalogString();
     String featureDesc = "";
     Boolean primary = false;
     if (primaryKey != null && featureName.equalsIgnoreCase(primaryKey)) {
@@ -1267,13 +1297,14 @@ public class FeaturestoreHelper {
    * @return the computed statistics in a DTO
    * @throws DataframeIsEmpty DataframeIsEmpty
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static StatisticsDTO computeDataFrameStats(
       String name, SparkSession sparkSession, Dataset<Row> sparkDf, String featurestore,
       int version, Boolean descriptiveStatistics, Boolean featureCorrelation,
       Boolean featureHistograms, Boolean clusterAnalysis,
       List<String> statColumns, int numBins, int numClusters,
-      String correlationMethod) throws DataframeIsEmpty, SparkDataTypeNotRecognizedError {
+      String correlationMethod) throws DataframeIsEmpty, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     if (sparkDf == null) {
       sparkDf = getFeaturegroup(sparkSession, name, featurestore, version);
     }
@@ -1302,8 +1333,7 @@ public class FeaturestoreHelper {
         sparkSession.sparkContext().setJobGroup("", "", true);
       } catch (Exception e) {
         LOG.log(Level.WARNING, "Could not compute descriptive statistics for:" + name +
-            "set the optional argument descriptive_statistics=False to skip this step");
-        throw e;
+            "set the optional argument descriptive_statistics=False to skip this step. Error: " + e.getMessage());
       }
     }
 
@@ -1317,8 +1347,7 @@ public class FeaturestoreHelper {
         sparkSession.sparkContext().setJobGroup("", "", true);
       } catch (Exception e) {
         LOG.log(Level.WARNING, "Could not compute feature correlation for:" + name +
-            "set the optional argument feature_correlation=False to skip this step");
-        throw e;
+            "set the optional argument feature_correlation=False to skip this step. Error: " + e.getMessage());
       }
     }
 
@@ -1332,8 +1361,7 @@ public class FeaturestoreHelper {
         sparkSession.sparkContext().setJobGroup("", "", true);
       } catch (Exception e) {
         LOG.log(Level.WARNING, "Could not compute feature histograms for:" + name +
-            "set the optional argument feature_histograms=False to skip this step");
-        throw e;
+            "set the optional argument feature_histograms=False to skip this step. Error: " + e.getMessage());
       }
     }
 
@@ -1347,8 +1375,7 @@ public class FeaturestoreHelper {
         sparkSession.sparkContext().setJobGroup("", "", true);
       } catch (Exception e) {
         LOG.log(Level.WARNING, "Could not compute cluster analysis for:" + name +
-            "set the optional argument cluster_analysis=False to skip this step");
-        throw e;
+            "set the optional argument cluster_analysis=False to skip this step. Error: " + e.getMessage());
       }
     }
     return new StatisticsDTO(
@@ -1365,11 +1392,12 @@ public class FeaturestoreHelper {
    * @param dataFormat   the format to serialize to
    * @param writeMode    the spark write mode (append/overwrite)
    * @throws TrainingDatasetFormatNotSupportedError if the provided dataframe format is not supported, supported formats
-   * are tfrecords, csv, tsv, and parquet
+   * are tfrecords, csv, tsv, avro, orc, image and parquet
+   * @throws CannotWriteImageDataFrameException if the user tries to save a dataframe in image format
    */
   public static void writeTrainingDatasetHdfs(SparkSession sparkSession, Dataset<Row> sparkDf,
                                               String hdfsPath, String dataFormat, String writeMode) throws
-      TrainingDatasetFormatNotSupportedError {
+      TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
     sparkSession.sparkContext().setJobGroup("Materializing dataframe as training dataset",
         "Saving training dataset in path: " + hdfsPath + ", in format: " + dataFormat, true);
     switch (dataFormat) {
@@ -1388,6 +1416,16 @@ public class FeaturestoreHelper {
         sparkDf.write().format(dataFormat).mode(writeMode).parquet(hdfsPath);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
+      case Constants.TRAINING_DATASET_AVRO_FORMAT:
+        sparkDf.write().format(dataFormat).mode(writeMode).save(hdfsPath);
+        sparkSession.sparkContext().setJobGroup("", "", true);
+        break;
+      case Constants.TRAINING_DATASET_ORC_FORMAT:
+        sparkDf.write().format(dataFormat).mode(writeMode).save(hdfsPath);
+        sparkSession.sparkContext().setJobGroup("", "", true);
+        break;
+      case Constants.TRAINING_DATASET_IMAGE_FORMAT:
+        throw new CannotWriteImageDataFrameException("Image Dataframes can only be read, not written");
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
         sparkDf.write().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
             Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).mode(writeMode).save(hdfsPath);
@@ -1395,12 +1433,16 @@ public class FeaturestoreHelper {
         break;
       default:
         sparkSession.sparkContext().setJobGroup("", "", true);
-        throw new TrainingDatasetFormatNotSupportedError("The provided dataformat: " + dataFormat +
-            " is not supported, the supported modes are: " +
+        throw new TrainingDatasetFormatNotSupportedError("The provided data format: " + dataFormat +
+            " is not supported in the Java/Scala API, the supported data formats are: " +
             Constants.TRAINING_DATASET_CSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TFRECORDS_FORMAT + "," +
-            Constants.TRAINING_DATASET_PARQUET_FORMAT + ",");
+            Constants.TRAINING_DATASET_PARQUET_FORMAT + "," +
+            Constants.TRAINING_DATASET_AVRO_FORMAT + "," +
+            Constants.TRAINING_DATASET_ORC_FORMAT + "," +
+            Constants.TRAINING_DATASET_IMAGE_FORMAT + ","
+        );
     }
   }
 

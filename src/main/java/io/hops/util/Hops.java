@@ -17,6 +17,7 @@ package io.hops.util;
 import com.google.common.io.ByteStreams;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
+import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.CredentialsNotFoundException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
@@ -1225,14 +1226,15 @@ public class Hops {
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws DataframeIsEmpty DataframeIsEmpty
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static void insertIntoFeaturegroup(
       SparkSession sparkSession, Dataset<Row> sparkDf, String featuregroup,
       String featurestore, int featuregroupVersion, String mode, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
-      throws CredentialsNotFoundException, FeaturegroupDeletionError, JAXBException, FeaturegroupUpdateStatsError,
-      DataframeIsEmpty, SparkDataTypeNotRecognizedError {
+    throws CredentialsNotFoundException, FeaturegroupDeletionError, JAXBException, FeaturegroupUpdateStatsError,
+    DataframeIsEmpty, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     corrMethod = FeaturestoreHelper.correlationMethodGetOrDefault(corrMethod);
@@ -1257,7 +1259,7 @@ public class Hops {
         corrMethod);
     updateFeaturegroupStatsRest(featuregroup, featurestore, featuregroupVersion, statisticsDTO);
   }
-  
+
   /**
    * Inserts a spark dataframe into an existing training dataset (append/overwrite)
    *
@@ -1284,6 +1286,7 @@ public class Hops {
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
   public static void insertIntoTrainingDataset(
     SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
@@ -1293,7 +1296,7 @@ public class Hops {
     String corrMethod, Integer numClusters, String writeMode)
     throws CredentialsNotFoundException, JAXBException, FeaturestoreNotFound,
     TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
-    TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError {
+    TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, CannotWriteImageDataFrameException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       doInsertIntoTrainingDataset(sparkSession, sparkDf, trainingDataset, featurestore,
@@ -1308,7 +1311,7 @@ public class Hops {
         writeMode);
     }
   }
-  
+
   /**
    * Inserts a spark dataframe into an existing training dataset (append/overwrite)
    *
@@ -1336,6 +1339,8 @@ public class Hops {
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   private static void doInsertIntoTrainingDataset(
       SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
@@ -1343,9 +1348,10 @@ public class Hops {
       Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters, String writeMode)
-      throws CredentialsNotFoundException, JAXBException,
-      TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
-      TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError {
+    throws CredentialsNotFoundException, JAXBException,
+    TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
+    TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, CannotWriteImageDataFrameException,
+    FeaturestoreNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     corrMethod = FeaturestoreHelper.correlationMethodGetOrDefault(corrMethod);
@@ -1403,7 +1409,7 @@ public class Hops {
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     return FeaturestoreHelper.getFeaturegroup(sparkSession, featuregroup, featurestore, featuregroupVersion);
   }
-  
+
   /**
    * Gets a training dataset from a featurestore
    *
@@ -1434,7 +1440,7 @@ public class Hops {
         trainingDatasetVersion);
     }
   }
-  
+
   /**
    * Gets a training dataset from a featurestore
    *
@@ -1461,10 +1467,14 @@ public class Hops {
         trainingDataset, trainingDatasetVersion);
     String hdfsPath = Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath() +
         Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
+    String dataFormat = trainingDatasetDTO.getDataFormat();
+    if(dataFormat.equalsIgnoreCase(Constants.TRAINING_DATASET_IMAGE_FORMAT)){
+      hdfsPath = Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath();
+    }
     return FeaturestoreHelper.getTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
         hdfsPath);
   }
-  
+
   /**
    * Gets a feature from a featurestore and infers the featuregroup where the feature is located
    *
@@ -1487,7 +1497,7 @@ public class Hops {
       return doGetFeature(sparkSession, feature, getFeaturestoreMetadata(featurestore), featurestore);
     }
   }
-  
+
   /**
    * Gets a feature from a featurestore and infers the featuregroup where the feature is located
    *
@@ -1540,13 +1550,14 @@ public class Hops {
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static void updateFeaturegroupStats(
       SparkSession sparkSession, String featuregroup, String featurestore,
       int featuregroupVersion, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters) throws DataframeIsEmpty, CredentialsNotFoundException, JAXBException,
-      FeaturegroupUpdateStatsError, SparkDataTypeNotRecognizedError {
+    FeaturegroupUpdateStatsError, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     corrMethod = FeaturestoreHelper.correlationMethodGetOrDefault(corrMethod);
@@ -1621,7 +1632,7 @@ public class Hops {
                                          Map<String, Integer> featuregroupsAndVersions, String joinKey) {
     return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsAndVersions, joinKey);
   }
-  
+
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method is used if the user
    * has itself provided a set of featuregroups where the features are located and should be queried from
@@ -1650,7 +1661,7 @@ public class Hops {
         featuregroupsAndVersions);
     }
   }
-  
+
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method is used if the user
    * has itself provided a set of featuregroups where the features are located and should be queried from
@@ -1676,7 +1687,7 @@ public class Hops {
     String joinKey = FeaturestoreHelper.getJoinColumn(filteredFeaturegroupsMetadata);
     return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsAndVersions, joinKey);
   }
-  
+
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
    * in which featuregroups the features belong but uses a user-supplied join key
@@ -1701,7 +1712,7 @@ public class Hops {
       return doGetFeatures(sparkSession, features, featurestore, getFeaturestoreMetadata(featurestore), joinKey);
     }
   }
-  
+
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
    * in which featuregroups the features belong but uses a user-supplied join key
@@ -1722,7 +1733,7 @@ public class Hops {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMetadata, joinKey);
   }
-  
+
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
    * in which featuregroups the features belong and which join_key to use using metadata from the metastore
@@ -1745,7 +1756,7 @@ public class Hops {
       return doGetFeatures(sparkSession, features, featurestore, getFeaturestoreMetadata(featurestore));
     }
   }
-  
+
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
    * in which featuregroups the features belong and which join_key to use using metadata from the metastore
@@ -1843,7 +1854,7 @@ public class Hops {
         getTrainingDatasets().stream()
         .map(td -> FeaturestoreHelper.getTableName(td.getName(), td.getVersion())).collect(Collectors.toList());
   }
-  
+
   /**
    * Gets the HDFS path to a training dataset with a specific name and version in a featurestore
    *
@@ -1869,7 +1880,7 @@ public class Hops {
         getFeaturestoreMetadata(featurestore));
     }
   }
-  
+
   /**
    * Gets the HDFS path to a training dataset with a specific name and version in a featurestore
    *
@@ -1886,8 +1897,13 @@ public class Hops {
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
         trainingDataset, trainingDatasetVersion);
-    return Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath() +
+    String hdfsPath = Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath() +
         Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
+    String dataFormat = trainingDatasetDTO.getDataFormat();
+    if(dataFormat.equalsIgnoreCase(Constants.TRAINING_DATASET_IMAGE_FORMAT)){
+      hdfsPath = Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath();
+    }
+    return hdfsPath;
   }
 
   /**
@@ -1907,7 +1923,7 @@ public class Hops {
     }
     return FeaturestoreHelper.getFeaturestoreMetadataCache();
   }
-  
+
   /**
    * Updates the featurestore metadata cache
    *
@@ -2113,6 +2129,7 @@ public class Hops {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
   public static void createTrainingDataset(
       SparkSession sparkSession, Dataset<Row> trainingDatasetDf, String trainingDataset, String featurestore,
@@ -2121,7 +2138,8 @@ public class Hops {
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
     throws CredentialsNotFoundException, DataframeIsEmpty, JAXBException, TrainingDatasetCreationError,
-    TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
+    TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, CannotWriteImageDataFrameException,
+    FeaturestoreNotFound {
     FeaturestoreHelper.validateMetadata(trainingDataset, trainingDatasetDf.dtypes(), dependencies, description);
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
@@ -2158,7 +2176,7 @@ public class Hops {
     //Update metadata cache since we created a new feature group
     updateFeaturestoreMetadataCache(featurestore);
   }
-  
+
   /**
    * Gets the latest version of a feature group in the feature store, returns 0 if no version exists
    *
@@ -2180,7 +2198,7 @@ public class Hops {
       return doGetLatestFeaturegroupVersion(featuregroupName, getFeaturestoreMetadata(featurestore));
     }
   }
-  
+
   /**
    * Gets the latest version of a feature group in the feature store, returns 0 if no version exists
    *
@@ -2196,7 +2214,7 @@ public class Hops {
     List<FeaturegroupDTO> featuregroupDTOList = featurestoreMetadata.getFeaturegroups();
     return FeaturestoreHelper.getLatestFeaturegroupVersion(featuregroupDTOList, featuregroupName);
   }
-  
+
   /**
    * Gets the latest version of a training dataset in the feature store, returns 0 if no version exists
    *
@@ -2218,7 +2236,7 @@ public class Hops {
       return doGetLatestTrainingDatasetVersion(trainingDatasetName, getFeaturestoreMetadata(featurestore));
     }
   }
-  
+
   /**
    * Gets the latest version of a training dataset in the feature store, returns 0 if no version exists
    *

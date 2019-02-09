@@ -166,10 +166,16 @@ public class Constants {
   public static final String TRAINING_DATASET_CSV_FORMAT = "csv";
   public static final String TRAINING_DATASET_TSV_FORMAT = "tsv";
   public static final String TRAINING_DATASET_PARQUET_FORMAT = "parquet";
+  public static final String TRAINING_DATASET_AVRO_FORMAT = "avro";
+  public static final String TRAINING_DATASET_IMAGE_FORMAT = "image";
+  public static final String TRAINING_DATASET_ORC_FORMAT = "orc";
   public static final String TRAINING_DATASET_TFRECORDS_FORMAT = "tfrecords";
   public static final String TRAINING_DATASET_CSV_SUFFIX = ".csv";
   public static final String TRAINING_DATASET_TSV_SUFFIX = ".tsv";
   public static final String TRAINING_DATASET_PARQUET_SUFFIX = ".parquet";
+  public static final String TRAINING_DATASET_AVRO_SUFFIX = ".avro";
+  public static final String TRAINING_DATASET_ORC_SUFFIX = ".orc";
+  public static final String TRAINING_DATASET_IMAGE_SUFFIX = ".image";
   public static final String TRAINING_DATASET_TFRECORDS_SUFFIX = ".tfrecords";
   public static final String CLUSTERING_ANALYSIS_INPUT_COLUMN = "featurestore_feature_clustering_analysis_input_col";
   public static final String CLUSTERING_ANALYSIS_OUTPUT_COLUMN = "featurestore_feature_clustering_analysis_output_col";
