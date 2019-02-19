@@ -1928,6 +1928,9 @@ public class Hops {
    * Updates the featurestore metadata cache
    *
    * @param featurestore the featurestore to update the metadata for
+   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
    */
   public static void updateFeaturestoreMetadataCache(String featurestore)
     throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {

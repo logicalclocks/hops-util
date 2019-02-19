@@ -1528,8 +1528,9 @@ public class FeaturestoreHelper {
   /**
    * Gets the TFRecords schema in JSON format for a spark dataframe
    *
-   * @param sparkDf
+   * @param sparkDf dataframe to infer tfrecord schema for
    * @return the TFRecords schema as a JSONObject
+   * @throws InferTFRecordSchemaError InferTFRecordSchemaError
    */
   public static JSONObject getDataframeTfRecordSchemaJson(Dataset<Row> sparkDf) throws InferTFRecordSchemaError {
     JSONObject tfRecordJsonSchema = new JSONObject();
