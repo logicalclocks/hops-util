@@ -30,6 +30,7 @@ import java.util.logging.Logger;
  * Detailed documentation on building workflows is available in the online Hops documentation.
  *
  */
+@Deprecated
 public class WorkflowManager {
 
   private static final Logger LOG = Logger.getLogger(WorkflowManager.class.getName());
