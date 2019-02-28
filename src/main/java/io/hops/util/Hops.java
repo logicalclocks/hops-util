@@ -136,8 +136,11 @@ public class Hops {
       }
       try {
         updateFeaturestoreMetadataCache(FeaturestoreHelper.getProjectFeaturestore());
-      } catch (JWTNotFoundException | FeaturestoreNotFound | JAXBException e) {
+      } catch (JWTNotFoundException | JAXBException e) {
         LOG.log(Level.SEVERE,
+          "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
+      } catch (FeaturestoreNotFound e) {
+        LOG.log(Level.WARNING,
           "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
       }
     }
@@ -174,7 +177,7 @@ public class Hops {
    */
   public static String getSchema(String topic) throws
     JWTNotFoundException, SchemaNotFoundException {
-    LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topic});
+    LOG.log(Level.FINE, "Getting schema for topic:{0}", new String[]{topic});
 
     JSONObject json = new JSONObject();
     json.append("topicName", topic);
@@ -189,6 +192,7 @@ public class Hops {
     }
     final String responseEntity = response.readEntity(String.class);
     //Extract fields from json
+    LOG.log(Level.INFO, "******* responseEntity:" + responseEntity);
     json = new JSONObject(responseEntity);
     return json.getString("contents");
   }
@@ -223,6 +227,7 @@ public class Hops {
     LOG.info("webTarget.getUri().getPath():" + webTarget.getUri().getPath());
     //Read jwt and set it in header
     String jwt = getJwt();
+    LOG.info("jwt:" + jwt);
     Invocation.Builder invocationBuilder =
       webTarget.request().header("Bearer " , jwt).accept(MediaType.APPLICATION_JSON);
   
