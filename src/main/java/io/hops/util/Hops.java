@@ -52,6 +52,7 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBException;
@@ -229,21 +230,19 @@ public class Hops {
     String jwt = getJwt();
     LOG.info("jwt:" + jwt);
     Invocation.Builder invocationBuilder =
-      webTarget.request().header("Bearer " , jwt).accept(MediaType.APPLICATION_JSON);
+      webTarget.request().header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt).accept(MediaType.APPLICATION_JSON);
   
     switch (httpMethod) {
       case HttpMethod.PUT:
-        if (json != null) {
-          return invocationBuilder.put(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-        } else {
+        if (json == null) {
           throw new IllegalArgumentException("Json(entity) is null");
         }
+        return invocationBuilder.put(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       case HttpMethod.POST:
-        if (json != null) {
-          return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-        } else {
+        if (json == null) {
           throw new IllegalArgumentException("Json(entity) is null");
         }
+        return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       case HttpMethod.GET:
         return invocationBuilder.get();
       default:
@@ -458,7 +457,7 @@ public class Hops {
     Response response = null;
     try {
       response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_FEATURESTORE_RESOURCE,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORE_RESOURCE,
         HttpMethod.POST);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
