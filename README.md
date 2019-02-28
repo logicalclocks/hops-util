@@ -13,7 +13,7 @@ changes to the library itself, they can build it and provide it as an additional
 To build HopsUtil you need to have maven installed. Then simply do,
 
 ```
-mvn clean package
+mvn clean package javadoc:javadoc
 ```
 which generates under the `target` directory two archives, a thin jar that is deployed on Hops maven repository and a
 fat jar containing all the required dependencies to be used from within Hopsworks .
