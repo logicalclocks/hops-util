@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class Constants {
   
-  public static final String HOPSWORKS_REST_FEATURESTORE_RESOURCE = "featurestores/featurestore";
+  public static final String HOPSWORKS_REST_FEATURESTORE_RESOURCE = "featurestore";
   public static final String HOPSWORKS_REST_FEATURESTORES_RESOURCE = "featurestores";
   public static final String HOPSWORKS_REST_CLEAR_FEATUREGROUP_RESOURCE = "featurestore/featuregroup/clear";
   public static final String HOPSWORKS_REST_CREATE_FEATUREGROUP_RESOURCE = "featurestore/featuregroups";

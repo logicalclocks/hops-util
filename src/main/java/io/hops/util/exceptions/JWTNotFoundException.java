@@ -19,6 +19,10 @@ package io.hops.util.exceptions;
  */
 public class JWTNotFoundException extends Exception {
   
+  public JWTNotFoundException(String message) {
+    super(message);
+  }
+  
   public JWTNotFoundException(String message, Throwable cause) {
     super(message, cause);
   }

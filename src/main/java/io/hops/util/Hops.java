@@ -59,8 +59,12 @@ import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -70,6 +74,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -137,11 +142,11 @@ public class Hops {
       }
       try {
         updateFeaturestoreMetadataCache(FeaturestoreHelper.getProjectFeaturestore());
-      } catch (JWTNotFoundException | JAXBException e) {
+      } catch (JAXBException e) {
         LOG.log(Level.SEVERE,
           "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
       } catch (FeaturestoreNotFound e) {
-        LOG.log(Level.WARNING,
+        LOG.log(Level.INFO,
           "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
       }
     }
@@ -193,7 +198,7 @@ public class Hops {
     }
     final String responseEntity = response.readEntity(String.class);
     //Extract fields from json
-    LOG.log(Level.INFO, "******* responseEntity:" + responseEntity);
+    LOG.log(Level.FINE, "responseEntity:" + responseEntity);
     json = new JSONObject(responseEntity);
     return json.getString("contents");
   }
@@ -223,14 +228,13 @@ public class Hops {
       throw new HTTPSClientInitializationException("Could not retrieve credentials from local working directory", e);
     }
     WebTarget webTarget = client.target(Hops.getRestEndpoint() + "/").path(Constants.HOPSWORKS_REST_RESOURCE + path);
-    LOG.info("webTarget.getUri().getHost():" + webTarget.getUri().getHost());
-    LOG.info("webTarget.getUri().getPort():" + webTarget.getUri().getPort());
-    LOG.info("webTarget.getUri().getPath():" + webTarget.getUri().getPath());
+    LOG.log(Level.FINE, "webTarget.getUri().getHost():" + webTarget.getUri().getHost());
+    LOG.log(Level.FINE, "webTarget.getUri().getPort():" + webTarget.getUri().getPort());
+    LOG.log(Level.FINE, "webTarget.getUri().getPath():" + webTarget.getUri().getPath());
     //Read jwt and set it in header
-    String jwt = getJwt();
-    LOG.info("jwt:" + jwt);
     Invocation.Builder invocationBuilder =
-      webTarget.request().header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt).accept(MediaType.APPLICATION_JSON);
+      webTarget.request().header(HttpHeaders.AUTHORIZATION,
+        "Bearer " + getJwt().orElseThrow(IllegalArgumentException::new)).accept(MediaType.APPLICATION_JSON);
   
     switch (httpMethod) {
       case HttpMethod.PUT:
@@ -271,12 +275,40 @@ public class Hops {
     return null;
   }
   
-  private static synchronized String getJwt() throws JWTNotFoundException {
-    try {
-      return new String(Files.readAllBytes(Paths.get(Constants.JWT_FILENAME)));
+  private static synchronized Optional<String> getJwt() throws JWTNotFoundException {
+    String jwt = null;
+    try (FileChannel fc = FileChannel.open(Paths.get(Constants.JWT_FILENAME), StandardOpenOption.READ)) {
+      FileLock fileLock = fc.tryLock(0, Long.MAX_VALUE, true);
+      try {
+        short numRetries = 5;
+        short retries = 0;
+        while (fileLock == null && retries < numRetries) {
+          LOG.log(Level.FINEST, "Waiting for lock on jwt file at:" + Constants.JWT_FILENAME);
+          Thread.sleep(1000);
+          fileLock = fc.tryLock(0, Long.MAX_VALUE, true);
+          retries++;
+        }
+        //If could not acquire lock in reasonable time, throw exception
+        if (fileLock == null) {
+          throw new JWTNotFoundException("Could not read jwt token from local container, possibly another process has" +
+            " acquired the lock");
+        }
+        ByteBuffer buf = ByteBuffer.allocateDirect(512);
+        fc.read(buf);
+        buf.flip();
+        jwt = StandardCharsets.UTF_8.decode(buf).toString();
+      } catch (InterruptedException e) {
+        LOG.log(Level.WARNING, "JWT waiting thread was interrupted.", e);
+      } finally {
+        if (fileLock != null) {
+          fileLock.release();
+        }
+      }
     } catch (IOException e) {
-      throw new JWTNotFoundException("Could not retrieve jwt from current working directory", e);
+      LOG.log(Level.SEVERE,"Could not read jwt token from local container.", e);
+      throw new JWTNotFoundException("Could not read jwt token from local container." + e.getMessage(), e);
     }
+    return Optional.ofNullable(jwt);
   }
 
   /////////////////////////////////////////////
@@ -439,26 +471,25 @@ public class Hops {
   }
 
   /**
-   * Makes a REST call to Hopsworks Appservice to get metadata about a featurestore, this metadata is then used by
+   * Makes a REST call to Hopsworks to get metadata about a featurestore, this metadata is then used by
    * hops-util to infer how to JOIN featuregroups together etc.
    *
    * @param featurestore the featurestore to query metadata about
    * @return a list of featuregroups metadata
-   * @throws JWTNotFoundException JWTNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws FeaturestoreNotFound FeaturestoresNotFound
    * @throws JAXBException JAXBException
    */
   private static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataRest(String featurestore)
-      throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+      throws FeaturestoreNotFound, JAXBException {
     LOG.log(Level.FINE, "Getting featuregroups for featurestore " + featurestore);
 
-    JSONObject json = new JSONObject();
-    json.append(Constants.JSON_FEATURESTORE_NAME, featurestore);
-    Response response = null;
+    Response response;
     try {
-      response = clientWrapper(json,
-        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORE_RESOURCE,
-        HttpMethod.POST);
+      response =
+        clientWrapper(
+          "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+            Constants.HOPSWORKS_REST_FEATURESTORE_RESOURCE + "/" + featurestore,
+          HttpMethod.GET);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
     }
@@ -480,7 +511,7 @@ public class Hops {
    * @param featuregroup        the featuregroup to drop the contents of
    * @param featuregroupVersion the version of the featurergroup
    * @throws JWTNotFoundException JWTNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws FeaturegroupDeletionError FeaturegroupDeletionError
    */
   private static void deleteTableContents(
       String featurestore, String featuregroup, int featuregroupVersion)
@@ -494,7 +525,8 @@ public class Hops {
     json.append(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     try {
       Response response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_CLEAR_FEATUREGROUP_RESOURCE,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_CLEAR_FEATUREGROUP_RESOURCE,
         HttpMethod.POST);
       LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
       if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
@@ -549,7 +581,8 @@ public class Hops {
     Response response;
     try {
       response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_CREATE_FEATUREGROUP_RESOURCE,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_CREATE_FEATUREGROUP_RESOURCE,
         HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupCreationError(e.getMessage());
@@ -607,7 +640,8 @@ public class Hops {
     Response response;
     try {
       response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_CREATE_TRAINING_DATASET_RESOURCE,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_CREATE_TRAINING_DATASET_RESOURCE,
         HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new TrainingDatasetCreationError(e.getMessage());
@@ -655,12 +689,11 @@ public class Hops {
       throws JWTNotFoundException, FeaturestoresNotFound {
     LOG.log(Level.FINE, "Getting featurestores for current project");
 
-    JSONObject json = new JSONObject();
-    Response response = null;
+    Response response;
     try {
-      response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE,
-        HttpMethod.POST);
+      response =
+        clientWrapper("/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE,
+        HttpMethod.GET);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturestoresNotFound(e.getMessage());
     }
@@ -1217,13 +1250,12 @@ public class Hops {
    * @param features     the list of features to get
    * @param featurestore the featurestore to query
    * @return a spark dataframe with the features
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore) throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+    String featurestore) throws FeaturestoreNotFound, JAXBException {
     try {
       return doGetFeatures(sparkSession, features, featurestore, getFeaturestoreMetadata(featurestore));
     } catch (Exception e){
@@ -1280,12 +1312,10 @@ public class Hops {
    *
    * @param featurestore the featurestore to get the featuregroups for
    * @return a list of names of the feature groups
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static List<String> getFeaturegroups(String featurestore) throws
-    JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+  public static List<String> getFeaturegroups(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     return getFeaturestoreMetadata(featurestore).
         getFeaturegroups().stream()
@@ -1297,12 +1327,10 @@ public class Hops {
    *
    * @param featurestore the featurestore to get the features for
    * @return a list of names of the features in the feature store
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static List<String> getFeaturesList(String featurestore) throws
-    JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+  public static List<String> getFeaturesList(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     List<List<String>> featureNamesLists = getFeaturestoreMetadata(featurestore).
         getFeaturegroups().stream()
@@ -1318,12 +1346,10 @@ public class Hops {
    *
    * @param featurestore the featurestore to get the training datasets for
    * @return a list of names of the trainin datasets
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static List<String> getTrainingDatasets(String featurestore) throws JWTNotFoundException,
-      FeaturestoreNotFound, JAXBException {
+  public static List<String> getTrainingDatasets(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     return getFeaturestoreMetadata(featurestore).
         getTrainingDatasets().stream()
@@ -1338,13 +1364,12 @@ public class Hops {
    * @param trainingDatasetVersion version of the training dataset
    * @return the hdfs path to the training dataset
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static String getTrainingDatasetPath(String trainingDataset, String featurestore,
     int trainingDatasetVersion) throws
-    TrainingDatasetDoesNotExistError, JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+    TrainingDatasetDoesNotExistError, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetTrainingDatasetPath(trainingDataset, trainingDatasetVersion,
@@ -1386,12 +1411,11 @@ public class Hops {
    *
    * @param featurestore the featurestore to query metadata from
    * @return a list of metadata about all the featuregroups in the featurestore
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadata(String featurestore)
-      throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+    throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     if(FeaturestoreHelper.getFeaturestoreMetadataCache() == null){
       updateFeaturestoreMetadataCache(featurestore);
@@ -1403,12 +1427,10 @@ public class Hops {
    * Updates the featurestore metadata cache
    *
    * @param featurestore the featurestore to update the metadata for
-   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static void updateFeaturestoreMetadataCache(String featurestore)
-    throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
+  public static void updateFeaturestoreMetadataCache(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     FeaturestoreHelper.setFeaturestoreMetadataCache(getFeaturestoreMetadataRest(featurestore));
   }
@@ -1447,7 +1469,8 @@ public class Hops {
     Response response;
     try {
       response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_UPDATE_FEATUREGROUP_RESOURCE,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_UPDATE_FEATUREGROUP_RESOURCE,
         HttpMethod.PUT);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupUpdateStatsError(e.getMessage());
@@ -1495,7 +1518,8 @@ public class Hops {
     Response response = null;
     try {
       response = clientWrapper(json,
-        "/project/" + projectId + "/featurestores/" + Constants.HOPSWORKS_REST_UPDATE_TRAINING_DATASET_RESOURCE,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_UPDATE_TRAINING_DATASET_RESOURCE,
         HttpMethod.PUT);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupUpdateStatsError(e.getMessage());
