@@ -96,45 +96,25 @@ import scala.collection.JavaConversions._
 import collection.JavaConverters._
 
 val features = List("team_budget", "average_attendance", "average_player_age")
-Hops.getFeatures(spark, features, Hops.getProjectFeaturestore).show(5)
+val featuresDf = Hops.getFeatures(features).read()
 ```
 
 #### SQL Query to the Feature Store
 
 ``` scala
 import io.hops.util.Hops
-Hops.queryFeaturestorequeryFea (spark,
+Hops.queryFeaturestore(
     "SELECT team_budget, score " +
     "FROM teams_features_1 JOIN games_features_1 ON " +
-    "games_features_1.home_team_id = teams_features_1.team_id", Hops.getProjectFeaturestore).show()
+    "games_features_1.home_team_id = teams_features_1.team_id").read().show(5)
 ```
 
 #### Write to the Feature Store
 
 ``` scala
 import io.hops.util.Hops
-import scala.collection.JavaConversions._
-import collection.JavaConverters._
 
-val jobId = null
-val dependencies = List[String]().asJava
-val primaryKey = null
-val descriptiveStats = false
-val featureCorr = false
-val featureHistograms = false
-val clusterAnalysis = false
-val statColumns = List[String]().asJava
-val numBins = null
-val corrMethod = null
-val numClusters = null
-val description = "a spanish version of teams_features"
-
-Hops.createFeaturegroup(
-    spark, teamsFeaturesDf2, "teams_features_spanish", Hops.getProjectFeaturestore,
-    1, description, jobId,
-    dependencies, primaryKey, descriptiveStats, featureCorr,
-      featureHistograms, clusterAnalysis, statColumns, numBins,
-      corrMethod, numClusters)
+Hops.createFeaturegroup("teams_features_spanish").setDataframe(teamsFeaturesDf2).write()      
 ```
 
 A complete example of the Scala/Java API for the Feature Store is available [here](https://github.com/Limmen/hops-examples/blob/HOPSWORKS-721/notebooks/featurestore/FeaturestoreTourScala.ipynb).
