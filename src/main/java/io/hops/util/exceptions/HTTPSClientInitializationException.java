@@ -15,7 +15,7 @@ package io.hops.util.exceptions;
 
 public class HTTPSClientInitializationException extends Exception {
   
-  public HTTPSClientInitializationException(String message) {
-    super(message);
+  public HTTPSClientInitializationException(String message, Throwable e) {
+    super(message, e);
   }
 }

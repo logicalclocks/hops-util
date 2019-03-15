@@ -14,9 +14,7 @@
 
 package io.hops.util;
 
-import com.google.common.io.ByteStreams;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
-import io.hops.util.exceptions.CredentialsNotFoundException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
@@ -25,6 +23,7 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
+import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SchemaNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
@@ -37,7 +36,6 @@ import io.hops.util.featurestore.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.stats.StatisticsDTO;
 import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
 import org.apache.avro.Schema;
-import org.apache.commons.net.util.Base64;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.spark.sql.Dataset;
@@ -54,12 +52,19 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -69,6 +74,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,8 +119,8 @@ public class Hops {
   private static synchronized void setup() {
     Properties sysProps = System.getProperties();
     //If the sysProps are properly set, it is a Spark job. Flink jobs must call the setup method.
-    if (sysProps.containsKey(Constants.JOBTYPE_ENV_VAR) &&
-      !sysProps.getProperty(Constants.JOBTYPE_ENV_VAR).equalsIgnoreCase("flink")) {
+    if (sysProps.containsKey(Constants.JOBTYPE_ENV_VAR) && sysProps.getProperty(Constants.JOBTYPE_ENV_VAR).
+      equalsIgnoreCase("spark")) {
       restEndpoint = sysProps.getProperty(Constants.HOPSWORKS_RESTENDPOINT);
       projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
       keyStore = Constants.K_CERTIFICATE_ENV_VAR;
@@ -130,30 +136,20 @@ public class Hops {
       jobType = sysProps.getProperty(Constants.JOBTYPE_ENV_VAR);
     
       elasticEndPoint = sysProps.getProperty(Constants.ELASTIC_ENDPOINT_ENV_VAR);
-      //
+      //Spark Kafka topics
       if (sysProps.containsKey(Constants.KAFKA_BROKERADDR_ENV_VAR)) {
         parseBrokerEndpoints(sysProps.getProperty(Constants.KAFKA_BROKERADDR_ENV_VAR));
       }
+      try {
+        updateFeaturestoreMetadataCache(FeaturestoreHelper.getProjectFeaturestore());
+      } catch (JAXBException e) {
+        LOG.log(Level.SEVERE,
+          "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
+      } catch (FeaturestoreNotFound e) {
+        LOG.log(Level.INFO,
+          "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
+      }
     }
-    try {
-      updateFeaturestoreMetadataCache(FeaturestoreHelper.getProjectFeaturestore());
-    } catch (CredentialsNotFoundException | FeaturestoreNotFound | JAXBException e) {
-      LOG.log(Level.SEVERE,
-        "Could not fetch the feature store metadata for feature store: " +
-          Hops.getProjectFeaturestore(), e);
-    }
-  }
-  
-  /**
-   * Get the Avro schema for a particular Kafka topic.
-   *
-   * @param topic Kafka topic name.
-   * @return Avro schema as String object in JSON format
-   * @throws SchemaNotFoundException      SchemaNotFoundException
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
-   */
-  public static String getSchema(String topic) throws SchemaNotFoundException, CredentialsNotFoundException {
-    return getSchema(topic, Integer.MIN_VALUE);
   }
 
   /**
@@ -161,10 +157,10 @@ public class Hops {
    *
    * @param topics kafka topics.
    * @return Map of schemas.
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws SchemaNotFoundException      SchemaNotFoundException
    */
-  public static Map<String, Schema> getSchemas(String[] topics) throws CredentialsNotFoundException,
+  public static Map<String, Schema> getSchemas(String[] topics) throws JWTNotFoundException,
     SchemaNotFoundException {
     if(topics == null) {
       throw new IllegalArgumentException("Topics were not provided.");
@@ -181,23 +177,19 @@ public class Hops {
    * Get the Avro schema for a particular Kafka topic and its version.
    *
    * @param topic     Kafka topic name.
-   * @param versionId Schema version ID
    * @return Avro schema as String object in JSON format
    * @throws SchemaNotFoundException      SchemaNotFoundException
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    */
-  public static String getSchema(String topic, int versionId) throws CredentialsNotFoundException,
-    SchemaNotFoundException {
+  public static String getSchema(String topic) throws
+    JWTNotFoundException, SchemaNotFoundException {
     LOG.log(Level.FINE, "Getting schema for topic:{0}", new String[]{topic});
 
     JSONObject json = new JSONObject();
     json.append("topicName", topic);
-    if (versionId > 0) {
-      json.append("version", versionId);
-    }
-    Response response;
+    Response response = null;
     try {
-      response = clientWrapper(json, "schema", HttpMethod.POST);
+      response = clientWrapper(json, "/project/" + projectId + "/kafka/" + topic + "/schema", HttpMethod.GET);
     } catch (HTTPSClientInitializationException e) {
       throw new SchemaNotFoundException(e.getMessage());
     }
@@ -206,6 +198,7 @@ public class Hops {
     }
     final String responseEntity = response.readEntity(String.class);
     //Extract fields from json
+    LOG.log(Level.FINE, "responseEntity:" + responseEntity);
     json = new JSONObject(responseEntity);
     return json.getString("contents");
   }
@@ -221,35 +214,45 @@ public class Hops {
     return properties;
   }
   
-  static Response clientWrapper(JSONObject json, String resource, String httpMethod)
-      throws CredentialsNotFoundException,
-      HTTPSClientInitializationException {
-    json.append(Constants.JSON_KEYSTOREPWD, keystorePwd);
-    try {
-      json.append(Constants.JSON_KEYSTORE, keystoreEncode());
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, null, ex);
-      throw new CredentialsNotFoundException("Could not initialize Hops properties.");
-    }
+  protected static Response clientWrapper(String path, String httpMethod) throws HTTPSClientInitializationException,
+    JWTNotFoundException {
+    return clientWrapper(null, path, httpMethod);
+  }
+  protected static Response clientWrapper(JSONObject json, String path, String httpMethod) throws
+    HTTPSClientInitializationException, JWTNotFoundException {
 
     Client client;
     try {
       client = initClient();
     } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
-      throw new HTTPSClientInitializationException(e.getMessage());
+      throw new HTTPSClientInitializationException("Could not retrieve credentials from local working directory", e);
     }
-    WebTarget webTarget = client.target(Hops.getRestEndpoint() + "/").path(Constants.HOPSWORKS_REST_RESOURCE
-        + "/"
-        + Constants.HOPSWORKS_REST_APPSERVICE
-        + "/" + resource);
-    LOG.info("webTarget.getUri().getHost():" + webTarget.getUri().getHost());
-    LOG.info("webTarget.getUri().getPort():" + webTarget.getUri().getPort());
-    LOG.info("webTarget.getUri().getPath():" + webTarget.getUri().getPath());
-    Invocation.Builder invocationBuilder = webTarget.request().accept(MediaType.APPLICATION_JSON);
-    if (httpMethod.equals(HttpMethod.PUT))
-      return invocationBuilder.put(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
-    else
-      return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+    WebTarget webTarget = client.target(Hops.getRestEndpoint() + "/").path(Constants.HOPSWORKS_REST_RESOURCE + path);
+    LOG.log(Level.FINE, "webTarget.getUri().getHost():" + webTarget.getUri().getHost());
+    LOG.log(Level.FINE, "webTarget.getUri().getPort():" + webTarget.getUri().getPort());
+    LOG.log(Level.FINE, "webTarget.getUri().getPath():" + webTarget.getUri().getPath());
+    //Read jwt and set it in header
+    Invocation.Builder invocationBuilder =
+      webTarget.request().header(HttpHeaders.AUTHORIZATION,
+        "Bearer " + getJwt().orElseThrow(IllegalArgumentException::new)).accept(MediaType.APPLICATION_JSON);
+  
+    switch (httpMethod) {
+      case HttpMethod.PUT:
+        if (json == null) {
+          throw new IllegalArgumentException("Json(entity) is null");
+        }
+        return invocationBuilder.put(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+      case HttpMethod.POST:
+        if (json == null) {
+          throw new IllegalArgumentException("Json(entity) is null");
+        }
+        return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
+      case HttpMethod.GET:
+        return invocationBuilder.get();
+      default:
+        break;
+    }
+    return null;
   }
 
 
@@ -271,13 +274,44 @@ public class Hops {
     }
     return null;
   }
+  
+  private static synchronized Optional<String> getJwt() throws JWTNotFoundException {
+    String jwt = null;
+    try (FileChannel fc = FileChannel.open(Paths.get(Constants.JWT_FILENAME), StandardOpenOption.READ)) {
+      FileLock fileLock = fc.tryLock(0, Long.MAX_VALUE, true);
+      try {
+        short numRetries = 5;
+        short retries = 0;
+        while (fileLock == null && retries < numRetries) {
+          LOG.log(Level.FINEST, "Waiting for lock on jwt file at:" + Constants.JWT_FILENAME);
+          Thread.sleep(1000);
+          fileLock = fc.tryLock(0, Long.MAX_VALUE, true);
+          retries++;
+        }
+        //If could not acquire lock in reasonable time, throw exception
+        if (fileLock == null) {
+          throw new JWTNotFoundException("Could not read jwt token from local container, possibly another process has" +
+            " acquired the lock");
+        }
+        ByteBuffer buf = ByteBuffer.allocateDirect(512);
+        fc.read(buf);
+        buf.flip();
+        jwt = StandardCharsets.UTF_8.decode(buf).toString();
+      } catch (InterruptedException e) {
+        LOG.log(Level.WARNING, "JWT waiting thread was interrupted.", e);
+      } finally {
+        if (fileLock != null) {
+          fileLock.release();
+        }
+      }
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE,"Could not read jwt token from local container.", e);
+      throw new JWTNotFoundException("Could not read jwt token from local container." + e.getMessage(), e);
+    }
+    return Optional.ofNullable(jwt);
+  }
 
   /////////////////////////////////////////////
-  private static String keystoreEncode() throws IOException {
-    FileInputStream kfin = new FileInputStream(new File(keyStore));
-    byte[] kStoreBlob = ByteStreams.toByteArray(kfin);
-    return Base64.encodeBase64String(kStoreBlob);
-  }
 
   /**
    * Get Kafka brokers endpoints as a List object.
@@ -415,8 +449,7 @@ public class Hops {
     brokerEndpointsList = Arrays.asList(addresses.split(","));
   }
 
-  private static Client initClient() throws KeyStoreException, IOException,
-      NoSuchAlgorithmException,
+  private static Client initClient() throws KeyStoreException, IOException, NoSuchAlgorithmException,
       CertificateException {
     KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
 
@@ -438,25 +471,26 @@ public class Hops {
   }
 
   /**
-   * Makes a REST call to Hopsworks Appservice to get metadata about a featurestore, this metadata is then used by
+   * Makes a REST call to Hopsworks to get metadata about a featurestore, this metadata is then used by
    * hops-util to infer how to JOIN featuregroups together etc.
    *
    * @param featurestore the featurestore to query metadata about
    * @return a list of featuregroups metadata
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws FeaturestoreNotFound FeaturestoresNotFound
    * @throws JAXBException JAXBException
    */
   private static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataRest(String featurestore)
-      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+      throws FeaturestoreNotFound, JAXBException {
     LOG.log(Level.FINE, "Getting featuregroups for featurestore " + featurestore);
 
-    JSONObject json = new JSONObject();
-    json.append(Constants.JSON_FEATURESTORE_NAME, featurestore);
-    Response response = null;
+    Response response;
     try {
-      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_FEATURESTORE_RESOURCE, HttpMethod.POST);
-    } catch (HTTPSClientInitializationException e) {
+      response =
+        clientWrapper(
+          "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+            Constants.HOPSWORKS_REST_FEATURESTORE_RESOURCE + "/" + featurestore,
+          HttpMethod.GET);
+    } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
     }
     LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
@@ -476,12 +510,12 @@ public class Hops {
    * @param featurestore        the featurestore where the featuregroup resides
    * @param featuregroup        the featuregroup to drop the contents of
    * @param featuregroupVersion the version of the featurergroup
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
-   * @throws FeaturestoresNotFound FeaturestoresNotFound
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws FeaturegroupDeletionError FeaturegroupDeletionError
    */
   private static void deleteTableContents(
       String featurestore, String featuregroup, int featuregroupVersion)
-      throws CredentialsNotFoundException, FeaturegroupDeletionError {
+      throws JWTNotFoundException, FeaturegroupDeletionError {
     LOG.log(Level.FINE, "Deleting table contents of featuregroup " + featuregroup +
         "version: " + featuregroupVersion + " in featurestore: " + featurestore);
 
@@ -490,8 +524,10 @@ public class Hops {
     json.append(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
     json.append(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     try {
-      Response response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_CLEAR_FEATUREGROUP_RESOURCE,
-          HttpMethod.POST);
+      Response response = clientWrapper(json,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_CLEAR_FEATUREGROUP_RESOURCE,
+        HttpMethod.POST);
       LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
       if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
         throw new FeaturegroupDeletionError("Could not clear the contents of featuregroup:" + featuregroup);
@@ -512,7 +548,7 @@ public class Hops {
    * @param dependencies        a list of dependencies (datasets that this featuregroup depends on)
    * @param featuresSchema      schema of features for the featuregroup
    * @param statisticsDTO       statistics about the featuregroup
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    */
@@ -520,9 +556,8 @@ public class Hops {
       String featurestore, String featuregroup, int featuregroupVersion, String description,
       String jobName, List<String> dependencies, List<FeatureDTO> featuresSchema,
     StatisticsDTO statisticsDTO)
-      throws CredentialsNotFoundException, JAXBException, FeaturegroupCreationError {
-    LOG.log(Level.FINE, "Creating featuregroup " + featuregroup +
-        " in featurestore: " + featurestore);
+    throws JWTNotFoundException, JAXBException, FeaturegroupCreationError {
+    LOG.log(Level.FINE, "Creating featuregroup " + featuregroup + " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
@@ -545,7 +580,10 @@ public class Hops {
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, false);
     Response response;
     try {
-      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_CREATE_FEATUREGROUP_RESOURCE, HttpMethod.POST);
+      response = clientWrapper(json,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_CREATE_FEATUREGROUP_RESOURCE,
+        HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupCreationError(e.getMessage());
     }
@@ -571,16 +609,15 @@ public class Hops {
    * @param statisticsDTO          statistics about the featuregroup
    * @param dataFormat             format of the dataset (e.g tfrecords)
    * @return the JSON response
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
    */
   private static Response createTrainingDatasetRest(
       String featurestore, String trainingDataset, int trainingDatasetVersion, String description,
       String jobName, String dataFormat, List<String> dependencies, List<FeatureDTO> featuresSchema,
-      StatisticsDTO statisticsDTO) throws CredentialsNotFoundException, JAXBException, TrainingDatasetCreationError {
-    LOG.log(Level.FINE, "Creating Training Dataset " + trainingDataset +
-        " in featurestore: " + featurestore);
+    StatisticsDTO statisticsDTO) throws JWTNotFoundException, JAXBException, TrainingDatasetCreationError {
+    LOG.log(Level.FINE, "Creating Training Dataset " + trainingDataset + " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_TRAINING_DATASET_NAME, trainingDataset);
@@ -603,7 +640,9 @@ public class Hops {
     Response response;
     try {
       response = clientWrapper(json,
-          Constants.HOPSWORKS_REST_APPSERVICE_CREATE_TRAINING_DATASET_RESOURCE, HttpMethod.POST);
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_CREATE_TRAINING_DATASET_RESOURCE,
+        HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new TrainingDatasetCreationError(e.getMessage());
     }
@@ -643,17 +682,18 @@ public class Hops {
    * and the featurestores shared with the project)
    *
    * @return a list of names of the featurestores accessible by this project
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoresNotFound FeaturestoresNotFound
    */
   private static List<String> getFeaturestoresForProject()
-      throws CredentialsNotFoundException, FeaturestoresNotFound {
+      throws JWTNotFoundException, FeaturestoresNotFound {
     LOG.log(Level.FINE, "Getting featurestores for current project");
 
-    JSONObject json = new JSONObject();
-    Response response = null;
+    Response response;
     try {
-      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_FEATURESTORES_RESOURCE, HttpMethod.POST);
+      response =
+        clientWrapper("/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE,
+        HttpMethod.GET);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturestoresNotFound(e.getMessage());
     }
@@ -663,7 +703,7 @@ public class Hops {
     }
     final String responseEntity = response.readEntity(String.class);
     JSONArray featurestoresJson = new JSONArray(responseEntity);
-    List<String> featurestores = new ArrayList();
+    List<String> featurestores = new ArrayList<>();
     for (int i = 0; i < featurestoresJson.length(); i++) {
       JSONObject featurestoreJson = featurestoresJson.getJSONObject(i);
       String featurestoreName = featurestoreJson.getString(Constants.JSON_FEATURESTORE_NAME);
@@ -689,7 +729,7 @@ public class Hops {
    * @param numBins             number of bins to use for computing histograms
    * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
    * @param numClusters         number of clusters to use for cluster analysis
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDeletionError FeaturegroupDeletionError
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
@@ -702,7 +742,7 @@ public class Hops {
       String featurestore, int featuregroupVersion, String mode, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
-    throws CredentialsNotFoundException, FeaturegroupDeletionError, JAXBException, FeaturegroupUpdateStatsError,
+    throws JWTNotFoundException, FeaturegroupDeletionError, JAXBException, FeaturegroupUpdateStatsError,
     DataframeIsEmpty, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
@@ -747,7 +787,7 @@ public class Hops {
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
    * @param writeMode              the spark write mode (append/overwrite)
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
@@ -763,7 +803,7 @@ public class Hops {
     Boolean descriptiveStats, Boolean featureCorr,
     Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
     String corrMethod, Integer numClusters, String writeMode)
-    throws CredentialsNotFoundException, JAXBException, FeaturestoreNotFound,
+    throws JWTNotFoundException, JAXBException, FeaturestoreNotFound,
     TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
     TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, CannotWriteImageDataFrameException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
@@ -800,7 +840,7 @@ public class Hops {
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
    * @param writeMode              the spark write mode (append/overwrite)
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
@@ -817,7 +857,7 @@ public class Hops {
       Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters, String writeMode)
-    throws CredentialsNotFoundException, JAXBException,
+    throws JWTNotFoundException, JAXBException,
     TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
     TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, CannotWriteImageDataFrameException,
     FeaturestoreNotFound {
@@ -839,10 +879,10 @@ public class Hops {
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO updatedTrainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
-    String hdfsPath = updatedTrainingDatasetDTO.getHdfsStorePath() + "/" + trainingDataset;
+    String hdfsPath = updatedTrainingDatasetDTO.getHdfsStorePath() + File.separator + trainingDataset;
     FeaturestoreHelper.writeTrainingDatasetHdfs(sparkSession, sparkDf, hdfsPath,
         updatedTrainingDatasetDTO.getDataFormat(), writeMode);
-    if (updatedTrainingDatasetDTO.getDataFormat() == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
+    if (updatedTrainingDatasetDTO.getDataFormat().equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
       JSONObject tfRecordSchemaJson = null;
       try{
         tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
@@ -887,7 +927,7 @@ public class Hops {
    * @param featurestore           the featurestore where the training dataset resides
    * @param trainingDatasetVersion the version of the training dataset
    * @return a spark dataframe with the training dataset
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
@@ -896,9 +936,8 @@ public class Hops {
    */
   public static Dataset<Row> getTrainingDataset(
     SparkSession sparkSession, String trainingDataset,
-    String featurestore, int trainingDatasetVersion)
-    throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException, TrainingDatasetDoesNotExistError,
-    TrainingDatasetFormatNotSupportedError, IOException {
+    String featurestore, int trainingDatasetVersion) throws JWTNotFoundException, JAXBException,
+    TrainingDatasetDoesNotExistError, TrainingDatasetFormatNotSupportedError, IOException, FeaturestoreNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetTrainingDataset(sparkSession, trainingDataset, getFeaturestoreMetadata(featurestore),
@@ -918,7 +957,7 @@ public class Hops {
    * @param featurestoreMetadata   metadata of the featurestore to query
    * @param trainingDatasetVersion the version of the training dataset
    * @return a spark dataframe with the training dataset
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
@@ -951,13 +990,13 @@ public class Hops {
    * @param feature      the feature to get
    * @param featurestore the featurestore to query
    * @return A dataframe with the feature
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeature(
     SparkSession sparkSession, String feature,
-    String featurestore) throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    String featurestore) throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetFeature(sparkSession, feature, getFeaturestoreMetadata(featurestore), featurestore);
@@ -1015,7 +1054,7 @@ public class Hops {
    * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
    * @param numClusters         number of clusters to use for cluster analysis
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
@@ -1025,7 +1064,7 @@ public class Hops {
       SparkSession sparkSession, String featuregroup, String featurestore,
       int featuregroupVersion, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
-      String corrMethod, Integer numClusters) throws DataframeIsEmpty, CredentialsNotFoundException, JAXBException,
+      String corrMethod, Integer numClusters) throws DataframeIsEmpty, JWTNotFoundException, JAXBException,
     FeaturegroupUpdateStatsError, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
@@ -1056,7 +1095,7 @@ public class Hops {
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
@@ -1069,7 +1108,7 @@ public class Hops {
       SparkSession sparkSession, String trainingDataset, String featurestore,
       int trainingDatasetVersion, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
-      String corrMethod, Integer numClusters) throws DataframeIsEmpty, CredentialsNotFoundException, JAXBException,
+      String corrMethod, Integer numClusters) throws DataframeIsEmpty, JWTNotFoundException, JAXBException,
       FeaturegroupUpdateStatsError, SparkDataTypeNotRecognizedError, TrainingDatasetFormatNotSupportedError,
       FeaturestoreNotFound, TrainingDatasetDoesNotExistError, IOException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
@@ -1112,14 +1151,14 @@ public class Hops {
    * @param featurestore             the featurestore to query
    * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @return a spark dataframe with the features
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
     SparkSession sparkSession, List<String> features, String featurestore,
     Map<String, Integer> featuregroupsAndVersions)
-    throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetFeatures(sparkSession, features, featurestore, getFeaturestoreMetadata(featurestore),
@@ -1142,7 +1181,7 @@ public class Hops {
    * @param featurestoreMetadata     metadata of the featurestore to query
    * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @return a spark dataframe with the features
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
@@ -1166,13 +1205,13 @@ public class Hops {
    * @param featurestore the featurestore to query
    * @param joinKey      the key to join on
    * @return a spark dataframe with the features
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore, String joinKey) throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    String featurestore, String joinKey) throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try{
       return doGetFeatures(sparkSession, features, featurestore, getFeaturestoreMetadata(featurestore), joinKey);
@@ -1192,7 +1231,7 @@ public class Hops {
    * @param featurestoreMetadata metadata of the featurestore to query
    * @param joinKey      the key to join on
    * @return a spark dataframe with the features
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
@@ -1211,13 +1250,12 @@ public class Hops {
    * @param features     the list of features to get
    * @param featurestore the featurestore to query
    * @return a spark dataframe with the features
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static Dataset<Row> getFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore) throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    String featurestore) throws FeaturestoreNotFound, JAXBException {
     try {
       return doGetFeatures(sparkSession, features, featurestore, getFeaturestoreMetadata(featurestore));
     } catch (Exception e){
@@ -1262,10 +1300,10 @@ public class Hops {
    * Gets a list of featurestores accessible by the current project
    *
    * @return a list of names of the featurestores
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoresNotFound FeaturestoresNotFound
    */
-  public static List<String> getProjectFeaturestores() throws CredentialsNotFoundException, FeaturestoresNotFound {
+  public static List<String> getProjectFeaturestores() throws JWTNotFoundException, FeaturestoresNotFound {
     return getFeaturestoresForProject();
   }
 
@@ -1274,12 +1312,10 @@ public class Hops {
    *
    * @param featurestore the featurestore to get the featuregroups for
    * @return a list of names of the feature groups
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static List<String> getFeaturegroups(String featurestore) throws
-      CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+  public static List<String> getFeaturegroups(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     return getFeaturestoreMetadata(featurestore).
         getFeaturegroups().stream()
@@ -1291,12 +1327,10 @@ public class Hops {
    *
    * @param featurestore the featurestore to get the features for
    * @return a list of names of the features in the feature store
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static List<String> getFeaturesList(String featurestore) throws
-      CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+  public static List<String> getFeaturesList(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     List<List<String>> featureNamesLists = getFeaturestoreMetadata(featurestore).
         getFeaturegroups().stream()
@@ -1312,12 +1346,10 @@ public class Hops {
    *
    * @param featurestore the featurestore to get the training datasets for
    * @return a list of names of the trainin datasets
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static List<String> getTrainingDatasets(String featurestore) throws CredentialsNotFoundException,
-      FeaturestoreNotFound, JAXBException {
+  public static List<String> getTrainingDatasets(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     return getFeaturestoreMetadata(featurestore).
         getTrainingDatasets().stream()
@@ -1332,13 +1364,12 @@ public class Hops {
    * @param trainingDatasetVersion version of the training dataset
    * @return the hdfs path to the training dataset
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static String getTrainingDatasetPath(String trainingDataset, String featurestore,
     int trainingDatasetVersion) throws
-    TrainingDatasetDoesNotExistError, CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    TrainingDatasetDoesNotExistError, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetTrainingDatasetPath(trainingDataset, trainingDatasetVersion,
@@ -1380,12 +1411,11 @@ public class Hops {
    *
    * @param featurestore the featurestore to query metadata from
    * @return a list of metadata about all the featuregroups in the featurestore
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadata(String featurestore)
-      throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     if(FeaturestoreHelper.getFeaturestoreMetadataCache() == null){
       updateFeaturestoreMetadataCache(featurestore);
@@ -1397,12 +1427,10 @@ public class Hops {
    * Updates the featurestore metadata cache
    *
    * @param featurestore the featurestore to update the metadata for
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
-  public static void updateFeaturestoreMetadataCache(String featurestore)
-    throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+  public static void updateFeaturestoreMetadataCache(String featurestore) throws FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     FeaturestoreHelper.setFeaturestoreMetadataCache(getFeaturestoreMetadataRest(featurestore));
   }
@@ -1414,16 +1442,15 @@ public class Hops {
    * @param featurestore        the name of the featurestore where the featuregroup resides
    * @param featuregroupVersion the version of the featuregroup
    * @param statisticsDTO       the new statistics of the featuregroup
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    */
   public static void updateFeaturegroupStatsRest(
       String featuregroup, String featurestore, int featuregroupVersion, StatisticsDTO statisticsDTO)
-      throws CredentialsNotFoundException,
+      throws JWTNotFoundException,
       JAXBException, FeaturegroupUpdateStatsError {
-    LOG.log(Level.FINE, "Updating featuregroup stats for: " + featuregroup +
-        " in featurestore: " + featurestore);
+    LOG.log(Level.FINE, "Updating featuregroup stats for: " + featuregroup + " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
     json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
@@ -1439,9 +1466,12 @@ public class Hops {
         .convertClusterAnalysisDTOToJsonObject(statisticsDTO.getClusterAnalysisDTO()));
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_METADATA, false);
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, true);
-    Response response = null;
+    Response response;
     try {
-      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_UPDATE_FEATUREGROUP_RESOURCE, HttpMethod.PUT);
+      response = clientWrapper(json,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_UPDATE_FEATUREGROUP_RESOURCE,
+        HttpMethod.PUT);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupUpdateStatsError(e.getMessage());
     }
@@ -1460,13 +1490,13 @@ public class Hops {
    * @param trainingDatasetVersion the version of the training dataset
    * @param statisticsDTO          the new statistics of the training dataset
    * @return the JSON response
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    */
   public static Response updateTrainingDatasetStatsRest(
       String trainingDataset, String featurestore, int trainingDatasetVersion, StatisticsDTO statisticsDTO)
-      throws CredentialsNotFoundException,
+      throws JWTNotFoundException,
       JAXBException, FeaturegroupUpdateStatsError {
     LOG.log(Level.FINE, "Updating training dataset stats for: " + trainingDataset +
         " in featurestore: " + featurestore);
@@ -1487,8 +1517,10 @@ public class Hops {
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, true);
     Response response = null;
     try {
-      response = clientWrapper(json, Constants.HOPSWORKS_REST_APPSERVICE_UPDATE_TRAINING_DATASET_RESOURCE,
-          HttpMethod.PUT);
+      response = clientWrapper(json,
+        "/project/" + projectId + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_UPDATE_TRAINING_DATASET_RESOURCE,
+        HttpMethod.PUT);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupUpdateStatsError(e.getMessage());
     }
@@ -1529,7 +1561,7 @@ public class Hops {
    * @param corrMethod          the method to compute feature correlation with (pearson or spearman)
    * @param numClusters         the number of clusters to use for cluster analysis
    * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws DataframeIsEmpty DataframeIsEmpty
    * @throws JAXBException JAXBException
    * @throws FeaturegroupCreationError FeaturegroupCreationError
@@ -1543,7 +1575,7 @@ public class Hops {
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
     throws InvalidPrimaryKeyForFeaturegroup,
-    CredentialsNotFoundException, DataframeIsEmpty, JAXBException, FeaturegroupCreationError,
+    JWTNotFoundException, DataframeIsEmpty, JAXBException, FeaturegroupCreationError,
     SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     FeaturestoreHelper.validateMetadata(featuregroup, featuregroupDf.dtypes(), dependencies, description);
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
@@ -1594,7 +1626,7 @@ public class Hops {
    * @param numBins                number of bins to use for computing histograms
    * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
    * @param numClusters            number of clusters to use for cluster analysis
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws DataframeIsEmpty DataframeIsEmpty
    * @throws JAXBException JAXBException
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
@@ -1609,7 +1641,7 @@ public class Hops {
       List<String> dependencies, Boolean descriptiveStats, Boolean featureCorr,
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters)
-    throws CredentialsNotFoundException, DataframeIsEmpty, JAXBException, TrainingDatasetCreationError,
+    throws JWTNotFoundException, DataframeIsEmpty, JAXBException, TrainingDatasetCreationError,
     TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, CannotWriteImageDataFrameException,
     FeaturestoreNotFound {
     FeaturestoreHelper.validateMetadata(trainingDataset, trainingDatasetDf.dtypes(), dependencies, description);
@@ -1655,13 +1687,13 @@ public class Hops {
    * @param featuregroupName the name of the featuregroup to get the latest version of
    * @param featurestore     the featurestore where the featuregroup resides
    * @return the latest version of the feature group
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws  FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static int getLatestFeaturegroupVersion(
     String featuregroupName, String featurestore)
-    throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetLatestFeaturegroupVersion(featuregroupName, getFeaturestoreMetadata(featurestore));
@@ -1677,7 +1709,7 @@ public class Hops {
    * @param featuregroupName the name of the featuregroup to get the latest version of
    * @param featurestoreMetadata the featurestore where the featuregroup resides
    * @return the latest version of the feature group
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws  FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
@@ -1693,13 +1725,13 @@ public class Hops {
    * @param trainingDatasetName the name of the trainingDataset to get the latest version of
    * @param featurestore        the featurestore where the training dataset resides
    * @return the latest version of the training dataset
-   * @throws CredentialsNotFoundException CredentialsNotFoundException
+   * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    */
   public static int getLatestTrainingDatasetVersion(
     String trainingDatasetName, String featurestore)
-    throws CredentialsNotFoundException, FeaturestoreNotFound, JAXBException {
+    throws JWTNotFoundException, FeaturestoreNotFound, JAXBException {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     try {
       return doGetLatestTrainingDatasetVersion(trainingDatasetName, getFeaturestoreMetadata(featurestore));

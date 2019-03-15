@@ -32,7 +32,7 @@ import java.util.List;
  * can be converted to JSON or XML representation using jaxb.
  */
 @XmlRootElement
-@XmlType(propOrder = {"featuregroups", "trainingDatasets", })
+@XmlType(propOrder = {"featuregroups", "trainingDatasets"})
 public class FeaturegroupsAndTrainingDatasetsDTO {
 
   private List<FeaturegroupDTO> featuregroups;
