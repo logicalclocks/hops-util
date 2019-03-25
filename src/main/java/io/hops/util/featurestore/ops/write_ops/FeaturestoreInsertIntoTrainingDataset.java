@@ -11,11 +11,11 @@ import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
-import io.hops.util.featurestore.stats.StatisticsDTO;
-import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -120,7 +120,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    */
   private static void doInsertIntoTrainingDataset(
     SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
-    String featurestore, FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata, int trainingDatasetVersion,
+    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion,
     Boolean descriptiveStats, Boolean featureCorr,
     Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
     String corrMethod, Integer numClusters, String writeMode)

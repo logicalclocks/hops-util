@@ -17,26 +17,48 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats;
+package io.hops.util.featurestore.dtos.stats.desc_stats;
 
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
+/**
+ * XML/JSON DTO representing a single descriptive statistic metric and value
+ */
 @XmlRootElement
-public abstract class FeaturestoreStatisticValue {
+@XmlType(propOrder = {"metricName", "value"})
+public class DescriptiveStatsMetricValueDTO {
 
-  public abstract FeaturestoreStatisticType getStatisticType();
+  private String metricName;
+  private Float value;
 
-  /**
-   * As found in Effective Java, the equals contract cannot be satisfied for
-   * inheritance hierarchies that add fields in subclasses. Since this is the
-   * main goal of extension of this class, these objects should not be compared.
-   *
-   * @param o object to compare
-   * @return boolean boolean
-   */
+  public DescriptiveStatsMetricValueDTO() {
+  }
+
+  @XmlElement
+  public String getMetricName() {
+    return metricName;
+  }
+
+  @XmlElement
+  public Float getValue() {
+    return value;
+  }
+
+  public void setMetricName(String metricName) {
+    this.metricName = metricName;
+  }
+
+  public void setValue(Float value) {
+    this.value = value;
+  }
+
   @Override
-  public final boolean equals(Object o) {
-    throw new UnsupportedOperationException(
-        "JobConfiguration objects cannot be compared.");
+  public String toString() {
+    return "DescriptiveStatsMetricValueDTO{" +
+        "metricName='" + metricName + '\'' +
+        ", value=" + value +
+        '}';
   }
 }

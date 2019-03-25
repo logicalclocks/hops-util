@@ -17,38 +17,57 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.desc_stats;
+package io.hops.util.featurestore.dtos.stats.feature_correlation;
+
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticType;
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticValue;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import java.util.List;
 
 /**
- * XML/JSON DTO representing descriptive statistics of a featuregroup/training dataset
+ * XML/JSON DTO representing a correlation value for a feature
  */
 @XmlRootElement
-@XmlType(propOrder = {"descriptiveStats"})
-public class DescriptiveStatsDTO {
+@XmlType(propOrder = {"featureName", "correlation", "statisticType"})
+public class CorrelationValueDTO extends FeaturestoreStatisticValue {
 
-  private List<DescriptiveStatsMetricValuesDTO> descriptiveStats;
+  private String featureName;
+  private Float correlation;
 
-  public DescriptiveStatsDTO() {
+  public CorrelationValueDTO() {
   }
 
   @XmlElement
-  public List<DescriptiveStatsMetricValuesDTO> getDescriptiveStats() {
-    return descriptiveStats;
+  public String getFeatureName() {
+    return featureName;
   }
 
-  public void setDescriptiveStats(List<DescriptiveStatsMetricValuesDTO> descriptiveStats) {
-    this.descriptiveStats = descriptiveStats;
+  @XmlElement
+  public Float getCorrelation() {
+    return correlation;
+  }
+
+  public void setFeatureName(String featureName) {
+    this.featureName = featureName;
+  }
+
+  public void setCorrelation(Float correlation) {
+    this.correlation = correlation;
+  }
+
+  @Override
+  @XmlElement(name="statisticType")
+  public FeaturestoreStatisticType getStatisticType() {
+    return FeaturestoreStatisticType.FEATURECORRELATIONS;
   }
 
   @Override
   public String toString() {
-    return "DescriptiveStatsDTO{" +
-        "descriptiveStats=" + descriptiveStats +
+    return "CorrelationValueDTO{" +
+        "featureName='" + featureName + '\'' +
+        ", correlation=" + correlation +
         '}';
   }
 }

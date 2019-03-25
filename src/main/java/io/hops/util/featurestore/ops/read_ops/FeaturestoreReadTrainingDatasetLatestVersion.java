@@ -2,10 +2,10 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
-import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
@@ -62,7 +62,7 @@ public class FeaturestoreReadTrainingDatasetLatestVersion extends FeaturestoreOp
    * @return the latest version of the training dataset
    */
   private static int doGetLatestTrainingDatasetVersion(
-    String trainingDatasetName, FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata) {
+    String trainingDatasetName, FeaturestoreMetadataDTO featurestoreMetadata) {
     List<TrainingDatasetDTO> trainingDatasetDTOS = featurestoreMetadata.getTrainingDatasets();
     return FeaturestoreHelper.getLatestTrainingDatasetVersion(trainingDatasetDTOS, trainingDatasetName);
   }

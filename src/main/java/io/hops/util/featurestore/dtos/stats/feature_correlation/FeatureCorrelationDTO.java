@@ -17,26 +17,28 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.feature_correlation;
-
-import io.hops.util.featurestore.stats.FeaturestoreStatisticType;
-import io.hops.util.featurestore.stats.FeaturestoreStatisticValue;
+package io.hops.util.featurestore.dtos.stats.feature_correlation;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
 /**
- * XML/JSON DTO representing a correlation value for a feature
+ * XML/JSON DTO representing a list of correlation values for a specific feature
  */
 @XmlRootElement
-@XmlType(propOrder = {"featureName", "correlation", "statisticType"})
-public class CorrelationValueDTO extends FeaturestoreStatisticValue {
+@XmlType(propOrder = {"featureName", "correlationValues"})
+public class FeatureCorrelationDTO {
 
   private String featureName;
-  private Float correlation;
+  private List<CorrelationValueDTO> correlationValues;
 
-  public CorrelationValueDTO() {
+  public FeatureCorrelationDTO() {}
+
+  public FeatureCorrelationDTO(String featureName, List<CorrelationValueDTO> correlationValues) {
+    this.featureName = featureName;
+    this.correlationValues = correlationValues;
   }
 
   @XmlElement
@@ -45,29 +47,23 @@ public class CorrelationValueDTO extends FeaturestoreStatisticValue {
   }
 
   @XmlElement
-  public Float getCorrelation() {
-    return correlation;
+  public List<CorrelationValueDTO> getCorrelationValues() {
+    return correlationValues;
   }
 
   public void setFeatureName(String featureName) {
     this.featureName = featureName;
   }
 
-  public void setCorrelation(Float correlation) {
-    this.correlation = correlation;
-  }
-
-  @Override
-  @XmlElement(name="statisticType")
-  public FeaturestoreStatisticType getStatisticType() {
-    return FeaturestoreStatisticType.FEATURECORRELATIONS;
+  public void setCorrelationValues(List<CorrelationValueDTO> correlationValues) {
+    this.correlationValues = correlationValues;
   }
 
   @Override
   public String toString() {
-    return "CorrelationValueDTO{" +
+    return "FeatureCorrelationDTO{" +
         "featureName='" + featureName + '\'' +
-        ", correlation=" + correlation +
+        ", correlationValues=" + correlationValues +
         '}';
   }
 }

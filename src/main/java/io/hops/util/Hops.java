@@ -237,12 +237,14 @@ public class Hops {
     switch (httpMethod) {
       case HttpMethod.PUT:
         if (json == null) {
-          throw new IllegalArgumentException("Json(entity) is null");
+          //put request with empty body
+          return invocationBuilder.put(Entity.json(""));
         }
         return invocationBuilder.put(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       case HttpMethod.POST:
         if (json == null) {
-          throw new IllegalArgumentException("Json(entity) is null");
+          //post request with empty body
+          return invocationBuilder.post(Entity.json(""));
         }
         return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       case HttpMethod.GET:

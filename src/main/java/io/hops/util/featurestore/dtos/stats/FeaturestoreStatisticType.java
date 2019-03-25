@@ -17,48 +17,37 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.feature_distributions;
+package io.hops.util.featurestore.dtos.stats;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.XmlEnum;
+import javax.xml.bind.annotation.XmlEnumValue;
 
 /**
- * XML/JSON DTO representing a Bin in a feature histogram
+ * Enum representing the type of statistic in the table featurestore_statistic in the hopsworks db
  */
-@XmlRootElement
-@XmlType(propOrder = {"bin", "frequency"})
-public class HistogramBinDTO {
+@XmlEnum
+public enum FeaturestoreStatisticType {
+  @XmlEnumValue("descriptiveStatistics")
+  DESCRIPTIVESTATISTICS("descriptiveStatistics"),
+  @XmlEnumValue("clusterAnalysis")
+  CLUSTERANALYSIS("clusterAnalysis"),
+  @XmlEnumValue("featureDistributions")
+  FEATUREDISTRIBUTIONS("featureDistributions"),
+  @XmlEnumValue("featureCorrelations")
+  FEATURECORRELATIONS("featureCorrelations");
 
-  private String bin;
-  private Integer frequency;
+  private final String name;
 
-  public HistogramBinDTO() {
+  FeaturestoreStatisticType(String name) {
+    this.name = name;
   }
 
-  @XmlElement
-  public String getBin() {
-    return bin;
-  }
-
-  @XmlElement
-  public Integer getFrequency() {
-    return frequency;
-  }
-
-  public void setBin(String bin) {
-    this.bin = bin;
-  }
-
-  public void setFrequency(Integer frequency) {
-    this.frequency = frequency;
+  public String getName() {
+    return name;
   }
 
   @Override
   public String toString() {
-    return "HistogramBinDTO{" +
-        "bin='" + bin + '\'' +
-        ", frequency=" + frequency +
-        '}';
+    return name;
   }
 }

@@ -17,48 +17,58 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.desc_stats;
+package io.hops.util.featurestore.dtos.stats.cluster_analysis;
+
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticType;
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticValue;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
 /**
- * XML/JSON DTO representing a single descriptive statistic metric and value
+ * XML/JSON DTO representing ClusterAnalysis statistics
  */
 @XmlRootElement
-@XmlType(propOrder = {"metricName", "value"})
-public class DescriptiveStatsMetricValueDTO {
+@XmlType(propOrder = {"dataPoints", "clusters", "statisticType"})
+public class ClusterAnalysisDTO extends FeaturestoreStatisticValue {
 
-  private String metricName;
-  private Float value;
+  private List<DatapointDTO> dataPoints;
+  private List<ClusterDTO> clusters;
 
-  public DescriptiveStatsMetricValueDTO() {
+  public ClusterAnalysisDTO() {
   }
 
   @XmlElement
-  public String getMetricName() {
-    return metricName;
+  public List<DatapointDTO> getDataPoints() {
+    return dataPoints;
   }
 
   @XmlElement
-  public Float getValue() {
-    return value;
+  public List<ClusterDTO> getClusters() {
+    return clusters;
   }
 
-  public void setMetricName(String metricName) {
-    this.metricName = metricName;
+  public void setDataPoints(List<DatapointDTO> dataPoints) {
+    this.dataPoints = dataPoints;
   }
 
-  public void setValue(Float value) {
-    this.value = value;
+  public void setClusters(List<ClusterDTO> clusters) {
+    this.clusters = clusters;
+  }
+
+  @Override
+  @XmlElement(name="statisticType")
+  public FeaturestoreStatisticType getStatisticType() {
+    return FeaturestoreStatisticType.CLUSTERANALYSIS;
   }
 
   @Override
   public String toString() {
-    return "DescriptiveStatsMetricValueDTO{" +
-        "metricName='" + metricName + '\'' +
-        ", value=" + value +
+    return "ClusterAnalysisDTO{" +
+        "dataPoints=" + dataPoints +
+        ", clusters=" + clusters +
         '}';
   }
 }

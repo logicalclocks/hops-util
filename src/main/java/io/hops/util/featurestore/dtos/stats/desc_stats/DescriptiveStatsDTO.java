@@ -16,7 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.util.featurestore.stats.feature_correlation;
+
+package io.hops.util.featurestore.dtos.stats.desc_stats;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,34 +25,30 @@ import javax.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**
- * XML/JSON DTO representing a feature correlation matrix for a feature group or training dataset
+ * XML/JSON DTO representing descriptive statistics of a featuregroup/training dataset
  */
 @XmlRootElement
-@XmlType(propOrder = {"featureCorrelations"})
-public class FeatureCorrelationMatrixDTO {
+@XmlType(propOrder = {"descriptiveStats"})
+public class DescriptiveStatsDTO {
 
-  private List<FeatureCorrelationDTO> featureCorrelations;
+  private List<DescriptiveStatsMetricValuesDTO> descriptiveStats;
 
-  public FeatureCorrelationMatrixDTO() {
-  }
-
-  public FeatureCorrelationMatrixDTO(List<FeatureCorrelationDTO> featureCorrelations) {
-    this.featureCorrelations = featureCorrelations;
+  public DescriptiveStatsDTO() {
   }
 
   @XmlElement
-  public List<FeatureCorrelationDTO> getFeatureCorrelations() {
-    return featureCorrelations;
+  public List<DescriptiveStatsMetricValuesDTO> getDescriptiveStats() {
+    return descriptiveStats;
   }
 
-  public void setFeatureCorrelations(List<FeatureCorrelationDTO> featureCorrelations) {
-    this.featureCorrelations = featureCorrelations;
+  public void setDescriptiveStats(List<DescriptiveStatsMetricValuesDTO> descriptiveStats) {
+    this.descriptiveStats = descriptiveStats;
   }
 
   @Override
   public String toString() {
-    return "FeatureCorrelationMatrixDTO{" +
-        "featureCorrelations=" + featureCorrelations +
+    return "DescriptiveStatsDTO{" +
+        "descriptiveStats=" + descriptiveStats +
         '}';
   }
 }

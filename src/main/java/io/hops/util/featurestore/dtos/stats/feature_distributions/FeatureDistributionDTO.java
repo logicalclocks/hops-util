@@ -17,10 +17,10 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.feature_distributions;
+package io.hops.util.featurestore.dtos.stats.feature_distributions;
 
-import io.hops.util.featurestore.stats.FeaturestoreStatisticType;
-import io.hops.util.featurestore.stats.FeaturestoreStatisticValue;
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticType;
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticValue;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;

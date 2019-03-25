@@ -1,12 +1,10 @@
-package io.hops.util.featurestore;
+package io.hops.util.featurestore.dtos;
 
 
-import io.hops.util.featurestore.dependencies.FeaturestoreDependencyDTO;
-import io.hops.util.featurestore.feature.FeatureDTO;
-import io.hops.util.featurestore.stats.cluster_analysis.ClusterAnalysisDTO;
-import io.hops.util.featurestore.stats.desc_stats.DescriptiveStatsDTO;
-import io.hops.util.featurestore.stats.feature_correlation.FeatureCorrelationMatrixDTO;
-import io.hops.util.featurestore.stats.feature_distributions.FeatureDistributionsDTO;
+import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
+import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
+import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
+import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;

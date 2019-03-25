@@ -17,10 +17,7 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.cluster_analysis;
-
-import io.hops.util.featurestore.stats.FeaturestoreStatisticType;
-import io.hops.util.featurestore.stats.FeaturestoreStatisticValue;
+package io.hops.util.featurestore.dtos.stats.feature_distributions;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,47 +25,30 @@ import javax.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**
- * XML/JSON DTO representing ClusterAnalysis statistics
+ * XML/JSON DTO representing feature distributions for a featuregroup or training dataset
  */
 @XmlRootElement
-@XmlType(propOrder = {"dataPoints", "clusters", "statisticType"})
-public class ClusterAnalysisDTO extends FeaturestoreStatisticValue {
+@XmlType(propOrder = {"featureDistributions"})
+public class FeatureDistributionsDTO {
 
-  private List<DatapointDTO> dataPoints;
-  private List<ClusterDTO> clusters;
+  private List<FeatureDistributionDTO> featureDistributions;
 
-  public ClusterAnalysisDTO() {
+  public FeatureDistributionsDTO() {
   }
 
   @XmlElement
-  public List<DatapointDTO> getDataPoints() {
-    return dataPoints;
+  public List<FeatureDistributionDTO> getFeatureDistributions() {
+    return featureDistributions;
   }
 
-  @XmlElement
-  public List<ClusterDTO> getClusters() {
-    return clusters;
-  }
-
-  public void setDataPoints(List<DatapointDTO> dataPoints) {
-    this.dataPoints = dataPoints;
-  }
-
-  public void setClusters(List<ClusterDTO> clusters) {
-    this.clusters = clusters;
-  }
-
-  @Override
-  @XmlElement(name="statisticType")
-  public FeaturestoreStatisticType getStatisticType() {
-    return FeaturestoreStatisticType.CLUSTERANALYSIS;
+  public void setFeatureDistributions(List<FeatureDistributionDTO> featureDistributions) {
+    this.featureDistributions = featureDistributions;
   }
 
   @Override
   public String toString() {
-    return "ClusterAnalysisDTO{" +
-        "dataPoints=" + dataPoints +
-        ", clusters=" + clusters +
+    return "FeatureDistributionsDTO{" +
+        "featureDistributions=" + featureDistributions +
         '}';
   }
 }

@@ -12,9 +12,7 @@
  * limitations under the License.
  */
 
-package io.hops.util.featurestore;
-
-import io.hops.util.featurestore.featuregroup.FeaturegroupDTO;
+package io.hops.util.featurestore.dtos;
 
 import java.util.List;
 
