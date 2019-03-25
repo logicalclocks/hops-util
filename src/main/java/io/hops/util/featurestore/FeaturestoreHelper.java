@@ -797,10 +797,11 @@ public class FeaturestoreHelper {
    */
   public static void validateMetadata(String name, Tuple2<String, String>[] dtypes,
                                       List<String> dependencies, String description) {
-    Pattern namePattern = Pattern.compile("^[a-zA-Z0-9-_]+$");
+    Pattern namePattern = Pattern.compile("^[a-zA-Z0-9_]+$");
     if (name.length() > 256 || name.equals("") || !namePattern.matcher(name).matches())
       throw new IllegalArgumentException("Name of feature group/training dataset cannot be empty, " +
-          "cannot exceed 256 characters, and must match the regular expression: ^[a-zA-Z0-9-_]+$" +
+          "cannot exceed 256 characters, cannot contain hyphens ('-') " +
+          "and must match the regular expression: ^[a-zA-Z0-9_]+$" +
           " the provided name: " + name + " is not valid");
 
     if (dtypes.length == 0)
@@ -809,7 +810,8 @@ public class FeaturestoreHelper {
     for (int i = 0; i < dtypes.length; i++) {
       if (dtypes[i]._1.length() > 767 || dtypes[i]._1.equals("") || !namePattern.matcher(dtypes[i]._1).matches())
         throw new IllegalArgumentException("Name of feature column cannot be empty, cannot exceed 767 characters," +
-            " and must match the regular expression: ^[a-zA-Z0-9-_]+$, the provided feature name: " + dtypes[i]._1 +
+            ", cannot contains hyphens ('-'), and must match the regular expression: ^[a-zA-Z0-9_]+$, " +
+            "the provided feature name: " + dtypes[i]._1 +
             " is not valid");
     }
     if (new HashSet<>(dependencies).size() != dependencies.size()) {
