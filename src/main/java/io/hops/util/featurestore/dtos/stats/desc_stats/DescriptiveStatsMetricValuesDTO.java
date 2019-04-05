@@ -17,7 +17,10 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.feature_correlation;
+package io.hops.util.featurestore.dtos.stats.desc_stats;
+
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticType;
+import io.hops.util.featurestore.dtos.stats.FeaturestoreStatisticValue;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -25,20 +28,21 @@ import javax.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**
- * XML/JSON DTO representing a list of correlation values for a specific feature
+ * XML/JSON DTO representing a list of descriptive statistics for a single feature
  */
 @XmlRootElement
-@XmlType(propOrder = {"featureName", "correlationValues"})
-public class FeatureCorrelationDTO {
+@XmlType(propOrder = {"featureName", "metricValues", "statisticType"})
+public class DescriptiveStatsMetricValuesDTO extends FeaturestoreStatisticValue {
 
   private String featureName;
-  private List<CorrelationValueDTO> correlationValues;
+  private List<DescriptiveStatsMetricValueDTO> metricValues;
 
-  public FeatureCorrelationDTO() {}
+  public DescriptiveStatsMetricValuesDTO() {
+  }
 
-  public FeatureCorrelationDTO(String featureName, List<CorrelationValueDTO> correlationValues) {
-    this.featureName = featureName;
-    this.correlationValues = correlationValues;
+  @XmlElement
+  public List<DescriptiveStatsMetricValueDTO> getMetricValues() {
+    return metricValues;
   }
 
   @XmlElement
@@ -46,24 +50,25 @@ public class FeatureCorrelationDTO {
     return featureName;
   }
 
-  @XmlElement
-  public List<CorrelationValueDTO> getCorrelationValues() {
-    return correlationValues;
+  public void setMetricValues(List<DescriptiveStatsMetricValueDTO> metricValues) {
+    this.metricValues = metricValues;
   }
 
   public void setFeatureName(String featureName) {
     this.featureName = featureName;
   }
 
-  public void setCorrelationValues(List<CorrelationValueDTO> correlationValues) {
-    this.correlationValues = correlationValues;
+  @Override
+  @XmlElement(name="statisticType")
+  public FeaturestoreStatisticType getStatisticType() {
+    return FeaturestoreStatisticType.DESCRIPTIVESTATISTICS;
   }
 
   @Override
   public String toString() {
-    return "FeatureCorrelationDTO{" +
+    return "DescriptiveStatsMetricValuesDTO{" +
         "featureName='" + featureName + '\'' +
-        ", correlationValues=" + correlationValues +
+        ", metricValues=" + metricValues +
         '}';
   }
 }

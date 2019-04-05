@@ -3,13 +3,14 @@ package io.hops.util.featurestore.ops.write_ops;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
-import io.hops.util.featurestore.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -48,11 +49,12 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDeletionError FeaturegroupDeletionError
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-    FeaturegroupDeletionError {
+    FeaturegroupDeletionError, FeaturegroupDoesNotExistError {
     if(dataframe == null){
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
@@ -66,6 +68,8 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
         " does not match any of the supported modes: overwrite, append");
     if (mode.equalsIgnoreCase("overwrite")) {
       FeaturestoreRestClient.deleteTableContentsRest(featurestore, name, version);
+      //update cache because in the background, clearing featuregroup will give it a new id
+      new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
     }
     spark.sparkContext().setJobGroup("", "", true);
     FeaturestoreHelper.insertIntoFeaturegroup(dataframe, spark, name,

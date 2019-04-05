@@ -3,9 +3,9 @@ package io.hops.util.featurestore.ops.read_ops;
 import com.google.common.base.Strings;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.FeaturegroupDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -92,7 +92,7 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features, String featurestore,
-    FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata,
+    FeaturestoreMetadataDTO featurestoreMetadata,
     Map<String, Integer> featuregroupsAndVersions) {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     List<FeaturegroupDTO> filteredFeaturegroupsMetadata =
@@ -114,7 +114,7 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore, FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata, String joinKey) {
+    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, String joinKey) {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMetadata, joinKey);
   }
@@ -132,7 +132,7 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    */
   private static Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore, FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata) {
+    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata) {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     List<FeaturegroupDTO> featuregroupsMatching =
       FeaturestoreHelper.findFeaturegroupsThatContainsFeatures(featuregroupsMetadata, features, featurestore);

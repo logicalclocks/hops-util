@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package io.hops.util.featurestore.feature;
+package io.hops.util.featurestore.dtos;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;

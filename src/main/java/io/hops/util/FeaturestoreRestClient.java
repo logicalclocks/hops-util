@@ -2,16 +2,18 @@ package io.hops.util;
 
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.feature.FeatureDTO;
-import io.hops.util.featurestore.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.FeatureDTO;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import org.json.JSONObject;
 
 import javax.ws.rs.HttpMethod;
@@ -39,7 +41,7 @@ public class FeaturestoreRestClient {
    * @throws FeaturestoreNotFound FeaturestoresNotFound
    * @throws JAXBException JAXBException
    */
-  public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataRest(String featurestore)
+  public static FeaturestoreMetadataDTO getFeaturestoreMetadataRest(String featurestore)
     throws FeaturestoreNotFound, JAXBException {
     LOG.log(Level.FINE, "Getting featuregroups for featurestore " + featurestore);
     
@@ -48,7 +50,7 @@ public class FeaturestoreRestClient {
       response =
         Hops.clientWrapper(
           "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-            Constants.HOPSWORKS_REST_FEATURESTORE_RESOURCE + "/" + featurestore,
+            featurestore + "/" + Constants.HOPSWORKS_REST_FEATURESTORE_METADATA_RESOURCE,
           HttpMethod.GET);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
@@ -72,25 +74,26 @@ public class FeaturestoreRestClient {
    * @param featuregroupVersion the version of the featurergroup
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDeletionError FeaturegroupDeletionError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public static void deleteTableContentsRest(
     String featurestore, String featuregroup, int featuregroupVersion)
-    throws JWTNotFoundException, FeaturegroupDeletionError {
+    throws JWTNotFoundException, FeaturegroupDeletionError, JAXBException, FeaturestoreNotFound,
+    FeaturegroupDoesNotExistError {
     LOG.log(Level.FINE, "Deleting table contents of featuregroup " + featuregroup +
       "version: " + featuregroupVersion + " in featurestore: " + featurestore);
-    
-    JSONObject json = new JSONObject();
-    json.append(Constants.JSON_FEATURESTORE_NAME, featurestore);
-    json.append(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
-    json.append(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     try {
-      Response response = Hops.clientWrapper(json,
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore, featuregroup, featuregroupVersion);
+      Response response = Hops.clientWrapper(
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-          Constants.HOPSWORKS_REST_CLEAR_FEATUREGROUP_RESOURCE,
-        HttpMethod.POST);
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId + "/" +
+          Constants.HOPSWORKS_REST_FEATUREGROUP_CLEAR_RESOURCE, HttpMethod.POST);
       LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
       if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
-        throw new FeaturegroupDeletionError("Could not clear the contents of featuregroup:" + featuregroup);
+        throw new FeaturegroupDeletionError("Could not clear the contents of featuregroup:" + featuregroup +
+          " , response code: " + response.getStatusInfo().getStatusCode());
       }
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupDeletionError(e.getMessage());
@@ -111,15 +114,15 @@ public class FeaturestoreRestClient {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupCreationError FeaturegroupCreationError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static void createFeaturegroupRest(
     String featurestore, String featuregroup, int featuregroupVersion, String description,
     String jobName, List<String> dependencies, List<FeatureDTO> featuresSchema,
     StatisticsDTO statisticsDTO)
-    throws JWTNotFoundException, JAXBException, FeaturegroupCreationError {
+    throws JWTNotFoundException, JAXBException, FeaturegroupCreationError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Creating featuregroup " + featuregroup + " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
-    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
     json.put(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     json.put(Constants.JSON_FEATUREGROUP_DESCRIPTION, description);
@@ -140,9 +143,10 @@ public class FeaturestoreRestClient {
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, false);
     Response response;
     try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-          Constants.HOPSWORKS_REST_CREATE_FEATUREGROUP_RESOURCE,
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE,
         HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupCreationError(e.getMessage());
@@ -160,26 +164,27 @@ public class FeaturestoreRestClient {
    * Makes a REST call to Hopsworks for creating a new training dataset from a spark dataframe
    *
    * @param featurestore           the featurestore where the group will be created
-   * @param trainingDataset
-   * @param trainingDatasetVersion the version of the featuregroup
-   * @param description            the description of the featuregroup
-   * @param jobName                  the name of the job to compute the featuregroup
-   * @param dependencies           a list of dependencies (datasets that this featuregroup depends on)
-   * @param featuresSchema         schema of features for the featuregroup
+   * @param trainingDataset        the name of the training dataset to create
+   * @param trainingDatasetVersion the version of the training dataset
+   * @param description            the description of the training dataset
+   * @param jobName                the name of the job to compute the training dataset
+   * @param dependencies           a list of dependencies (datasets that this training dataset depends on)
+   * @param featuresSchema         schema of features for the training dataset
    * @param statisticsDTO          statistics about the featuregroup
    * @param dataFormat             format of the dataset (e.g tfrecords)
    * @return the JSON response
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static Response createTrainingDatasetRest(
     String featurestore, String trainingDataset, int trainingDatasetVersion, String description,
     String jobName, String dataFormat, List<String> dependencies, List<FeatureDTO> featuresSchema,
-    StatisticsDTO statisticsDTO) throws JWTNotFoundException, JAXBException, TrainingDatasetCreationError {
+    StatisticsDTO statisticsDTO)
+    throws JWTNotFoundException, JAXBException, TrainingDatasetCreationError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Creating Training Dataset " + trainingDataset + " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
-    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_TRAINING_DATASET_NAME, trainingDataset);
     json.put(Constants.JSON_TRAINING_DATASET_VERSION, trainingDatasetVersion);
     json.put(Constants.JSON_TRAINING_DATASET_DESCRIPTION, description);
@@ -199,9 +204,10 @@ public class FeaturestoreRestClient {
       .convertClusterAnalysisDTOToJsonObject(statisticsDTO.getClusterAnalysisDTO()));
     Response response;
     try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-          Constants.HOPSWORKS_REST_CREATE_TRAINING_DATASET_RESOURCE,
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_TRAININGDATASETS_RESOURCE,
         HttpMethod.POST);
     } catch (HTTPSClientInitializationException e) {
       throw new TrainingDatasetCreationError(e.getMessage());
@@ -230,8 +236,8 @@ public class FeaturestoreRestClient {
     Response response;
     try {
       response =
-        Hops.clientWrapper("/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE,
-          HttpMethod.GET);
+        Hops.clientWrapper("/project/" + Hops.getProjectId() + "/" +
+            Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE, HttpMethod.GET);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturestoresNotFound(e.getMessage());
     }
@@ -252,14 +258,15 @@ public class FeaturestoreRestClient {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public static void updateFeaturegroupStatsRest(
     String featuregroup, String featurestore, int featuregroupVersion, StatisticsDTO statisticsDTO)
     throws JWTNotFoundException,
-    JAXBException, FeaturegroupUpdateStatsError {
+    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, FeaturegroupDoesNotExistError {
     LOG.log(Level.FINE, "Updating featuregroup stats for: " + featuregroup + " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
-    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_FEATUREGROUP_NAME, featuregroup);
     json.put(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     json.put(Constants.JSON_FEATUREGROUP_FEATURE_CORRELATION,
@@ -275,9 +282,11 @@ public class FeaturestoreRestClient {
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, true);
     Response response;
     try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore, featuregroup, featuregroupVersion);
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-          Constants.HOPSWORKS_REST_UPDATE_FEATUREGROUP_RESOURCE,
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
         HttpMethod.PUT);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupUpdateStatsError(e.getMessage());
@@ -300,15 +309,16 @@ public class FeaturestoreRestClient {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
    */
   public static Response updateTrainingDatasetStatsRest(
     String trainingDataset, String featurestore, int trainingDatasetVersion, StatisticsDTO statisticsDTO)
     throws JWTNotFoundException,
-    JAXBException, FeaturegroupUpdateStatsError {
+    JAXBException, FeaturegroupUpdateStatsError, TrainingDatasetDoesNotExistError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Updating training dataset stats for: " + trainingDataset +
       " in featurestore: " + featurestore);
     JSONObject json = new JSONObject();
-    json.put(Constants.JSON_FEATURESTORE_NAME, featurestore);
     json.put(Constants.JSON_TRAINING_DATASET_NAME, trainingDataset);
     json.put(Constants.JSON_TRAINING_DATASET_VERSION, trainingDatasetVersion);
     json.put(Constants.JSON_TRAINING_DATASET_FEATURE_CORRELATION,
@@ -324,9 +334,12 @@ public class FeaturestoreRestClient {
     json.put(Constants.JSON_FEATUREGROUP_UPDATE_STATS, true);
     Response response = null;
     try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      int trainingDatasetId = FeaturestoreHelper.getTrainingDatasetId(featurestore, trainingDataset,
+        trainingDatasetVersion);
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-          Constants.HOPSWORKS_REST_UPDATE_TRAINING_DATASET_RESOURCE,
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_TRAININGDATASETS_RESOURCE + "/" + trainingDatasetId,
         HttpMethod.PUT);
     } catch (HTTPSClientInitializationException e) {
       throw new FeaturegroupUpdateStatsError(e.getMessage());

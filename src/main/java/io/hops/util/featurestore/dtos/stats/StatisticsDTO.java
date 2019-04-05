@@ -13,12 +13,12 @@
  */
 
 
-package io.hops.util.featurestore.stats;
+package io.hops.util.featurestore.dtos.stats;
 
-import io.hops.util.featurestore.stats.cluster_analysis.ClusterAnalysisDTO;
-import io.hops.util.featurestore.stats.desc_stats.DescriptiveStatsDTO;
-import io.hops.util.featurestore.stats.feature_correlation.FeatureCorrelationMatrixDTO;
-import io.hops.util.featurestore.stats.feature_distributions.FeatureDistributionsDTO;
+import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
+import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
+import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
+import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 
 public class StatisticsDTO {
 

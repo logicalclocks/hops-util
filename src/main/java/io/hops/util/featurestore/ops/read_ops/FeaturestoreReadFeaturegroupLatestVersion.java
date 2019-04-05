@@ -2,9 +2,9 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.FeaturegroupDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;
@@ -61,7 +61,7 @@ public class FeaturestoreReadFeaturegroupLatestVersion extends FeaturestoreOp {
    * @return the latest version of the feature group
    */
   private static int doGetLatestFeaturegroupVersion(
-    String featuregroupName, FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata) {
+    String featuregroupName, FeaturestoreMetadataDTO featurestoreMetadata) {
     List<FeaturegroupDTO> featuregroupDTOList = featurestoreMetadata.getFeaturegroups();
     return FeaturestoreHelper.getLatestFeaturegroupVersion(featuregroupDTOList, featuregroupName);
   }

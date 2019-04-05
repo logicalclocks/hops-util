@@ -11,7 +11,7 @@ import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDataset;
-import io.hops.util.featurestore.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;

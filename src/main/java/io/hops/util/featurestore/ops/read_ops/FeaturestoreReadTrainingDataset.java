@@ -5,10 +5,10 @@ import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
-import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -35,11 +35,11 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    * Gets a training dataset from a particular featurestore
    *
    * @return a spark dataframe with the training dataset
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
-   * @throws TrainingDatasetFormatNotSupportedError
-   * @throws TrainingDatasetDoesNotExistError
-   * @throws IOException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   * @throws IOException IOException
    */
   public Dataset<Row> read()
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
@@ -75,7 +75,7 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    */
   private Dataset<Row> doGetTrainingDataset(
     SparkSession sparkSession, String trainingDataset,
-    FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata, int trainingDatasetVersion)
+    FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion)
     throws TrainingDatasetDoesNotExistError,
     TrainingDatasetFormatNotSupportedError, IOException {
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);

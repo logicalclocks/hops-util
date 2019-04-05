@@ -17,38 +17,48 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.feature_distributions;
+package io.hops.util.featurestore.dtos.stats.feature_distributions;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import java.util.List;
 
 /**
- * XML/JSON DTO representing feature distributions for a featuregroup or training dataset
+ * XML/JSON DTO representing a Bin in a feature histogram
  */
 @XmlRootElement
-@XmlType(propOrder = {"featureDistributions"})
-public class FeatureDistributionsDTO {
+@XmlType(propOrder = {"bin", "frequency"})
+public class HistogramBinDTO {
 
-  private List<FeatureDistributionDTO> featureDistributions;
+  private String bin;
+  private Integer frequency;
 
-  public FeatureDistributionsDTO() {
+  public HistogramBinDTO() {
   }
 
   @XmlElement
-  public List<FeatureDistributionDTO> getFeatureDistributions() {
-    return featureDistributions;
+  public String getBin() {
+    return bin;
   }
 
-  public void setFeatureDistributions(List<FeatureDistributionDTO> featureDistributions) {
-    this.featureDistributions = featureDistributions;
+  @XmlElement
+  public Integer getFrequency() {
+    return frequency;
+  }
+
+  public void setBin(String bin) {
+    this.bin = bin;
+  }
+
+  public void setFrequency(Integer frequency) {
+    this.frequency = frequency;
   }
 
   @Override
   public String toString() {
-    return "FeatureDistributionsDTO{" +
-        "featureDistributions=" + featureDistributions +
+    return "HistogramBinDTO{" +
+        "bin='" + bin + '\'' +
+        ", frequency=" + frequency +
         '}';
   }
 }

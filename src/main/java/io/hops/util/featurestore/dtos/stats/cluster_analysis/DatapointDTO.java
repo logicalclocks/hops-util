@@ -17,7 +17,7 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats.cluster_analysis;
+package io.hops.util.featurestore.dtos.stats.cluster_analysis;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;

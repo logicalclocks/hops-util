@@ -5,6 +5,7 @@ import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
@@ -281,5 +282,6 @@ public abstract class FeaturestoreOp {
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
     TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
-    TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException;
+    TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
+    FeaturegroupDoesNotExistError;
 }

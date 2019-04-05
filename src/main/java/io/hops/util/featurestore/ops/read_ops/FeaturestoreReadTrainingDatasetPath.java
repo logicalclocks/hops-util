@@ -4,10 +4,10 @@ import io.hops.util.Constants;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
-import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
@@ -73,7 +73,7 @@ public class FeaturestoreReadTrainingDatasetPath extends FeaturestoreOp {
    */
   private static String doGetTrainingDatasetPath(String trainingDataset,
     int trainingDatasetVersion,
-    FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadata) throws
+    FeaturestoreMetadataDTO featurestoreMetadata) throws
     TrainingDatasetDoesNotExistError {
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,

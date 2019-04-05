@@ -17,37 +17,26 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.hops.util.featurestore.stats;
+package io.hops.util.featurestore.dtos.stats;
 
-import javax.xml.bind.annotation.XmlEnum;
-import javax.xml.bind.annotation.XmlEnumValue;
+import javax.xml.bind.annotation.XmlRootElement;
 
-/**
- * Enum representing the type of statistic in the table featurestore_statistic in the hopsworks db
- */
-@XmlEnum
-public enum FeaturestoreStatisticType {
-  @XmlEnumValue("descriptiveStatistics")
-  DESCRIPTIVESTATISTICS("descriptiveStatistics"),
-  @XmlEnumValue("clusterAnalysis")
-  CLUSTERANALYSIS("clusterAnalysis"),
-  @XmlEnumValue("featureDistributions")
-  FEATUREDISTRIBUTIONS("featureDistributions"),
-  @XmlEnumValue("featureCorrelations")
-  FEATURECORRELATIONS("featureCorrelations");
+@XmlRootElement
+public abstract class FeaturestoreStatisticValue {
 
-  private final String name;
+  public abstract FeaturestoreStatisticType getStatisticType();
 
-  FeaturestoreStatisticType(String name) {
-    this.name = name;
-  }
-
-  public String getName() {
-    return name;
-  }
-
+  /**
+   * As found in Effective Java, the equals contract cannot be satisfied for
+   * inheritance hierarchies that add fields in subclasses. Since this is the
+   * main goal of extension of this class, these objects should not be compared.
+   *
+   * @param o object to compare
+   * @return boolean boolean
+   */
   @Override
-  public String toString() {
-    return name;
+  public final boolean equals(Object o) {
+    throw new UnsupportedOperationException(
+        "JobConfiguration objects cannot be compared.");
   }
 }

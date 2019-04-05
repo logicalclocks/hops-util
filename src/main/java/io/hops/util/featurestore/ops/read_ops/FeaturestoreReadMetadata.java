@@ -2,7 +2,7 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
-import io.hops.util.featurestore.FeaturegroupsAndTrainingDatasetsDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
@@ -27,7 +27,7 @@ public class FeaturestoreReadMetadata extends FeaturestoreOp {
    * @throws JAXBException JAXBException
    * @return a spark dataframe with the featuregroup
    */
-  public FeaturegroupsAndTrainingDatasetsDTO read() throws FeaturestoreNotFound,
+  public FeaturestoreMetadataDTO read() throws FeaturestoreNotFound,
     JAXBException {
     if(FeaturestoreHelper.getFeaturestoreMetadataCache() == null){
       Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();

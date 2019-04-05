@@ -27,22 +27,25 @@ import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.feature.FeatureDTO;
-import io.hops.util.featurestore.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.stats.StatisticsDTO;
-import io.hops.util.featurestore.stats.cluster_analysis.ClusterAnalysisDTO;
-import io.hops.util.featurestore.stats.cluster_analysis.ClusterDTO;
-import io.hops.util.featurestore.stats.cluster_analysis.DatapointDTO;
-import io.hops.util.featurestore.stats.desc_stats.DescriptiveStatsDTO;
-import io.hops.util.featurestore.stats.desc_stats.DescriptiveStatsMetricValueDTO;
-import io.hops.util.featurestore.stats.desc_stats.DescriptiveStatsMetricValuesDTO;
-import io.hops.util.featurestore.stats.feature_correlation.CorrelationValueDTO;
-import io.hops.util.featurestore.stats.feature_correlation.FeatureCorrelationDTO;
-import io.hops.util.featurestore.stats.feature_correlation.FeatureCorrelationMatrixDTO;
-import io.hops.util.featurestore.stats.feature_distributions.FeatureDistributionDTO;
-import io.hops.util.featurestore.stats.feature_distributions.FeatureDistributionsDTO;
-import io.hops.util.featurestore.stats.feature_distributions.HistogramBinDTO;
-import io.hops.util.featurestore.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.SQLJoinDTO;
+import io.hops.util.featurestore.dtos.FeatureDTO;
+import io.hops.util.featurestore.dtos.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
+import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterDTO;
+import io.hops.util.featurestore.dtos.stats.cluster_analysis.DatapointDTO;
+import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
+import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsMetricValueDTO;
+import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsMetricValuesDTO;
+import io.hops.util.featurestore.dtos.stats.feature_correlation.CorrelationValueDTO;
+import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationDTO;
+import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
+import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionDTO;
+import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
+import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
+import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -119,7 +122,7 @@ public class FeaturestoreHelper {
   private static JAXBContext featureHistogramsJAXBContext;
   private static JAXBContext clusterAnalysisJAXBContext;
   private static JAXBContext featureJAXBContext;
-  private static JAXBContext featuregroupsAndTrainingDatasetsJAXBContext;
+  private static JAXBContext featurestoreMetadataJAXBContext;
   private static JAXBContext trainingDatasetJAXBContext;
 
   private static Marshaller descriptiveStatsMarshaller;
@@ -127,13 +130,13 @@ public class FeaturestoreHelper {
   private static Marshaller featureHistogramsMarshaller;
   private static Marshaller clusteranalysisMarshaller;
   private static Marshaller featureMarshaller;
-  private static Marshaller featuregroupsAndTrainingDatasetsMarshaller;
+  private static Marshaller featurestoreMetadataMarshaller;
   private static Marshaller trainingDatasetMarshaller;
   
   /**
    * Featurestore Metadata Cache
    */
-  private static FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadataCache = null;
+  private static FeaturestoreMetadataDTO featurestoreMetadataCache = null;
 
   static {
     try {
@@ -147,8 +150,8 @@ public class FeaturestoreHelper {
           JAXBContextFactory.createContext(new Class[]{ClusterAnalysisDTO.class}, null);
       featureJAXBContext =
           JAXBContextFactory.createContext(new Class[]{FeatureDTO.class}, null);
-      featuregroupsAndTrainingDatasetsJAXBContext =
-          JAXBContextFactory.createContext(new Class[]{FeaturegroupsAndTrainingDatasetsDTO.class}, null);
+      featurestoreMetadataJAXBContext =
+          JAXBContextFactory.createContext(new Class[]{FeaturestoreMetadataDTO.class}, null);
       trainingDatasetJAXBContext =
           JAXBContextFactory.createContext(new Class[]{TrainingDatasetDTO.class}, null);
       descriptiveStatsMarshaller = descriptiveStatsJAXBContext.createMarshaller();
@@ -166,9 +169,9 @@ public class FeaturestoreHelper {
       featureMarshaller = featureJAXBContext.createMarshaller();
       featureMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
       featureMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-      featuregroupsAndTrainingDatasetsMarshaller = featuregroupsAndTrainingDatasetsJAXBContext.createMarshaller();
-      featuregroupsAndTrainingDatasetsMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
-      featuregroupsAndTrainingDatasetsMarshaller.setProperty(
+      featurestoreMetadataMarshaller = featurestoreMetadataJAXBContext.createMarshaller();
+      featurestoreMetadataMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
+      featurestoreMetadataMarshaller.setProperty(
           MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
       trainingDatasetMarshaller = trainingDatasetJAXBContext.createMarshaller();
       trainingDatasetMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
@@ -960,11 +963,11 @@ public class FeaturestoreHelper {
    * @return the DTO
    * @throws JAXBException JAXBException
    */
-  public static FeaturegroupsAndTrainingDatasetsDTO parseFeaturestoreMetadataJson(JSONObject featurestoreMetadata)
+  public static FeaturestoreMetadataDTO parseFeaturestoreMetadataJson(JSONObject featurestoreMetadata)
       throws JAXBException {
-    Unmarshaller unmarshaller = getUnmarshaller(featuregroupsAndTrainingDatasetsJAXBContext);
+    Unmarshaller unmarshaller = getUnmarshaller(featurestoreMetadataJAXBContext);
     StreamSource json = new StreamSource(new StringReader(featurestoreMetadata.toString()));
-    return unmarshaller.unmarshal(json, FeaturegroupsAndTrainingDatasetsDTO.class).getValue();
+    return unmarshaller.unmarshal(json, FeaturestoreMetadataDTO.class).getValue();
   }
 
   /**
@@ -1701,7 +1704,7 @@ public class FeaturestoreHelper {
    *
    * @return the feature store metadata cache
    */
-  public static FeaturegroupsAndTrainingDatasetsDTO getFeaturestoreMetadataCache() {
+  public static FeaturestoreMetadataDTO getFeaturestoreMetadataCache() {
     return featurestoreMetadataCache;
   }
   
@@ -1711,7 +1714,7 @@ public class FeaturestoreHelper {
    * @param featurestoreMetadataCache the new value of the cache
    */
   public static void setFeaturestoreMetadataCache(
-    FeaturegroupsAndTrainingDatasetsDTO featurestoreMetadataCache) {
+    FeaturestoreMetadataDTO featurestoreMetadataCache) {
     FeaturestoreHelper.featurestoreMetadataCache = featurestoreMetadataCache;
   }
   
@@ -1809,5 +1812,88 @@ public class FeaturestoreHelper {
       return Constants.TRAINING_DATASET_TFRECORDS_FORMAT;
     }
     return dataFormat;
+  }
+  
+  /**
+   * Gets the id of a featurestore (temporary workaround until HOPSWORKS-860 where we use Name as unique identifier for
+   * resources)
+   *
+   * @param featurestore name of the featurestore to get the id of
+   * @return the id of the featurestore (primary key in hopsworks db featurestore table)
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   */
+  public static Integer getFeaturestoreId(String featurestore) throws JAXBException, FeaturestoreNotFound {
+    if(getFeaturestoreMetadataCache() == null ||
+      !featurestore.equalsIgnoreCase(getFeaturestoreMetadataCache().getFeaturestore().getFeaturestoreName()))
+      new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
+    return getFeaturestoreMetadataCache().getFeaturestore().getFeaturestoreId();
+  }
+  
+  /**
+   * Gets the id of a featuregroup (temporary workaround until HOPSWORKs-860) where we use Name as a unique identifier
+   * for resources)
+   *
+   * @param featurestore the featurestore where the featuregroup belongs
+   * @param featuregroup the featuregroup to get the id of
+   * @param featuregroupVersion the version of the featuregroup
+   * @return the id of the featuregroup
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   */
+  public static Integer getFeaturegroupId(String featurestore, String featuregroup, int featuregroupVersion)
+    throws JAXBException, FeaturestoreNotFound, FeaturegroupDoesNotExistError {
+    if(getFeaturestoreMetadataCache() == null ||
+      !featurestore.equalsIgnoreCase(getFeaturestoreMetadataCache().getFeaturestore().getFeaturestoreName()))
+      new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
+    List<FeaturegroupDTO> featuregroups =
+      getFeaturestoreMetadataCache().getFeaturegroups()
+        .stream().filter(fg ->
+        fg.getName().equalsIgnoreCase(featuregroup) &&
+          fg.getVersion() == featuregroupVersion).collect(Collectors.toList());
+    if(featuregroups.size() == 1){
+      return featuregroups.get(0).getId();
+    }
+    if(featuregroups.size() > 1){
+      throw new AssertionError(" Found more than one featuregroup with the name: " + featuregroup + " in the " +
+        "featurestore: " + featurestore);
+    }
+    throw new FeaturegroupDoesNotExistError("Featuregroup: " + featuregroup + " was not found in the featurestore: "
+        + featurestore);
+  }
+  
+  /**
+   * Gets the id of a training dataset (temporary workaround until HOPSWORKS-860) where we use Name as a unique
+   * identifier for resources)
+   *
+   * @param featurestore the featurestore where the training dataset belongs
+   * @param trainingDataset the training dataset to get the id of
+   * @param trainingDatasetVersion the version of the training dataset
+   * @return the id of the training dataset
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   */
+  public static Integer getTrainingDatasetId(String featurestore, String trainingDataset, int trainingDatasetVersion)
+    throws JAXBException, FeaturestoreNotFound, TrainingDatasetDoesNotExistError {
+    if(getFeaturestoreMetadataCache() == null ||
+      !featurestore.equalsIgnoreCase(getFeaturestoreMetadataCache().getFeaturestore().getFeaturestoreName()))
+      new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
+    List<TrainingDatasetDTO> trainingDatasets =
+      getFeaturestoreMetadataCache().getTrainingDatasets()
+        .stream().filter(td ->
+        td.getName().equalsIgnoreCase(trainingDataset) &&
+        td.getVersion() == trainingDatasetVersion).collect(Collectors.toList());
+    if(trainingDatasets.size() == 1){
+      return trainingDatasets.get(0).getId();
+    }
+    if(trainingDatasets.size() > 1){
+      throw new AssertionError(" Found more than one training dataset with the name: " + trainingDataset + " in the " +
+        "featurestore: " + featurestore);
+    }
+    throw new TrainingDatasetDoesNotExistError("Training Dataset: " + trainingDataset + " was not found in the " +
+      "featurestore: "
+      + featurestore);
   }
 }
