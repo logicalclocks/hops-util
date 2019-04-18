@@ -144,8 +144,8 @@ public class Hops {
         LOG.log(Level.SEVERE,
           "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
       } catch (FeaturestoreNotFound e) {
-        LOG.log(Level.INFO,
-          "Could not fetch the feature store metadata for feature store: " + Hops.getProjectFeaturestore(), e);
+        LOG.log(Level.FINEST,
+          "Did not cache featurestore metadata as the project does not have the feature store service enabled");
       }
     }
   }
