@@ -75,7 +75,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark,
       dataframe, featurestore, version, descriptiveStats, featureCorr, featureHistograms,
       clusterAnalysis, statColumns, numBins, numClusters, corrMethod);
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null);
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
+      null);
     Response response = FeaturestoreRestClient.createTrainingDatasetRest(featurestore, name, version, description,
       jobName, dataFormat, dependencies, featuresSchema, statisticsDTO);
     String jsonStrResponse = response.readEntity(String.class);

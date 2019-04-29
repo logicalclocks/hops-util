@@ -66,7 +66,8 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark, dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey);
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
+      partitionBy);
     FeaturestoreRestClient.createFeaturegroupRest(featurestore, name, version, description, jobName, dependencies,
       featuresSchema, statisticsDTO);
     FeaturestoreHelper.insertIntoFeaturegroup(dataframe, spark, name,
@@ -163,6 +164,11 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreCreateFeaturegroup setDependencies(List<String> dependencies) {
     this.dependencies = dependencies;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setPartitionBy(List<String> partitionBy) {
+    this.partitionBy = partitionBy;
     return this;
   }
   

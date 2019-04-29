@@ -9,8 +9,8 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.ops.FeaturestoreOp;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -79,6 +79,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
       corrMethod);
     FeaturestoreRestClient.updateFeaturegroupStatsRest(name, featurestore, version, statisticsDTO);
+    spark.sparkContext().setJobGroup("", "", true);
   }
   
   public FeaturestoreInsertIntoFeaturegroup setName(String name) {
