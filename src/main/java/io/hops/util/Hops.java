@@ -173,6 +173,70 @@ public class Hops {
   }
 
   /**
+   *  Block/unblock an IoT Gateway
+   * @param gatewayId IoT Gateway id
+   * @param block true - block gateway, false - unblock gateway
+   * @return block param
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws HTTPSClientInitializationException HTTPSClientInitializationException
+   */
+  public static boolean blockIotGateway (Integer gatewayId, boolean block)
+    throws JWTNotFoundException, HTTPSClientInitializationException {
+    LOG.log(Level.INFO, "Set block status of IoT Gateway " + gatewayId + " to " + block);
+    
+    Response response = null;
+    String method = null;    
+    if (block) {
+      method = HttpMethod.POST;
+    } else {
+      method = HttpMethod.DELETE;
+    }
+    response = clientWrapper("/project/" + projectId + "/gateways/" + gatewayId + "/blocked", method);
+
+    int status = response.getStatusInfo().getStatusCode();
+    if (status != Response.Status.NO_CONTENT.getStatusCode() &&
+            status != Response.Status.ACCEPTED.getStatusCode()) {
+      throw new IllegalStateException("Response status: " + status);
+    }
+    
+    return block;
+  }
+
+  /**
+   * Block/unblock an IoT Node
+   * @param gatewayId IoT Gateway id
+   * @param endpointClientName IoT Node endpointClientName
+   * @param block true - block gateway, false - unblock gateway
+   * @return block param
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws HTTPSClientInitializationException HTTPSClientInitializationException
+   */
+  public static boolean blockIotNode (Integer gatewayId, String endpointClientName, boolean block)
+          throws JWTNotFoundException, HTTPSClientInitializationException {
+    LOG.log(Level.INFO, "Set block status of IoT Node " + endpointClientName + " to " + block);
+
+    Response response = null;
+    String method = null;
+    if (block) {
+      method = HttpMethod.POST;
+    } else {
+      method = HttpMethod.DELETE;
+    }
+
+    response = clientWrapper("/project/" + projectId + "/gateways/" + gatewayId +
+            "/nodes/" + endpointClientName + "/blocked", method);
+
+    int status = response.getStatusInfo().getStatusCode();
+    if (status != Response.Status.NO_CONTENT.getStatusCode() &&
+            status != Response.Status.ACCEPTED.getStatusCode()) {
+      throw new IllegalStateException("Response status: " + status);
+    }
+
+    return block;
+  }
+
+
+  /**
    * Get the Avro schema for a particular Kafka topic and its version.
    *
    * @param topic     Kafka topic name.
@@ -250,6 +314,8 @@ public class Hops {
         return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       case HttpMethod.GET:
         return invocationBuilder.get();
+      case HttpMethod.DELETE:
+        return invocationBuilder.delete();
       default:
         break;
     }
