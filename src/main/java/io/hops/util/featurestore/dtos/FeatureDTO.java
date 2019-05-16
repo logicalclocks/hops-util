@@ -27,17 +27,19 @@ public class FeatureDTO {
   private String type;
   private String description;
   private Boolean primary = false;
+  private Boolean partition = false;
 
   public FeatureDTO() {
   }
-
-  public FeatureDTO(String name, String type, String description, Boolean primary) {
+  
+  public FeatureDTO(String name, String type, String description, Boolean primary, Boolean partition) {
     this.name = name;
     this.type = type;
     this.description = description;
     this.primary = primary;
+    this.partition = partition;
   }
-
+  
   @XmlElement
   public String getName() {
     return name;
@@ -57,7 +59,12 @@ public class FeatureDTO {
   public Boolean getPrimary() {
     return primary;
   }
-
+  
+  @XmlElement
+  public Boolean getPartition() {
+    return partition;
+  }
+  
   public void setName(String name) {
     this.name = name;
   }
@@ -73,14 +80,19 @@ public class FeatureDTO {
   public void setPrimary(Boolean primary) {
     this.primary = primary;
   }
-
+  
+  public void setPartition(Boolean partition) {
+    this.partition = partition;
+  }
+  
   @Override
   public String toString() {
     return "FeatureDTO{" +
-        "name='" + name + '\'' +
-        ", type='" + type + '\'' +
-        ", description='" + description + '\'' +
-        ", primary=" + primary +
-        '}';
+      "name='" + name + '\'' +
+      ", type='" + type + '\'' +
+      ", description='" + description + '\'' +
+      ", primary=" + primary +
+      ", partition=" + partition +
+      '}';
   }
 }

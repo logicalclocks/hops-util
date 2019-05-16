@@ -21,6 +21,7 @@ import io.hops.util.exceptions.SchemaNotFoundException;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeature;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroupLatestVersion;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroupPartitions;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroups;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeatures;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturesList;
@@ -464,7 +465,7 @@ public class Hops {
   /**
    * Gets the project's featurestore name (project_featurestore)
    *
-   * @return a java object with parameters for the project's featurestore. The operation
+   * @return a lazy java object for the operation of reading the project's featurestore. The operation
    * can be started with read() on the object and parameters can be updated with setters
    */
   public static FeaturestoreReadProjectFeaturestore getProjectFeaturestore() {
@@ -496,8 +497,8 @@ public class Hops {
    * Gets a list of featurestores accessible in the project (i.e the project's own featurestore
    * and the featurestores shared with the project)
    *
-   * @return a java object with parameters for getting a list of featurestores accessible in the project. The operation
-   * can be started with read() on the object and parameters can be updated with setters
+   * @return a lazy java object for the operation of getting a list of featurestores accessible in the project.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   private static FeaturestoreReadProjectFeaturestores getFeaturestoresForProject(){
     return new FeaturestoreReadProjectFeaturestores();
@@ -507,8 +508,8 @@ public class Hops {
    * Inserts a spark dataframe into a featuregroup
    *
    * @param featuregroup  the name of the featuregroup to insert into
-   * @return a java object with parameters for inserting into a featuregroup in the featurestore. The operation
-   * can be started with write() on the object and parameters can be updated with setters
+   * @return a lazy java object for the operation of inserting into a featuregroup in the featurestore.
+   * The operation can be started with write() on the object and parameters can be updated with setters
    */
   public static FeaturestoreInsertIntoFeaturegroup insertIntoFeaturegroup(String featuregroup) {
     return new FeaturestoreInsertIntoFeaturegroup(featuregroup);
@@ -518,9 +519,8 @@ public class Hops {
    * Inserts a spark dataframe into an existing training dataset
    *
    * @param trainingDataset        the name of the training dataset to insert into
-   * @return a java object with parameters for inserting into a training dataset in the featurestore. The operation
-   * can be started with write() on the object and parameters can be updated with setters
-   *
+   * @return a lazy java object for the operation of inserting into a training dataset in the featurestore.
+   * The operation can be started with write() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreInsertIntoTrainingDataset insertIntoTrainingDataset(String trainingDataset) {
     return new FeaturestoreInsertIntoTrainingDataset(trainingDataset);
@@ -530,19 +530,30 @@ public class Hops {
    * Gets a featuregroup from a particular featurestore
    *
    * @param featuregroup        the featuregroup to get
-   * @return a java object with parameters for reading a single featuregroup from the featurestore. The operation
-   * can be started with read() on the object and parameters can be updated with setters
+   * @return a lazy java object for the operation of reading a single featuregroup from the featurestore.
+   * The operation can be started with read() on the object and parameters can be updated with setters
    */
   public static FeaturestoreReadFeaturegroup getFeaturegroup(String featuregroup) {
     return new FeaturestoreReadFeaturegroup(featuregroup);
+  }
+  
+  /**
+   * Gets the partitions featuregroup from a particular featurestore
+   *
+   * @param featuregroup        the featuregroup to get partitions for
+   * @return a lazy java object for the operation of reading the partitions of a featuregroup from the featurestore.
+   * The operation can be started with read() on the object and parameters can be updated with setters
+   */
+  public static FeaturestoreReadFeaturegroupPartitions getFeaturegroupPartitions(String featuregroup) {
+    return new FeaturestoreReadFeaturegroupPartitions(featuregroup);
   }
 
   /**
    * Gets a training dataset from a featurestore
    *
    * @param trainingDataset        the training dataset to get
-   * @return a java object with parameters for reading a training dataset from the featurestore. The operation
-   * can be started with read() on the object and parameters can be updated with setters
+   * @return a lazy java object for the operation of reading a training dataset from the featurestore.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadTrainingDataset getTrainingDataset(String trainingDataset) {
     return new FeaturestoreReadTrainingDataset(trainingDataset);
@@ -563,9 +574,8 @@ public class Hops {
    * Method for updating the statistics of a featuregroup (recomputing the statistics)
    *
    * @param featuregroup        the name of the featuregroup to update statistics for
-   * @return a java object with parameters for updating the stats of a featuregroup. The operation
-   *  can be started with write() on the object and parameters can be updated with setters
-   *
+   * @return a lazy java object for the operation of updating the stats of a featuregroup.
+   * The operation can be started with write() on the object and parameters can be updated with setters
    */
   public static FeaturestoreUpdateFeaturegroupStats updateFeaturegroupStats(String featuregroup) {
     return new FeaturestoreUpdateFeaturegroupStats(featuregroup);
@@ -575,8 +585,8 @@ public class Hops {
    * Method for updating the statistics of a training dataset (recomputing the statistics)
    *
    * @param trainingDataset        the name of the training dataset to update statistics for
-   * @return a java object with parameters for updating the stats of a training dataset. The operation
-   * can be started with write() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of updating the stats of a training dataset.
+   * The operation can be started with write() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreUpdateTrainingDatasetStats updateTrainingDatasetStats(String trainingDataset){
     return new FeaturestoreUpdateTrainingDatasetStats(trainingDataset);
@@ -586,8 +596,8 @@ public class Hops {
    * Gets a set of features from a featurestore and returns them as a Spark dataframe.
    *
    * @param features                 the list of features to get
-   * @return a java object with parameters for reading a list of features from the featurestore. The operation
-   * can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of reading a list of features from the featurestore.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadFeatures getFeatures(List<String> features) {
     return new FeaturestoreReadFeatures(features);
@@ -597,8 +607,8 @@ public class Hops {
    * Runs an SQL query on the project's featurestore
    *
    * @param query        the query to run
-   * @return a java object with parameters for querying the featurestore with SQL. The operation
-   * can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of querying the featurestore with SQL.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreSQLQuery queryFeaturestore(String query) {
     return new FeaturestoreSQLQuery(query);
@@ -616,8 +626,8 @@ public class Hops {
   /**
    * Gets a list of all featuregroups in a featurestore
    *
-   * @return a java object with parameters for reading the list of featuresgroups in the featurestore. The operation
-   * can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of reading the list of featuresgroups in the featurestore.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadFeaturegroups getFeaturegroups() {
     return new FeaturestoreReadFeaturegroups();
@@ -626,8 +636,8 @@ public class Hops {
   /**
    * Gets a list of all feature names in a featurestore
    *
-   * @return a java object with parameters for getting a list of feature names. The operation can be started with
-   * read() on the object and parameters can be updated with setters
+   * @return a lazy java object for the oepration of getting a list of feature names.
+   * The operation can be started with read() on the object and parameters can be updated with setters
    */
   public static FeaturestoreReadFeaturesList getFeaturesList() {
     return new FeaturestoreReadFeaturesList();
@@ -636,8 +646,8 @@ public class Hops {
   /**
    * Gets a list of all training datasets in a featurestore
    *
-   * @return a java object with parameters for reading the list of available training datasets in the featurestore.
-   * The operation can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of reading the list of available training datasets in the
+   * featurestore. The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadTrainingDatasets getTrainingDatasets() {
     return new FeaturestoreReadTrainingDatasets();
@@ -646,8 +656,8 @@ public class Hops {
   /**
    * Gets the HDFS path to a training dataset with a specific name and version in a featurestore
    *
-   * @return the hdfs path to the training dataset. The operation can be started with read() on the object and
-   * parameters can be updated with setters.
+   * @return a lazy java object for the operation of getting the hdfs path to the training dataset.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadTrainingDatasetPath getTrainingDatasetPath(String trainingDataset) {
     return new FeaturestoreReadTrainingDatasetPath(trainingDataset);
@@ -656,7 +666,7 @@ public class Hops {
   /**
    * Gets the metadata for the specified featurestore from the metastore
    *
-   * @return a java object with parameters for getting the featurestore metadata. The operation
+   * @return a lazy java object for the operation of getting the featurestore metadata. The operation
    * can be started with read() on the object and parameters can be updated with setters
    */
   public static FeaturestoreReadMetadata getFeaturestoreMetadata() {
@@ -666,8 +676,8 @@ public class Hops {
   /**
    * Updates the featurestore metadata cache
    *
-   * @return a java object with parameters for updating the metadata cache of a particular featurestore. The operation
-   * can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of updating the metadata cache of a particular featurestore. The
+   * operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreUpdateMetadataCache updateFeaturestoreMetadataCache() {
     return new FeaturestoreUpdateMetadataCache();
@@ -677,7 +687,7 @@ public class Hops {
    * Creates a new featuregroup from a spark dataframe
    *
    * @param featuregroup        the name of the featuregroup
-   * @return a java object with parameters for creating a new featuregroup. The operation
+   * @return a lazy java object for the operation of creating a new featuregroup. The operation
    * can be started with write() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreCreateFeaturegroup createFeaturegroup(String featuregroup) {
@@ -689,8 +699,8 @@ public class Hops {
    * and saves the materialized dataset on hdfs
    *
    * @param trainingDataset        the name of the training dataset
-   * @return a java object with parameters for creating the new training dataset. The operation
-   * can be started with write() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of creating a new training dataset.
+   * The operation can be started with write() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreCreateTrainingDataset createTrainingDataset(String trainingDataset) {
     return new FeaturestoreCreateTrainingDataset(trainingDataset);
@@ -700,8 +710,8 @@ public class Hops {
    * Gets the latest version of a feature group in the feature store, returns 0 if no version exists
    *
    * @param featuregroupName the name of the featuregroup to get the latest version of
-   * @return a java object with parameters for getting the latest version of a featuregroup. The operation
-   * can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of getting the latest version of a featuregroup.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadFeaturegroupLatestVersion getLatestFeaturegroupVersion(
     String featuregroupName){
@@ -712,8 +722,8 @@ public class Hops {
    * Gets the latest version of a training dataset in the feature store, returns 0 if no version exists
    *
    * @param trainingDatasetName the name of the trainingDataset to get the latest version of.
-   * @return a java object with parameters for getting the latest version of a training dataset. The operation
-   * can be started with read() on the object and parameters can be updated with setters.
+   * @return a lazy java object for the operation of getting the latest version of a training dataset.
+   * The operation can be started with read() on the object and parameters can be updated with setters.
    */
   public static FeaturestoreReadTrainingDatasetLatestVersion getLatestTrainingDatasetVersion(String trainingDatasetName)
   {

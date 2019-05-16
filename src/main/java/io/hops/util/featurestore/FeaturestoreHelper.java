@@ -27,10 +27,11 @@ import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
-import io.hops.util.featurestore.dtos.SQLJoinDTO;
 import io.hops.util.featurestore.dtos.FeatureDTO;
 import io.hops.util.featurestore.dtos.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.SQLJoinDTO;
+import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterDTO;
@@ -44,13 +45,13 @@ import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelati
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
-import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkContext;
 import org.apache.spark.ml.clustering.KMeans;
 import org.apache.spark.ml.clustering.KMeansModel;
 import org.apache.spark.ml.feature.PCA;
@@ -61,6 +62,7 @@ import org.apache.spark.ml.stat.Correlation;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
@@ -231,12 +233,17 @@ public class FeaturestoreHelper {
                                             int featuregroupVersion) {
     useFeaturestore(sparkSession, featurestore);
     String tableName = getTableName(featuregroup, featuregroupVersion);
+  
+    SparkContext sc = sparkSession.sparkContext();
+    SQLContext sqlContext = new SQLContext(sc);
+    sqlContext.setConf("hive.exec.dynamic.partition", "true");
+    sqlContext.setConf("hive.exec.dynamic.partition.mode", "nonstrict");
     //overwrite is not supported because it will drop the table and create a new one,
     //this means that all the featuregroup metadata will be dropped due to ON DELETE CASCADE
     String mode = "append";
     //Specify format hive as it is managed table
     String format = "hive";
-    sparkDf.write().format(format).mode(mode).saveAsTable(tableName);
+    sparkDf.write().format(format).mode(mode).insertInto(tableName);
   }
 
   /**
@@ -289,7 +296,7 @@ public class FeaturestoreHelper {
    *
    * @param sparkSession        the spark session
    * @param featuregroup        the featuregroup to get
-   * @param featurestore        the featurestre to query
+   * @param featurestore        the featurestore to query
    * @param featuregroupVersion the version of the featuregroup to get
    * @return a spark dataframe with the featuregroup
    */
@@ -297,6 +304,22 @@ public class FeaturestoreHelper {
                                              String featurestore, int featuregroupVersion) {
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT * FROM " + getTableName(featuregroup, featuregroupVersion);
+    return logAndRunSQL(sparkSession, sqlStr);
+  }
+  
+  /**
+   * Gets the partitions of a featuregroup from a particular featurestore
+   *
+   * @param sparkSession        the spark session
+   * @param featuregroup        the featuregroup to get partitions for
+   * @param featurestore        the featurestore where the featuregroup resides
+   * @param featuregroupVersion the version of the featuregroup
+   * @return a spark dataframe with the partitions of the featuregroup
+   */
+  public static Dataset<Row> getFeaturegroupPartitions(SparkSession sparkSession, String featuregroup,
+    String featurestore, int featuregroupVersion) {
+    useFeaturestore(sparkSession, featurestore);
+    String sqlStr = "SHOW PARTITIONS " + getTableName(featuregroup, featuregroupVersion);
     return logAndRunSQL(sparkSession, sqlStr);
   }
 
@@ -308,7 +331,7 @@ public class FeaturestoreHelper {
    * @param hdfsPath     the hdfs path to the dataset
    * @return a spark dataframe with the dataset
    * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
-   * tfrecords, tsv, csv, avro, orc, image and parquet
+   *                                                tfrecords, tsv, csv, avro, orc, image and parquet
    * @throws IOException IOException IOException
    * @throws TrainingDatasetDoesNotExistError if the hdfsPath is not found
    */
@@ -750,11 +773,12 @@ public class FeaturestoreHelper {
   /**
    * Converts a spark schema field into a FeatureDTO
    *
-   * @param field      the field to convert
-   * @param primaryKey the name of the primary key for the featuregroup where the feature belongs
+   * @param field       the field to convert
+   * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
+   * @param partitionBy the features to partition a feature group on
    * @return the converted featureDTO
    */
-  private static FeatureDTO convertFieldToFeature(StructField field, String primaryKey) {
+  private static FeatureDTO convertFieldToFeature(StructField field, String primaryKey, List<String> partitionBy) {
     String featureName = field.name();
     String featureType = field.dataType().catalogString();
     String featureDesc = "";
@@ -772,7 +796,11 @@ public class FeaturestoreHelper {
     if (featureDesc.isEmpty()) {
       featureDesc = "-"; //comment should be non-empty
     }
-    return new FeatureDTO(featureName, featureType, featureDesc, primary);
+    Boolean partition = false;
+    if(partitionBy != null && partitionBy.contains(featureName)){
+      partition = true;
+    }
+    return new FeatureDTO(featureName, featureType, featureDesc, primary, partition);
   }
 
   /**
@@ -780,13 +808,15 @@ public class FeaturestoreHelper {
    *
    * @param sparkSchema the spark schema to parse
    * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
+   * @param partitionBy the features to partition a feature group on
    * @return a list of feature DTOs
    */
-  public static List<FeatureDTO> parseSparkFeaturesSchema(StructType sparkSchema, String primaryKey) {
+  public static List<FeatureDTO> parseSparkFeaturesSchema(StructType sparkSchema, String primaryKey,
+    List<String> partitionBy) {
     StructField[] fieldsList = sparkSchema.fields();
     List<FeatureDTO> features = new ArrayList<>();
     for (int i = 0; i < fieldsList.length; i++) {
-      features.add(convertFieldToFeature(fieldsList[i], primaryKey));
+      features.add(convertFieldToFeature(fieldsList[i], primaryKey, partitionBy));
     }
     return features;
   }

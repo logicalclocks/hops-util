@@ -54,6 +54,7 @@ public abstract class FeaturestoreOp {
   protected String description = "";
   protected List<String> dependencies = new ArrayList<>();
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
+  protected List<String> partitionBy = new ArrayList<>();
   
   /**
    * Class constructor
@@ -240,6 +241,13 @@ public abstract class FeaturestoreOp {
    */
   public String getDataFormat() {
     return dataFormat;
+  }
+  
+  /**
+   * @return the columns to partition feature group by
+   */
+  public List<String> getPartitionBy() {
+    return partitionBy;
   }
   
   /**
