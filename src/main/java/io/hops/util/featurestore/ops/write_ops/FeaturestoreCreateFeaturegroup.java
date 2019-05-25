@@ -63,14 +63,14 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
     FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
     FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), dependencies, description);
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark, dataframe,
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy);
     FeaturestoreRestClient.createFeaturegroupRest(featurestore, name, version, description, jobName, dependencies,
       featuresSchema, statisticsDTO);
-    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, spark, name,
+    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
       featurestore, version);
     //Update metadata cache since we created a new feature group
     Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();

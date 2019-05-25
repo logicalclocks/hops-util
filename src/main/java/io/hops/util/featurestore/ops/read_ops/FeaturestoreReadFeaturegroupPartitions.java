@@ -27,7 +27,7 @@ public class FeaturestoreReadFeaturegroupPartitions extends FeaturestoreOp {
    */
   public Dataset<Row> read() {
     
-    return FeaturestoreHelper.getFeaturegroupPartitions(spark, name, featurestore, version);
+    return FeaturestoreHelper.getFeaturegroupPartitions(getSpark(), name, featurestore, version);
   }
   
   /**

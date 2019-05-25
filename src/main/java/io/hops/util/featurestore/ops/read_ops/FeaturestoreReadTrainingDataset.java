@@ -45,11 +45,11 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
     TrainingDatasetDoesNotExistError, IOException {
     try {
-      return doGetTrainingDataset(spark, name, Hops.getFeaturestoreMetadata()
+      return doGetTrainingDataset(getSpark(), name, Hops.getFeaturestoreMetadata()
         .setFeaturestore(featurestore).read(), version);
     } catch(Exception e) {
       Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
-      return doGetTrainingDataset(spark, name, Hops.getFeaturestoreMetadata()
+      return doGetTrainingDataset(getSpark(), name, Hops.getFeaturestoreMetadata()
         .setFeaturestore(featurestore).read(), version);
     }
   }

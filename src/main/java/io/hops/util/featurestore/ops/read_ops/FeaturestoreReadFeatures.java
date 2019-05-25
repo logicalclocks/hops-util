@@ -57,17 +57,17 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    */
   private Dataset<Row> doGetFeatures() throws FeaturestoreNotFound, JAXBException {
     if(!Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions != null){
-      return FeaturestoreHelper.getFeatures(spark, features, featurestore, featuregroupsAndVersions, joinKey);
+      return FeaturestoreHelper.getFeatures(getSpark(), features, featurestore, featuregroupsAndVersions, joinKey);
     }
     if(!Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions == null){
-      return doGetFeatures(spark, features, featurestore,
+      return doGetFeatures(getSpark(), features, featurestore,
         Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), joinKey);
     }
     if(Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions != null){
-      return doGetFeatures(spark, features, featurestore, Hops.getFeaturestoreMetadata()
+      return doGetFeatures(getSpark(), features, featurestore, Hops.getFeaturestoreMetadata()
           .setFeaturestore(featurestore).read(), featuregroupsAndVersions);
     }
-    return doGetFeatures(spark, features, featurestore, Hops.getFeaturestoreMetadata()
+    return doGetFeatures(getSpark(), features, featurestore, Hops.getFeaturestoreMetadata()
       .setFeaturestore(featurestore).read());
   }
   

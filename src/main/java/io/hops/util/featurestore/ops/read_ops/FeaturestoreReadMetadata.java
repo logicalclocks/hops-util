@@ -25,7 +25,7 @@ public class FeaturestoreReadMetadata extends FeaturestoreOp {
    *
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
-   * @return a spark dataframe with the featuregroup
+   * @return A DTO containing the featurestore metadata
    */
   public FeaturestoreMetadataDTO read() throws FeaturestoreNotFound,
     JAXBException {

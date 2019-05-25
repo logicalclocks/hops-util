@@ -59,7 +59,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
     }
-    spark.sparkContext().setJobGroup(
+    getSpark().sparkContext().setJobGroup(
       "Inserting dataframe into featuregroup",
       "Inserting into featuregroup:" + name + " in the featurestore:" +
         featurestore, true);
@@ -71,15 +71,15 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       //update cache because in the background, clearing featuregroup will give it a new id
       new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
     }
-    spark.sparkContext().setJobGroup("", "", true);
-    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, spark, name,
+    getSpark().sparkContext().setJobGroup("", "", true);
+    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
       featurestore, version);
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark, dataframe,
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version,
       descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
       corrMethod);
     FeaturestoreRestClient.updateFeaturegroupStatsRest(name, featurestore, version, statisticsDTO);
-    spark.sparkContext().setJobGroup("", "", true);
+    getSpark().sparkContext().setJobGroup("", "", true);
   }
   
   public FeaturestoreInsertIntoFeaturegroup setName(String name) {

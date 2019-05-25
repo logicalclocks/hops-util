@@ -72,7 +72,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
         "with " +
         ".setDataframe(df)");
     }
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark,
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(),
       dataframe, featurestore, version, descriptiveStats, featureCorr, featureHistograms,
       clusterAnalysis, statColumns, numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
@@ -83,7 +83,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
     String hdfsPath = trainingDatasetDTO.getHdfsStorePath() + Constants.SLASH_DELIMITER + name;
-    FeaturestoreHelper.writeTrainingDatasetHdfs(spark, dataframe, hdfsPath, dataFormat, Constants.SPARK_OVERWRITE_MODE);
+    FeaturestoreHelper.writeTrainingDatasetHdfs(getSpark(), dataframe, hdfsPath, dataFormat,
+        Constants.SPARK_OVERWRITE_MODE);
     if (dataFormat == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
       try {
         JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(dataframe);

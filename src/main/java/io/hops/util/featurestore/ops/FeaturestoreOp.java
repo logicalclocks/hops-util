@@ -32,7 +32,7 @@ import java.util.Map;
 public abstract class FeaturestoreOp {
   
   protected String name;
-  protected SparkSession spark = Hops.findSpark();
+  protected SparkSession spark = null;
   protected String featurestore = FeaturestoreHelper.featurestoreGetOrDefault(null);
   protected int version = 1;
   protected String featuregroup;
@@ -90,6 +90,9 @@ public abstract class FeaturestoreOp {
    * @return spark session to use for the operation
    */
   public SparkSession getSpark() {
+    if(spark == null){
+      spark = Hops.findSpark();
+    }
     return spark;
   }
   

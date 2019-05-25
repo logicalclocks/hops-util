@@ -26,7 +26,7 @@ public class FeaturestoreSQLQuery extends FeaturestoreOp {
    * @return a spark dataframe with the results
    */
   public Dataset<Row> read() {
-    return FeaturestoreHelper.queryFeaturestore(spark, name, featurestore);
+    return FeaturestoreHelper.queryFeaturestore(getSpark(), name, featurestore);
   }
   
   /**
