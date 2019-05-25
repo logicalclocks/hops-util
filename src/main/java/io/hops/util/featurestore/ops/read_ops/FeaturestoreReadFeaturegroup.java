@@ -26,7 +26,7 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @return a spark dataframe with the featuregroup
    */
   public Dataset<Row> read() {
-    return FeaturestoreHelper.getFeaturegroup(spark, name, featurestore, version);
+    return FeaturestoreHelper.getFeaturegroup(getSpark(), name, featurestore, version);
   }
   
   /**

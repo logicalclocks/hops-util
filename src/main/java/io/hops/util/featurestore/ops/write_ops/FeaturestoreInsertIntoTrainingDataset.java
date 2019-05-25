@@ -75,14 +75,14 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       throw new IllegalArgumentException("The supplied write mode: " + mode +
         " does not match any of the supported modes: overwrite (training datasets are immutable)");
     try {
-      doInsertIntoTrainingDataset(spark, dataframe, name, featurestore,
+      doInsertIntoTrainingDataset(getSpark(), dataframe, name, featurestore,
         Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version,
         descriptiveStats, featureCorr,
         featureHistograms, clusterAnalysis, statColumns, numBins, corrMethod, numClusters,
         mode);
     } catch (Exception e) {
       Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
-      doInsertIntoTrainingDataset(spark, dataframe, name, featurestore,
+      doInsertIntoTrainingDataset(getSpark(), dataframe, name, featurestore,
         Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version,
         descriptiveStats, featureCorr,
         featureHistograms, clusterAnalysis, statColumns, numBins, corrMethod, numClusters,

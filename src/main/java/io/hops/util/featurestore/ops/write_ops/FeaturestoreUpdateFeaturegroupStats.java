@@ -52,7 +52,7 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
     FeaturegroupDoesNotExistError {
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark, dataframe,
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
     FeaturestoreRestClient.updateFeaturegroupStatsRest(name, featurestore, version, statisticsDTO);

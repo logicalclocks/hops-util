@@ -58,9 +58,9 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, IOException, FeaturestoreNotFound,
     TrainingDatasetDoesNotExistError, TrainingDatasetFormatNotSupportedError, JWTNotFoundException {
-    Dataset<Row> sparkDf = new FeaturestoreReadTrainingDataset(name).setSpark(spark)
+    Dataset<Row> sparkDf = new FeaturestoreReadTrainingDataset(name).setSpark(getSpark())
       .setFeaturestore(featurestore).setVersion(version).read();
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, spark, sparkDf,
+    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), sparkDf,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
     FeaturestoreRestClient.updateTrainingDatasetStatsRest(name, featurestore, version, statisticsDTO);

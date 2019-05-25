@@ -37,11 +37,11 @@ public class FeaturestoreReadFeature extends FeaturestoreOp {
    */
   public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException {
     try {
-      return doGetFeature(spark, name, Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(),
+      return doGetFeature(getSpark(), name, Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(),
         featurestore);
     } catch (Exception e) {
       Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
-      return doGetFeature(spark, name, Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read()
+      return doGetFeature(getSpark(), name, Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read()
         , featurestore);
     }
   }
