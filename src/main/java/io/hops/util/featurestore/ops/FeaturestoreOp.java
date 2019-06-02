@@ -288,6 +288,7 @@ public abstract class FeaturestoreOp {
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    * @throws JWTNotFoundException JWTNotFoundException
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public abstract void write()
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
