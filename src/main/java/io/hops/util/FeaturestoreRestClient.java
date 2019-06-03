@@ -74,6 +74,7 @@ public class FeaturestoreRestClient {
    * @param featuregroupVersion the version of the featurergroup
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDeletionError FeaturegroupDeletionError
+   * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */

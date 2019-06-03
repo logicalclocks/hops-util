@@ -655,7 +655,7 @@ public class Hops {
 
   /**
    * Gets the HDFS path to a training dataset with a specific name and version in a featurestore
-   *
+   * @param trainingDataset the name of the training dataset
    * @return a lazy java object for the operation of getting the hdfs path to the training dataset.
    * The operation can be started with read() on the object and parameters can be updated with setters.
    */
