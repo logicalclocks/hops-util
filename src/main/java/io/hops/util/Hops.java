@@ -174,15 +174,15 @@ public class Hops {
 
   /**
    *  Block/unblock an IoT Gateway
-   * @param gatewayId IoT Gateway id
+   * @param gatewayName IoT Gateway id
    * @param block true - block gateway, false - unblock gateway
    * @return block param
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws HTTPSClientInitializationException HTTPSClientInitializationException
    */
-  public static boolean blockIotGateway (Integer gatewayId, boolean block)
+  public static boolean blockIotGateway (String gatewayName, boolean block)
     throws JWTNotFoundException, HTTPSClientInitializationException {
-    LOG.log(Level.INFO, "Set block status of IoT Gateway " + gatewayId + " to " + block);
+    LOG.log(Level.INFO, "Set block status of IoT Gateway " + gatewayName + " to " + block);
     
     Response response = null;
     String method = null;    
@@ -191,7 +191,7 @@ public class Hops {
     } else {
       method = HttpMethod.DELETE;
     }
-    response = clientWrapper("/project/" + projectId + "/gateways/" + gatewayId + "/blocked", method);
+    response = clientWrapper("/project/" + projectId + "/gateways/" + gatewayName + "/blocked", method);
 
     int status = response.getStatusInfo().getStatusCode();
     if (status != Response.Status.NO_CONTENT.getStatusCode() &&
