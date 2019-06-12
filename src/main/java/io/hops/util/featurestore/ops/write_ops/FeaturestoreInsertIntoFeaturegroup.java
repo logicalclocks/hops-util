@@ -6,6 +6,7 @@ import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
@@ -50,11 +51,12 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDeletionError FeaturegroupDeletionError
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-    FeaturegroupDeletionError, FeaturegroupDoesNotExistError {
+    FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled {
     if(dataframe == null){
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");

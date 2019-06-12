@@ -22,6 +22,7 @@ import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InferTFRecordSchemaError;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -1543,18 +1544,11 @@ public class FeaturestoreHelper {
   public static void writeTfRecordSchemaJson(String hdfsPath, String tfRecordSchemaJson) throws IOException {
     Configuration hdfsConf = new Configuration();
     Path filePath = new org.apache.hadoop.fs.Path(hdfsPath);
-    FSDataOutputStream outputStream = null;
-    try {
-      FileSystem hdfs = filePath.getFileSystem(hdfsConf);
-      outputStream = hdfs.create(filePath, true);
+    FileSystem hdfs = filePath.getFileSystem(hdfsConf);
+    try (FSDataOutputStream outputStream = hdfs.create(filePath, true)) {
       outputStream.writeBytes(tfRecordSchemaJson);
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Could not save tf record schema json to HDFS", e);
-    } finally {
-      if (outputStream != null) {
-        outputStream.flush();
-        outputStream.close();
-      }
     }
   }
 
@@ -1925,5 +1919,42 @@ public class FeaturestoreHelper {
     throw new TrainingDatasetDoesNotExistError("Training Dataset: " + trainingDataset + " was not found in the " +
       "featurestore: "
       + featurestore);
+  }
+  
+  /**
+   * Checks whether Hive is enabled for a given spark session
+   *
+   * @param sparkSession the spark session
+   * @return true if Hive is enabled, otherwise false
+   */
+  public static Boolean isHiveEnabled(SparkSession sparkSession) {
+    return getSparkSqlCatalogImpl(sparkSession).equalsIgnoreCase(Constants.SPARK_SQL_CATALOG_HIVE);
+  }
+  
+  /**
+   * Gets the SparkSQL catalog implementation for a spark session
+   *
+   * @param sparkSession the session to get the catalog implementation for
+   * @return the SparkSQL catalog implementation of the spark session
+   */
+  public static String getSparkSqlCatalogImpl(SparkSession sparkSession) {
+    return sparkSession.sparkContext().getConf().get(Constants.SPARK_SQL_CATALOG_IMPLEMENTATION);
+  }
+  
+  /**
+   * Verify that hive is enabled on the spark session. If Hive is not enabled, the featurestore API will not work
+   * as it depends on SparkSQL backed by Hive tables
+   *
+   * @param sparkSession the sparkSession to verify
+   * @throws HiveNotEnabled thrown if Hive is not enabled
+   */
+  public static void verifyHiveEnabled(SparkSession sparkSession) throws HiveNotEnabled {
+    if(!isHiveEnabled(sparkSession)){
+      throw new HiveNotEnabled("Hopsworks Featurestore Depends on Hive. Hive is not enabled " +
+        "for the current spark session. " +
+        "Make sure to enable hive before using the featurestore API." +
+        " The current SparkSQL catalog implementation is: " + getSparkSqlCatalogImpl(sparkSession) +
+        ", it should be: " +  Constants.SPARK_SQL_CATALOG_HIVE);
+    }
   }
 }

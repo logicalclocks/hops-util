@@ -3,6 +3,7 @@ package io.hops.util.featurestore.ops.read_ops;
 import com.google.common.base.Strings;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.FeaturegroupDTO;
@@ -34,8 +35,9 @@ public class FeaturestoreReadFeature extends FeaturestoreOp {
    * @return a spark dataframe with the feature
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
-  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException {
+  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled {
     try {
       return doGetFeature(getSpark(), name, Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(),
         featurestore);

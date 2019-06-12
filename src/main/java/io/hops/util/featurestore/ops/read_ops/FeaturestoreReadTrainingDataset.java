@@ -3,6 +3,7 @@ package io.hops.util.featurestore.ops.read_ops;
 import io.hops.util.Constants;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
@@ -40,10 +41,11 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
    * @throws IOException IOException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public Dataset<Row> read()
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
-    TrainingDatasetDoesNotExistError, IOException {
+    TrainingDatasetDoesNotExistError, IOException, HiveNotEnabled {
     try {
       return doGetTrainingDataset(getSpark(), name, Hops.getFeaturestoreMetadata()
         .setFeaturestore(featurestore).read(), version);

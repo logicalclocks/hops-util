@@ -7,6 +7,7 @@ import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
@@ -62,11 +63,12 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
-    TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException, JWTNotFoundException {
+    TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException, JWTNotFoundException, HiveNotEnabled {
     if(dataframe == null){
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
