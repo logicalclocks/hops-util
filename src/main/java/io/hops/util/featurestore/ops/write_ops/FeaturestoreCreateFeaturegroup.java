@@ -5,6 +5,7 @@ import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -50,11 +51,12 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JWTNotFoundException JWTNotFoundException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError, FeaturestoreNotFound,
-    JWTNotFoundException {
+    JWTNotFoundException, HiveNotEnabled {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with " +
@@ -74,7 +76,6 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
       featurestore, version);
     //Update metadata cache since we created a new feature group
     Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
-    
   }
   
   public FeaturestoreCreateFeaturegroup setName(String name) {

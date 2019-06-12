@@ -3,6 +3,7 @@ package io.hops.util.featurestore.ops.read_ops;
 import com.google.common.base.Strings;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.FeaturegroupDTO;
@@ -35,8 +36,9 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @return a spark dataframe with the feature
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
-  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException {
+  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled {
     if(features.isEmpty()){
       throw new IllegalArgumentException("Feature List Cannot be Empty");
     }
@@ -54,8 +56,9 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @return A spark dataframe with the features
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
-  private Dataset<Row> doGetFeatures() throws FeaturestoreNotFound, JAXBException {
+  private Dataset<Row> doGetFeatures() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled {
     if(!Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions != null){
       return FeaturestoreHelper.getFeatures(getSpark(), features, featurestore, featuregroupsAndVersions, joinKey);
     }

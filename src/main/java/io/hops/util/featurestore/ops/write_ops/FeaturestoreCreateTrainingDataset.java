@@ -6,6 +6,7 @@ import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
@@ -61,12 +62,13 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturestoreNotFound,
     TrainingDatasetCreationError, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException,
-    JWTNotFoundException {
+    JWTNotFoundException, HiveNotEnabled {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with " +
@@ -85,7 +87,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     String hdfsPath = trainingDatasetDTO.getHdfsStorePath() + Constants.SLASH_DELIMITER + name;
     FeaturestoreHelper.writeTrainingDatasetHdfs(getSpark(), dataframe, hdfsPath, dataFormat,
         Constants.SPARK_OVERWRITE_MODE);
-    if (dataFormat == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
+    if (dataFormat.equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
       try {
         JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(dataframe);
         FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getHdfsStorePath()

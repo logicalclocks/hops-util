@@ -107,6 +107,9 @@ public class Constants {
   public static final String SPARK_WRITE_HEADER = "header";
   public static final String SPARK_TF_CONNECTOR_RECORD_TYPE = "recordType";
   public static final String SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE = "Example";
+  public static final String SPARK_SQL_CATALOG_IMPLEMENTATION = "spark.sql.catalogImplementation";
+  public static final String SPARK_SQL_CATALOG_HIVE = "hive";
+  
 
   //Hive Config
   public static final String PROJECT_STAGING_DIR = "Resources";

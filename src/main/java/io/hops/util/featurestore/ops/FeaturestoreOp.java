@@ -9,6 +9,7 @@ import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -89,9 +90,10 @@ public abstract class FeaturestoreOp {
   /**
    * @return spark session to use for the operation
    */
-  public SparkSession getSpark() {
+  public SparkSession getSpark() throws HiveNotEnabled {
     if(spark == null){
       spark = Hops.findSpark();
+      FeaturestoreHelper.verifyHiveEnabled(spark);
     }
     return spark;
   }
@@ -265,10 +267,11 @@ public abstract class FeaturestoreOp {
    * @throws IOException IOException
    * @throws FeaturestoresNotFound FeaturestoresNotFound
    * @throws JWTNotFoundException JWTNotFoundException
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public abstract Object read()
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
-    TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException;
+    TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled;
   
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -289,11 +292,12 @@ public abstract class FeaturestoreOp {
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public abstract void write()
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
     TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
     TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
-    FeaturegroupDoesNotExistError;
+    FeaturegroupDoesNotExistError, HiveNotEnabled;
 }

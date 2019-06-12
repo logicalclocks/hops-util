@@ -5,6 +5,7 @@ import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
@@ -47,11 +48,12 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-    FeaturegroupDoesNotExistError {
+    FeaturegroupDoesNotExistError, HiveNotEnabled {
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);

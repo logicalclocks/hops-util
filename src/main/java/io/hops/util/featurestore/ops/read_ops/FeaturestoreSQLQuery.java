@@ -1,5 +1,6 @@
 package io.hops.util.featurestore.ops.read_ops;
 
+import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
@@ -24,8 +25,9 @@ public class FeaturestoreSQLQuery extends FeaturestoreOp {
    * Runs an SQL query against the Featurestore Hive Database
    *
    * @return a spark dataframe with the results
+   * @throws HiveNotEnabled HiveNotEnabled
    */
-  public Dataset<Row> read() {
+  public Dataset<Row> read() throws HiveNotEnabled {
     return FeaturestoreHelper.queryFeaturestore(getSpark(), name, featurestore);
   }
   
