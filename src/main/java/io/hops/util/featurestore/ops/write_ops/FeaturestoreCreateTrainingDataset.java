@@ -80,7 +80,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
       null);
     Response response = FeaturestoreRestClient.createTrainingDatasetRest(featurestore, name, version, description,
-      jobName, dataFormat, dependencies, featuresSchema, statisticsDTO);
+      jobName, dataFormat, featuresSchema, statisticsDTO);
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
@@ -183,11 +183,6 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
   
   public FeaturestoreCreateTrainingDataset setDescription(String description) {
     this.description = description;
-    return this;
-  }
-  
-  public FeaturestoreCreateTrainingDataset setDependencies(List<String> dependencies) {
-    this.dependencies = dependencies;
     return this;
   }
   

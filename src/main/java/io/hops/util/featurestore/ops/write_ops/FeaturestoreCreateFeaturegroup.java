@@ -64,13 +64,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     }
     primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
     FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
-    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), dependencies, description);
+    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy);
-    FeaturestoreRestClient.createFeaturegroupRest(featurestore, name, version, description, jobName, dependencies,
+    FeaturestoreRestClient.createFeaturegroupRest(featurestore, name, version, description, jobName,
       featuresSchema, statisticsDTO);
     FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
       featurestore, version);
@@ -160,11 +160,6 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreCreateFeaturegroup setDescription(String description) {
     this.description = description;
-    return this;
-  }
-  
-  public FeaturestoreCreateFeaturegroup setDependencies(List<String> dependencies) {
-    this.dependencies = dependencies;
     return this;
   }
   

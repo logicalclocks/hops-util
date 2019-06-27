@@ -861,11 +861,9 @@ public class FeaturestoreHelper {
    *
    * @param name the name of the feature group/training dataset
    * @param dtypes the schema of the provided spark dataframe
-   * @param dependencies the list of data dependencies of the feature group / training dataset
    * @param description the description about the feature group/training dataset
    */
-  public static void validateMetadata(String name, Tuple2<String, String>[] dtypes,
-                                      List<String> dependencies, String description) {
+  public static void validateMetadata(String name, Tuple2<String, String>[] dtypes, String description) {
     Pattern namePattern = Pattern.compile("^[a-zA-Z0-9_]+$");
     if (name.length() > 256 || name.equals("") || !namePattern.matcher(name).matches())
       throw new IllegalArgumentException("Name of feature group/training dataset cannot be empty, " +
@@ -883,15 +881,11 @@ public class FeaturestoreHelper {
             "the provided feature name: " + dtypes[i]._1 +
             " is not valid");
     }
-    if (new HashSet<>(dependencies).size() != dependencies.size()) {
-      String dependenciesStr = StringUtils.join(dependencies, ",");
-      throw new IllegalArgumentException("The list of data dependencies contains duplicates: " + dependenciesStr);
-    }
 
     if(description.length() > 2000)
       throw new IllegalArgumentException("Feature group/Training dataset description should not exceed " +
           "the maximum length of 2000 characters, " +
-          "the provided description has length:" + dependencies.size());
+          "the provided description has length:" + description.length());
   }
 
   /**

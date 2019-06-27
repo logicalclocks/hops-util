@@ -29,11 +29,11 @@ import java.util.List;
  */
 @XmlRootElement
 public class FeaturestoreMetadataDTO {
-
+  
   private FeaturestoreDTO featurestore;
   private List<FeaturegroupDTO> featuregroups;
   private List<TrainingDatasetDTO> trainingDatasets;
-
+  
   public FeaturestoreMetadataDTO() {
   }
   
@@ -49,7 +49,7 @@ public class FeaturestoreMetadataDTO {
   public List<FeaturegroupDTO> getFeaturegroups() {
     return featuregroups;
   }
-
+  
   @XmlElement
   public List<TrainingDatasetDTO> getTrainingDatasets() {
     return trainingDatasets;
@@ -63,7 +63,7 @@ public class FeaturestoreMetadataDTO {
   public void setFeaturegroups(List<FeaturegroupDTO> featuregroups) {
     this.featuregroups = featuregroups;
   }
-
+  
   public void setTrainingDatasets(List<TrainingDatasetDTO> trainingDatasets) {
     this.trainingDatasets = trainingDatasets;
   }

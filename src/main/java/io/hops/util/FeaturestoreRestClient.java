@@ -109,7 +109,6 @@ public class FeaturestoreRestClient {
    * @param featuregroupVersion the version of the featuregroup
    * @param description         the description of the featuregroup
    * @param jobName               the name of the job to compute the featuregroup
-   * @param dependencies        a list of dependencies (datasets that this featuregroup depends on)
    * @param featuresSchema      schema of features for the featuregroup
    * @param statisticsDTO       statistics about the featuregroup
    * @throws JWTNotFoundException JWTNotFoundException
@@ -119,7 +118,7 @@ public class FeaturestoreRestClient {
    */
   public static void createFeaturegroupRest(
     String featurestore, String featuregroup, int featuregroupVersion, String description,
-    String jobName, List<String> dependencies, List<FeatureDTO> featuresSchema,
+    String jobName, List<FeatureDTO> featuresSchema,
     StatisticsDTO statisticsDTO)
     throws JWTNotFoundException, JAXBException, FeaturegroupCreationError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Creating featuregroup " + featuregroup + " in featurestore: " + featurestore);
@@ -128,7 +127,6 @@ public class FeaturestoreRestClient {
     json.put(Constants.JSON_FEATUREGROUP_VERSION, featuregroupVersion);
     json.put(Constants.JSON_FEATUREGROUP_DESCRIPTION, description);
     json.put(Constants.JSON_FEATUREGROUP_JOBNAME, jobName);
-    json.put(Constants.JSON_FEATUREGROUP_DEPENDENCIES, dependencies);
     json.put(Constants.JSON_FEATUREGROUP_FEATURES,
       FeaturestoreHelper.convertFeatureDTOsToJsonObjects(featuresSchema));
     json.put(Constants.JSON_FEATUREGROUP_FEATURE_CORRELATION,
@@ -169,7 +167,6 @@ public class FeaturestoreRestClient {
    * @param trainingDatasetVersion the version of the training dataset
    * @param description            the description of the training dataset
    * @param jobName                the name of the job to compute the training dataset
-   * @param dependencies           a list of dependencies (datasets that this training dataset depends on)
    * @param featuresSchema         schema of features for the training dataset
    * @param statisticsDTO          statistics about the featuregroup
    * @param dataFormat             format of the dataset (e.g tfrecords)
@@ -181,7 +178,7 @@ public class FeaturestoreRestClient {
    */
   public static Response createTrainingDatasetRest(
     String featurestore, String trainingDataset, int trainingDatasetVersion, String description,
-    String jobName, String dataFormat, List<String> dependencies, List<FeatureDTO> featuresSchema,
+    String jobName, String dataFormat, List<FeatureDTO> featuresSchema,
     StatisticsDTO statisticsDTO)
     throws JWTNotFoundException, JAXBException, TrainingDatasetCreationError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Creating Training Dataset " + trainingDataset + " in featurestore: " + featurestore);
@@ -190,7 +187,6 @@ public class FeaturestoreRestClient {
     json.put(Constants.JSON_TRAINING_DATASET_VERSION, trainingDatasetVersion);
     json.put(Constants.JSON_TRAINING_DATASET_DESCRIPTION, description);
     json.put(Constants.JSON_TRAINING_DATASET_JOBNAME, jobName);
-    json.put(Constants.JSON_TRAINING_DATASET_DEPENDENCIES, dependencies);
     json.put(Constants.JSON_TRAINING_DATASET_FORMAT, dataFormat);
     json.put(Constants.JSON_TRAINING_DATASET_SCHEMA,
       FeaturestoreHelper.convertFeatureDTOsToJsonObjects(featuresSchema));

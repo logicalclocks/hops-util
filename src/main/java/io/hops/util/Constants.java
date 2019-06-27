@@ -71,7 +71,6 @@ public class Constants {
   public static final String JSON_FEATUREGROUP_VERSION = "version";
   public static final String JSON_FEATUREGROUP_JOBNAME = "jobName";
   public static final String JSON_FEATUREGROUP_FEATURES = "features";
-  public static final String JSON_FEATUREGROUP_DEPENDENCIES = "dependencies";
   public static final String JSON_FEATUREGROUP_DESCRIPTION = "description";
   public static final String JSON_FEATUREGROUP_FEATURE_CORRELATION = "featureCorrelationMatrix";
   public static final String JSON_FEATUREGROUP_DESC_STATS = "descriptiveStatistics";
@@ -86,7 +85,7 @@ public class Constants {
   public static final String JSON_TRAINING_DATASET_FORMAT = "dataFormat";
   public static final String JSON_TRAINING_DATASET_SCHEMA = "features";
   public static final String JSON_TRAINING_DATASET_VERSION = "version";
-  public static final String JSON_TRAINING_DATASET_DEPENDENCIES = "dependencies";
+
   public static final String JSON_TRAINING_DATASET_DESCRIPTION = "description";
   public static final String JSON_TRAINING_DATASET_FEATURE_CORRELATION = "featureCorrelationMatrix";
   public static final String JSON_TRAINING_DATASET_FEATURES_HISTOGRAM = "featuresHistogram";

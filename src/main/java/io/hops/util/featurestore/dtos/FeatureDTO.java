@@ -22,15 +22,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement
 public class FeatureDTO {
-
   private String name;
   private String type;
   private String description;
   private Boolean primary = false;
   private Boolean partition = false;
-
-  public FeatureDTO() {
-  }
+  
+  public FeatureDTO(){}
   
   public FeatureDTO(String name, String type, String description, Boolean primary, Boolean partition) {
     this.name = name;
@@ -40,21 +38,27 @@ public class FeatureDTO {
     this.partition = partition;
   }
   
+  public FeatureDTO(String name, String type, String description) {
+    this.name = name;
+    this.type = type;
+    this.description = description;
+  }
+  
   @XmlElement
   public String getName() {
     return name;
   }
-
+  
   @XmlElement
   public String getType() {
     return type;
   }
-
+  
   @XmlElement
   public String getDescription() {
     return description;
   }
-
+  
   @XmlElement
   public Boolean getPrimary() {
     return primary;
@@ -65,20 +69,20 @@ public class FeatureDTO {
     return partition;
   }
   
+  public void setPrimary(Boolean primary) {
+    this.primary = primary;
+  }
+  
   public void setName(String name) {
     this.name = name;
   }
-
+  
   public void setType(String type) {
     this.type = type;
   }
-
+  
   public void setDescription(String description) {
     this.description = description;
-  }
-
-  public void setPrimary(Boolean primary) {
-    this.primary = primary;
   }
   
   public void setPartition(Boolean partition) {

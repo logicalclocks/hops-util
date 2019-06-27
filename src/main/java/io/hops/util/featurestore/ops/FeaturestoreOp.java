@@ -53,7 +53,6 @@ public abstract class FeaturestoreOp {
   protected String jobName = FeaturestoreHelper.jobNameGetOrDefault(null);
   protected String primaryKey;
   protected String description = "";
-  protected List<String> dependencies = new ArrayList<>();
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
   protected List<String> partitionBy = new ArrayList<>();
   
@@ -232,13 +231,6 @@ public abstract class FeaturestoreOp {
    */
   public String getDescription() {
     return description;
-  }
-  
-  /**
-   * @return list of the datasets that this featuregroup depends on (e.g input datasets to the feature engineering job)
-   */
-  public List<String> getDependencies() {
-    return dependencies;
   }
   
   /**

@@ -35,61 +35,55 @@ import java.util.List;
  */
 @XmlRootElement
 public class TrainingDatasetDTO extends FeaturestoreEntityDTO {
-
+  
   private String hdfsStorePath;
   private String dataFormat;
   private Long size;
-
-  public TrainingDatasetDTO(
-      Integer featurestoreId, String featurestoreName, String description, Date created, String creator,
-      Integer jobId, String jobName, Date lastComputed, String jobStatus, Integer version, Long inodeId,
-      DescriptiveStatsDTO descriptiveStatistics, FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-      FeatureDistributionsDTO featuresHistogram, ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
-      List<FeaturestoreDependencyDTO> dependencies, List<FeatureDTO> features,
-      String hdfsStorePath, String dataFormat, Long size) {
+  
+  public TrainingDatasetDTO(Integer featurestoreId, String featurestoreName, String description, Date created,
+    String creator, Integer jobId, String jobName, Date lastComputed, String jobStatus,
+    Integer version, Long inodeId,
+    DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name,
+    Integer id, List<FeatureDTO> features, String location, String hdfsStorePath, String dataFormat,
+    Long size) {
     super(featurestoreId, featurestoreName, description, created, creator, jobId, jobName, lastComputed, jobStatus,
-        version, inodeId, descriptiveStatistics, featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name,
-        id, dependencies, features);
+      version, inodeId, descriptiveStatistics, featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id,
+      features, location);
     this.hdfsStorePath = hdfsStorePath;
     this.dataFormat = dataFormat;
     this.size = size;
   }
-
+  
   public TrainingDatasetDTO() {
   }
-
+  
   @XmlElement
   public String getHdfsStorePath() {
     return hdfsStorePath;
   }
-
+  
   @XmlElement
   public String getDataFormat() {
     return dataFormat;
   }
-
+  
   @XmlElement
   public Long getSize() {
     return size;
   }
-
+  
   public void setHdfsStorePath(String hdfsStorePath) {
     this.hdfsStorePath = hdfsStorePath;
   }
-
-  public void setDataFormat(String dataFormat) {
-    this.dataFormat = dataFormat;
-  }
-
-  public void setSize(Long size) {
-    this.size = size;
-  }
-
+  
   @Override
   public String toString() {
     return "TrainingDatasetDTO{" +
-        ", hdfsStorePath='" + hdfsStorePath + '\'' +
-        ", dataFormat='" + dataFormat + '\'' +
-        '}';
+      ", hdfsStorePath='" + hdfsStorePath + '\'' +
+      ", dataFormat='" + dataFormat + '\'' +
+      '}';
   }
 }

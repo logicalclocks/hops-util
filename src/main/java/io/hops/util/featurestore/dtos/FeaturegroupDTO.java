@@ -35,39 +35,65 @@ import java.util.List;
  */
 @XmlRootElement
 public class FeaturegroupDTO extends FeaturestoreEntityDTO {
-
+  
   private List<String> hdfsStorePaths;
-
-  public FeaturegroupDTO(
-      Integer featurestoreId, String featurestoreName, String description, Date created,
-      String creator, Integer jobId, String jobName, Date lastComputed, String jobStatus, Integer version,
-      Long inodeId, DescriptiveStatsDTO descriptiveStatistics, FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-      FeatureDistributionsDTO featuresHistogram, ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
-      List<FeaturestoreDependencyDTO> dependencies, List<FeatureDTO> features, List<String> hdfsStorePaths) {
+  private String inputFormat;
+  private HiveTableType hiveTableType;
+  
+  public FeaturegroupDTO(Integer featurestoreId, String featurestoreName, String description, Date created,
+    String creator, Integer jobId, String jobName, Date lastComputed, String jobStatus, Integer version,
+    Long inodeId, DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
+    List<FeatureDTO> features, String location, List<String> hdfsStorePaths, String inputFormat,
+    HiveTableType hiveTableType) {
     super(featurestoreId, featurestoreName, description, created, creator, jobId, jobName, lastComputed, jobStatus,
-        version, inodeId, descriptiveStatistics, featureCorrelationMatrix, featuresHistogram, clusterAnalysis,
-        name, id, dependencies, features);
+      version, inodeId, descriptiveStatistics, featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id,
+      features, location);
     this.hdfsStorePaths = hdfsStorePaths;
+    this.inputFormat = inputFormat;
+    this.hiveTableType = hiveTableType;
   }
-
+  
   public FeaturegroupDTO() {
+  
   }
-
+  
   @XmlElement
   public List<String> getHdfsStorePaths() {
     return hdfsStorePaths;
   }
-
-
+  
+  
   public void setHdfsStorePaths(List<String> hdfsStorePaths) {
     this.hdfsStorePaths = hdfsStorePaths;
   }
-
+  
+  @XmlElement
+  public String getInputFormat() {
+    return inputFormat;
+  }
+  
+  public void setInputFormat(String inputFormat) {
+    this.inputFormat = inputFormat;
+  }
+  
+  @XmlElement
+  public HiveTableType getHiveTableType() {
+    return hiveTableType;
+  }
+  
+  public void setHiveTableType(HiveTableType hiveTableType) {
+    this.hiveTableType = hiveTableType;
+  }
+  
   @Override
   public String toString() {
     return "FeaturegroupDTO{" +
-        ", hdfsStorePaths=" + hdfsStorePaths +
-        '}';
+      "hdfsStorePaths=" + hdfsStorePaths +
+      ", inputFormat='" + inputFormat + '\'' +
+      ", hiveTableType=" + hiveTableType +
+      '}';
   }
-
 }

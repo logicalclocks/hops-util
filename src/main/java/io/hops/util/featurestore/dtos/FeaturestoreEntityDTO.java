@@ -34,15 +34,17 @@ public abstract class FeaturestoreEntityDTO {
   private ClusterAnalysisDTO clusterAnalysis;
   private String name;
   private Integer id;
-  private List<FeaturestoreDependencyDTO> dependencies;
   private List<FeatureDTO> features;
-
-  public FeaturestoreEntityDTO(
-      Integer featurestoreId, String featurestoreName, String description, Date created, String creator,
-      Integer jobId, String jobName, Date lastComputed, String jobStatus, Integer version, Long inodeId,
-      DescriptiveStatsDTO descriptiveStatistics, FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-      FeatureDistributionsDTO featuresHistogram, ClusterAnalysisDTO clusterAnalysis, String name,
-      Integer id, List<FeaturestoreDependencyDTO> dependencies, List<FeatureDTO> features) {
+  private String location;
+  
+  public FeaturestoreEntityDTO(Integer featurestoreId, String featurestoreName, String description,
+    Date created, String creator, Integer jobId, String jobName, Date lastComputed, String jobStatus,
+    Integer version, Long inodeId,
+    DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
+    List<FeatureDTO> features, String location) {
     this.featurestoreId = featurestoreId;
     this.featurestoreName = featurestoreName;
     this.description = description;
@@ -60,205 +62,210 @@ public abstract class FeaturestoreEntityDTO {
     this.clusterAnalysis = clusterAnalysis;
     this.name = name;
     this.id = id;
-    this.dependencies = dependencies;
     this.features = features;
+    this.location = location;
   }
-
-  public FeaturestoreEntityDTO() {
+  
+  public FeaturestoreEntityDTO(){
+  
   }
-
+  
   @XmlElement
   public Date getCreated() {
     return created;
   }
-
+  
   @XmlElement
   public String getCreator() {
     return creator;
   }
-
+  
   @XmlElement(nillable = true)
   public Integer getJobId() {
     return jobId;
   }
-
+  
   @XmlElement(nillable = true)
   public String getJobName() {
     return jobName;
   }
-
+  
   @XmlElement(nillable = true)
   public Date getLastComputed() {
     return lastComputed;
   }
-
+  
   @XmlElement
   public String getDescription() {
     return description;
   }
-
+  
   @XmlElement
   public Integer getVersion() {
     return version;
   }
-
+  
   @XmlElement(nillable = true)
   public String getJobStatus() {
     return jobStatus;
   }
-
+  
   @XmlElement
   public Long getInodeId() {
     return inodeId;
   }
-
+  
   @XmlElement
   public Integer getFeaturestoreId() {
     return featurestoreId;
   }
-
+  
   @XmlElement
   public String getFeaturestoreName() {
     return featurestoreName;
   }
-
+  
   @XmlElement(nillable = true)
   public FeatureCorrelationMatrixDTO getFeatureCorrelationMatrix() {
     return featureCorrelationMatrix;
   }
-
+  
   @XmlElement(nillable = true)
   public FeatureDistributionsDTO getFeaturesHistogram() {
     return featuresHistogram;
   }
-
+  
   @XmlElement(nillable = true)
   public ClusterAnalysisDTO getClusterAnalysis() {
     return clusterAnalysis;
   }
-
+  
   @XmlElement(nillable = true)
   public DescriptiveStatsDTO getDescriptiveStatistics() {
     return descriptiveStatistics;
   }
-
+  
   @XmlElement
   public String getName() {
     return name;
   }
-
+  
   @XmlElement
   public Integer getId() {
     return id;
   }
-
-  @XmlElement
-  public List<FeaturestoreDependencyDTO> getDependencies() {
-    return dependencies;
-  }
-
+  
   @XmlElement
   public List<FeatureDTO> getFeatures() {
     return features;
   }
-
-  public void setFeaturestoreId(Integer featurestoreId) {
-    this.featurestoreId = featurestoreId;
+  
+  @XmlElement
+  public String getLocation() {
+    return location;
   }
-
-  public void setFeaturestoreName(String featurestoreName) {
-    this.featurestoreName = featurestoreName;
+  
+  public void setLocation(String location) {
+    this.location = location;
   }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public void setCreated(Date created) {
-    this.created = created;
-  }
-
-  public void setCreator(String creator) {
-    this.creator = creator;
-  }
-
-  public void setJobId(Integer jobId) {
-    this.jobId = jobId;
-  }
-
-  public void setJobName(String jobName) {
-    this.jobName = jobName;
-  }
-
-  public void setLastComputed(Date lastComputed) {
-    this.lastComputed = lastComputed;
-  }
-
-  public void setJobStatus(String jobStatus) {
-    this.jobStatus = jobStatus;
-  }
-
-  public void setVersion(Integer version) {
-    this.version = version;
-  }
-
-  public void setInodeId(Long inodeId) {
-    this.inodeId = inodeId;
-  }
-
-  public void setDescriptiveStatistics(DescriptiveStatsDTO descriptiveStatistics) {
-    this.descriptiveStatistics = descriptiveStatistics;
-  }
-
-  public void setFeatureCorrelationMatrix(FeatureCorrelationMatrixDTO featureCorrelationMatrix) {
-    this.featureCorrelationMatrix = featureCorrelationMatrix;
-  }
-
-  public void setFeaturesHistogram(FeatureDistributionsDTO featuresHistogram) {
-    this.featuresHistogram = featuresHistogram;
-  }
-
-  public void setClusterAnalysis(ClusterAnalysisDTO clusterAnalysis) {
-    this.clusterAnalysis = clusterAnalysis;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public void setId(Integer id) {
-    this.id = id;
-  }
-
-  public void setDependencies(List<FeaturestoreDependencyDTO> dependencies) {
-    this.dependencies = dependencies;
-  }
-
+  
   public void setFeatures(List<FeatureDTO> features) {
     this.features = features;
   }
-
+  
+  public void setFeaturestoreName(String featurestoreName) {
+    this.featurestoreName = featurestoreName;
+  }
+  
+  public void setDescription(String description) {
+    this.description = description;
+  }
+  
+  public void setInodeId(Long inodeId) {
+    this.inodeId = inodeId;
+  }
+  
+  public void setName(String name) {
+    this.name = name;
+  }
+  
+  public void setDescriptiveStatistics(
+    DescriptiveStatsDTO descriptiveStatistics) {
+    this.descriptiveStatistics = descriptiveStatistics;
+  }
+  
+  public void setFeatureCorrelationMatrix(
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix) {
+    this.featureCorrelationMatrix = featureCorrelationMatrix;
+  }
+  
+  public void setFeaturesHistogram(
+    FeatureDistributionsDTO featuresHistogram) {
+    this.featuresHistogram = featuresHistogram;
+  }
+  
+  public void setClusterAnalysis(
+    ClusterAnalysisDTO clusterAnalysis) {
+    this.clusterAnalysis = clusterAnalysis;
+  }
+  
+  public void setFeaturestoreId(Integer featurestoreId) {
+    this.featurestoreId = featurestoreId;
+  }
+  
+  public void setCreated(Date created) {
+    this.created = created;
+  }
+  
+  public void setCreator(String creator) {
+    this.creator = creator;
+  }
+  
+  public void setJobId(Integer jobId) {
+    this.jobId = jobId;
+  }
+  
+  public void setJobName(String jobName) {
+    this.jobName = jobName;
+  }
+  
+  public void setLastComputed(Date lastComputed) {
+    this.lastComputed = lastComputed;
+  }
+  
+  public void setJobStatus(String jobStatus) {
+    this.jobStatus = jobStatus;
+  }
+  
+  public void setVersion(Integer version) {
+    this.version = version;
+  }
+  
+  public void setId(Integer id) {
+    this.id = id;
+  }
+  
   @Override
   public String toString() {
     return "FeaturestoreEntityDTO{" +
-        "featurestoreId=" + featurestoreId +
-        ", featurestoreName='" + featurestoreName + '\'' +
-        ", description='" + description + '\'' +
-        ", created='" + created + '\'' +
-        ", creator='" + creator + '\'' +
-        ", jobId=" + jobId +
-        ", jobName='" + jobName + '\'' +
-        ", lastComputed='" + lastComputed + '\'' +
-        ", jobStatus='" + jobStatus + '\'' +
-        ", version=" + version +
-        ", inodeId=" + inodeId +
-        ", descriptiveStatistics=" + descriptiveStatistics +
-        ", featureCorrelationMatrix=" + featureCorrelationMatrix +
-        ", featuresHistogram=" + featuresHistogram +
-        ", clusterAnalysis=" + clusterAnalysis +
-        ", dependencies=" + dependencies +
-        ", name='" + name + '\'' +
-        ", id=" + id +
-        '}';
+      "featurestoreId=" + featurestoreId +
+      ", featurestoreName='" + featurestoreName + '\'' +
+      ", description='" + description + '\'' +
+      ", created='" + created + '\'' +
+      ", creator='" + creator + '\'' +
+      ", jobId=" + jobId +
+      ", jobName='" + jobName + '\'' +
+      ", lastComputed='" + lastComputed + '\'' +
+      ", jobStatus='" + jobStatus + '\'' +
+      ", version=" + version +
+      ", inodeId=" + inodeId +
+      ", descriptiveStatistics=" + descriptiveStatistics +
+      ", featureCorrelationMatrix=" + featureCorrelationMatrix +
+      ", featuresHistogram=" + featuresHistogram +
+      ", clusterAnalysis=" + clusterAnalysis +
+      ", name='" + name + '\'' +
+      ", id=" + id +
+      '}';
   }
+  
 }
