@@ -46,6 +46,7 @@ public class Constants {
   public static final String JOBTYPE_ENV_VAR = "hopsworks.job.type";
   public static final String T_CERTIFICATE_ENV_VAR = "t_certificate";
   public static final String HOPSWORKS_RESTENDPOINT = "hopsworks.restendpoint";
+  public static final String HOPSUTIL_INSECURE = "hopsutil.insecure";
   public static final String JOBNAME_ENV_VAR = "hopsworks.job.name";
   public static final String APPID_ENV_VAR = "hopsworks.job.appid";
   public static final String PROJECTNAME_ENV_VAR = "hopsworks.projectname";
