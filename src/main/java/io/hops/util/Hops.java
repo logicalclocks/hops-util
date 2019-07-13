@@ -190,7 +190,8 @@ public class Hops {
     json.append("topicName", topic);
     Response response = null;
     try {
-      response = clientWrapper(json, "/project/" + projectId + "/kafka/" + topic + "/schema", HttpMethod.GET);
+      response = clientWrapper(json, "/project/" + projectId + "/kafka/" + topic + "/schema",
+          HttpMethod.GET, null);
     } catch (HTTPSClientInitializationException e) {
       throw new SchemaNotFoundException(e.getMessage());
     }
@@ -215,13 +216,13 @@ public class Hops {
     return properties;
   }
 
-  protected static Response clientWrapper(String path, String httpMethod) throws HTTPSClientInitializationException,
-    JWTNotFoundException {
-    return clientWrapper(null, path, httpMethod);
+  protected static Response clientWrapper(String path, String httpMethod, Map<String, Object> queryParams)
+      throws HTTPSClientInitializationException, JWTNotFoundException {
+    return clientWrapper(null, path, httpMethod, queryParams);
   }
-  protected static Response clientWrapper(JSONObject json, String path, String httpMethod) throws
-    HTTPSClientInitializationException, JWTNotFoundException {
-
+  protected static Response clientWrapper(
+      JSONObject json, String path, String httpMethod, Map<String, Object> queryParams) throws
+      HTTPSClientInitializationException, JWTNotFoundException {
     Client client;
     try {
       client = initClient();
@@ -229,6 +230,11 @@ public class Hops {
       throw new HTTPSClientInitializationException("Could not retrieve credentials from local working directory", e);
     }
     WebTarget webTarget = client.target(Hops.getRestEndpoint() + "/").path(Constants.HOPSWORKS_REST_RESOURCE + path);
+    if(queryParams!= null && !queryParams.isEmpty()){
+      for (Map.Entry<String, Object> entry : queryParams.entrySet()) {
+        webTarget = webTarget.queryParam(entry.getKey(), entry.getValue());
+      }
+    }
     LOG.log(Level.FINE, "webTarget.getUri().getHost():" + webTarget.getUri().getHost());
     LOG.log(Level.FINE, "webTarget.getUri().getPort():" + webTarget.getUri().getPort());
     LOG.log(Level.FINE, "webTarget.getUri().getPath():" + webTarget.getUri().getPath());

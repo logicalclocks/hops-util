@@ -9,8 +9,11 @@ import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.ops.FeaturestoreOp;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -57,7 +60,26 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
-    FeaturestoreRestClient.updateFeaturegroupStatsRest(name, featurestore, version, statisticsDTO);
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
+        name, version);
+    Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
+    FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(featuregroupDTO, statisticsDTO),
+      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
+  }
+  
+  /**
+   * Groups input parameters into a DTO representation
+   *
+   * @param statisticsDTO statistics computed based on the dataframe
+   * @return FeaturegroupDTO
+   */
+  private FeaturegroupDTO groupInputParamsIntoDTO(FeaturegroupDTO featuregroupDTO, StatisticsDTO statisticsDTO){
+    featuregroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    featuregroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    return featuregroupDTO;
   }
   
   public FeaturestoreUpdateFeaturegroupStats setName(String name) {

@@ -26,87 +26,114 @@ import java.util.Date;
  */
 @XmlRootElement
 public class FeaturestoreDTO {
-  
+
+  private Integer featurestoreId;
   private String featurestoreName;
-  private String featurestoreDescription;
+  private Date created;
   private String hdfsStorePath;
-  private Long inodeId;
   private String projectName;
   private Integer projectId;
-  private Integer featurestoreId;
-  private Date created;
-  
+  private String featurestoreDescription;
+  private Long inodeId;
+
   public FeaturestoreDTO() {
   }
-  
-  @XmlElement
-  public String getFeaturestoreName() {
-    return featurestoreName;
+
+  public FeaturestoreDTO(Integer featurestoreId, String featurestoreName, Date created, String hdfsStorePath,
+                         String projectName, Integer projectId, String featurestoreDescription, Long inodeId) {
+    this.featurestoreId = featurestoreId;
+    this.featurestoreName = featurestoreName;
+    this.created = created;
+    this.hdfsStorePath = hdfsStorePath;
+    this.projectName = projectName;
+    this.projectId = projectId;
+    this.featurestoreDescription = featurestoreDescription;
+    this.inodeId = inodeId;
   }
-  
-  @XmlElement
-  public String getFeaturestoreDescription() {
-    return featurestoreDescription;
-  }
-  
+
   @XmlElement
   public String getHdfsStorePath() {
     return hdfsStorePath;
   }
-  
+
   @XmlElement
-  public Long getInodeId() {
-    return inodeId;
+  public String getFeaturestoreName() {
+    return featurestoreName;
   }
-  
-  @XmlElement
-  public String getProjectName() {
-    return projectName;
-  }
-  
-  @XmlElement
-  public Integer getProjectId() {
-    return projectId;
-  }
-  
+
   @XmlElement
   public Integer getFeaturestoreId() {
     return featurestoreId;
   }
-  
+
+  @XmlElement
   public Date getCreated() {
     return created;
   }
-  
-  public void setHdfsStorePath(String hdfsStorePath) {
-    this.hdfsStorePath = hdfsStorePath;
+
+  @XmlElement
+  public String getProjectName() {
+    return projectName;
   }
-  
-  public void setFeaturestoreName(String featurestoreName) {
-    this.featurestoreName = featurestoreName;
+
+  @XmlElement
+  public Integer getProjectId() {
+    return projectId;
   }
-  
+
+  @XmlElement(nillable = true)
+  public String getFeaturestoreDescription() {
+    return featurestoreDescription;
+  }
+
+  @XmlElement
+  public Long getInodeId() {
+    return inodeId;
+  }
+
   public void setFeaturestoreDescription(String featurestoreDescription) {
     this.featurestoreDescription = featurestoreDescription;
   }
-  
+
+  public void setFeaturestoreName(String featurestoreName) {
+    this.featurestoreName = featurestoreName;
+  }
+
+  public void setHdfsStorePath(String hdfsStorePath) {
+    this.hdfsStorePath = hdfsStorePath;
+  }
+
   public void setInodeId(Long inodeId) {
     this.inodeId = inodeId;
   }
-  
-  public void setProjectName(String projectName) {
-    this.projectName = projectName;
-  }
-  
-  public void setProjectId(Integer projectId) {
-    this.projectId = projectId;
-  }
-  
+
   public void setFeaturestoreId(Integer featurestoreId) {
     this.featurestoreId = featurestoreId;
   }
-  
+
   public void setCreated(Date created) {
     this.created = created;
+  }
+
+  public void setProjectName(String projectName) {
+    this.projectName = projectName;
+  }
+
+  public void setProjectId(Integer projectId) {
+    this.projectId = projectId;
+  }
+
+  @Override
+  public String toString() {
+    return "FeaturestoreDTO{" +
+        "featurestoreId=" + featurestoreId +
+        ", featurestoreName='" + featurestoreName + '\'' +
+        ", created='" + created + '\'' +
+        ", hdfsStorePath='" + hdfsStorePath + '\'' +
+        ", projectName='" + projectName + '\'' +
+        ", projectId=" + projectId +
+        ", featurestoreDescription='" + featurestoreDescription + '\'' +
+        ", inodeId=" + inodeId +
+        '}';
   }
 }

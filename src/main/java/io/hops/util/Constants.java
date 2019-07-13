@@ -66,7 +66,10 @@ public class Constants {
   public static final String JSON_KEYSTORE = "keyStore";
 
   public static final String JSON_FEATURESTORE_NAME = "featurestoreName";
+  public static final String JSON_FEATURESTORE_ENTITY_TYPE = "type";
 
+  public static final String JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM = "updateStats";
+  public static final String JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM = "updateMetadata";
   public static final String JSON_FEATUREGROUP_NAME = "name";
   public static final String JSON_FEATUREGROUP_VERSION = "version";
   public static final String JSON_FEATUREGROUP_JOBNAME = "jobName";
@@ -78,6 +81,7 @@ public class Constants {
   public static final String JSON_FEATUREGROUP_UPDATE_STATS = "updateStats";
   public static final String JSON_FEATUREGROUP_FEATURES_HISTOGRAM = "featuresHistogram";
   public static final String JSON_FEATUREGROUP_CLUSTER_ANALYSIS = "clusterAnalysis";
+  public static final String JSON_FEATUREGROUP_TYPE =  "featuregroupType";
   
   public static final String JSON_FEATURE_DESCRIPTION = "description";
 
@@ -93,6 +97,9 @@ public class Constants {
   public static final String JSON_TRAINING_DATASET_DESC_STATS = "descriptiveStatistics";
   public static final String JSON_TRAINING_DATASET_JOBNAME = "jobName";
   public static final String JSON_TRAINING_DATASET_UPDATE_METADATA = "updateMetadata";
+  public static final String JSON_TRAINING_DATASET_S3_CONNECTOR_ID = "s3ConnectorId";
+  public static final String JSON_TRAINING_DATASET_HOPSFS_CONNECTOR_ID = "hopsfsConnectorId";
+  public static final String JSON_TRAINING_DATASET_TYPE =  "trainingDatasetType";
 
   public static final String JSON_ERROR_CODE = "errorCode";
   public static final String JSON_ERROR_MSG = "errorMsg";
@@ -116,6 +123,8 @@ public class Constants {
   public static final String PROJECT_ROOT_DIR = "Projects";
 
   //Featurestore properties
+  public static final String FEATURESTORE_SUFFIX =  "_featurestore";
+  public static final String TRAINING_DATASETS_SUFFIX =  "_Training_Datasets";
   public static final String TRAINING_DATASET_CSV_FORMAT = "csv";
   public static final String TRAINING_DATASET_TSV_FORMAT = "tsv";
   public static final String TRAINING_DATASET_PARQUET_FORMAT = "parquet";
@@ -152,6 +161,7 @@ public class Constants {
   public static final String SLASH_DELIMITER = "/";
   public static final String COMMA_DELIMITER = ",";
   public static final String TAB_DELIMITER = "\t";
+  public static final String AMPERSAND_DELIMITER = "&";
   public static final String HDFS_DEFAULT = "hdfs://default";
   public static final int MAX_CORRELATION_MATRIX_COLUMNS = 50;
 

@@ -4,9 +4,9 @@ import com.google.common.base.Strings;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
-import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.dtos.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -65,8 +65,8 @@ public class FeaturestoreReadFeature extends FeaturestoreOp {
    * @return A dataframe with the feature
    */
   private Dataset<Row> doGetFeature(
-    SparkSession sparkSession, String feature,
-    FeaturestoreMetadataDTO featurestoreMetadata, String featurestore) {
+      SparkSession sparkSession, String feature,
+      FeaturestoreMetadataDTO featurestoreMetadata, String featurestore) {
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     if(Strings.isNullOrEmpty(featuregroup)) {

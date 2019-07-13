@@ -1,15 +1,19 @@
 package io.hops.util.featurestore.ops.read_ops;
 
-import io.hops.util.Constants;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
-import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -22,7 +26,7 @@ import java.util.List;
  * Builder class for Read-TrainingDataset operation on the Hopsworks Featurestore
  */
 public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
-  
+
   /**
    * Constructor
    *
@@ -31,7 +35,7 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
   public FeaturestoreReadTrainingDataset(String name) {
     super(name);
   }
-  
+
   /**
    * Gets a training dataset from a particular featurestore
    *
@@ -42,10 +46,11 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
    * @throws IOException IOException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public Dataset<Row> read()
-    throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
-    TrainingDatasetDoesNotExistError, IOException, HiveNotEnabled {
+      throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
+      TrainingDatasetDoesNotExistError, IOException, HiveNotEnabled, StorageConnectorDoesNotExistError {
     try {
       return doGetTrainingDataset(getSpark(), name, Hops.getFeaturestoreMetadata()
         .setFeaturestore(featurestore).read(), version);
@@ -55,14 +60,14 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
         .setFeaturestore(featurestore).read(), version);
     }
   }
-  
+
   /**
    * Method call to execute write operation
    */
   public void write(){
     throw new UnsupportedOperationException("write() is not supported on a read operation");
   }
-  
+
   /**
    * Gets a training dataset from a featurestore
    *
@@ -76,38 +81,77 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    * @throws IOException IOException
    */
   private Dataset<Row> doGetTrainingDataset(
-    SparkSession sparkSession, String trainingDataset,
-    FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion)
-    throws TrainingDatasetDoesNotExistError,
-    TrainingDatasetFormatNotSupportedError, IOException {
+      SparkSession sparkSession, String trainingDataset,
+      FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion)
+      throws TrainingDatasetDoesNotExistError,
+      TrainingDatasetFormatNotSupportedError, IOException, StorageConnectorDoesNotExistError {
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
       trainingDataset, trainingDatasetVersion);
-    String hdfsPath = Constants.HDFS_DEFAULT + trainingDatasetDTO.getHdfsStorePath() +
-      Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
-    return FeaturestoreHelper.getTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
-      hdfsPath);
+    if(trainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
+      return doGetHopsfsTrainingDataset(trainingDatasetDTO, sparkSession);
+    } else {
+      return doGetExternalTrainingDataset(trainingDatasetDTO, sparkSession, featurestoreMetadata);
+    }
   }
   
+  /**
+   * Reads a HopsFS training Dataset
+   *
+   * @param trainingDatasetDTO DTO of the training dataset to read
+   * @param sparkSession the spark session to use when reading ( the dataset is read from Hopsfs using Spark)
+   * @return a dataframe with the training dataset
+   * @throws TrainingDatasetFormatNotSupportedError
+   * @throws TrainingDatasetDoesNotExistError
+   * @throws IOException
+   */
+  private Dataset<Row> doGetHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO, SparkSession sparkSession)
+    throws TrainingDatasetFormatNotSupportedError, TrainingDatasetDoesNotExistError, IOException {
+    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
+    String path = FeaturestoreHelper.getHopsfsTrainingDatasetPath(hopsfsTrainingDatasetDTO);
+    return FeaturestoreHelper.getHopsfsTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
+      path);
+  }
+  
+  /**
+   * Reads an external training dataset
+   *
+   * @param trainingDatasetDTO DTO of the training dataset
+   * @param sparkSession the sparksession (spark is used to read the dataset)
+   * @param featurestoreMetadataDTO featurestore metadata
+   * @return Spark dataframe with the training dataset
+   * @throws StorageConnectorDoesNotExistError
+   */
+  private Dataset<Row> doGetExternalTrainingDataset(
+    TrainingDatasetDTO trainingDatasetDTO, SparkSession sparkSession, FeaturestoreMetadataDTO featurestoreMetadataDTO)
+    throws StorageConnectorDoesNotExistError {
+    ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
+    FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
+      featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
+    String path = FeaturestoreHelper.getS3TrainingDatasetPath(s3ConnectorDTO, externalTrainingDatasetDTO);
+    return FeaturestoreHelper.getExternalTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(), path);
+  }
+  
+
   public FeaturestoreReadTrainingDataset setName(String name) {
     this.name = name;
     return this;
   }
-  
+
   public FeaturestoreReadTrainingDataset setFeaturestore(String featurestore) {
     this.featurestore = featurestore;
     return this;
   }
-  
+
   public FeaturestoreReadTrainingDataset setSpark(SparkSession spark) {
     this.spark = spark;
     return this;
   }
-  
+
   public FeaturestoreReadTrainingDataset setVersion(int version) {
     this.version = version;
     return this;
   }
-  
+
 }

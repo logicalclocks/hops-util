@@ -1,4 +1,4 @@
-package io.hops.util.featurestore.dtos;
+package io.hops.util.featurestore.dtos.featuregroup;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

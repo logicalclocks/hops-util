@@ -13,6 +13,7 @@ import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -55,6 +56,12 @@ public abstract class FeaturestoreOp {
   protected String description = "";
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
   protected List<String> partitionBy = new ArrayList<>();
+  protected Boolean hopsfs = true;
+  protected Boolean external = false;
+  protected Boolean cached = true;
+  protected Boolean onDemand = false;
+  protected String storageConnector = null;
+
   
   /**
    * Class constructor
@@ -246,7 +253,44 @@ public abstract class FeaturestoreOp {
   public List<String> getPartitionBy() {
     return partitionBy;
   }
-  
+
+  /**
+   * @return whether it is a hopsfs training dataset type
+   */
+  public Boolean getHopsfs() {
+    return hopsfs;
+  }
+
+  /**
+   *
+   * @return whether it is an external training dataset
+   */
+  public Boolean getExternal() {
+    return external;
+  }
+
+  /**
+   *
+   * @return whether it is a cached feature group
+   */
+  public Boolean getCached() {
+    return cached;
+  }
+
+  /**
+   * @return whether it is an on-demand feature group
+   */
+  public Boolean getOnDemand() {
+    return onDemand;
+  }
+
+  /**
+   * @return storage connector for training dataset or on-demand feature group
+   */
+  public String getStorageConnector() {
+    return storageConnector;
+  }
+
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
    * This method is called by the user after populating parameters of the operation
@@ -260,10 +304,12 @@ public abstract class FeaturestoreOp {
    * @throws FeaturestoresNotFound FeaturestoresNotFound
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public abstract Object read()
-    throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
-    TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled;
+      throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
+      TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
+      StorageConnectorDoesNotExistError;
   
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -285,11 +331,12 @@ public abstract class FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public abstract void write()
-    throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
-    TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
-    TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
-    FeaturegroupDoesNotExistError, HiveNotEnabled;
+      throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
+      TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
+      TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
+      FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError;
 }

@@ -26,13 +26,15 @@ import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InferTFRecordSchemaError;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.dtos.FeatureDTO;
-import io.hops.util.featurestore.dtos.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
-import io.hops.util.featurestore.dtos.SQLJoinDTO;
-import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.app.SQLJoinDTO;
+import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.settings.FeaturestoreClientSettingsDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterDTO;
@@ -46,6 +48,12 @@ import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelati
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -120,6 +128,7 @@ public class FeaturestoreHelper {
    * JAXB config for unmarshalling and marshalling responses/requests from/to Hopsworks REST API
    */
   private static final Logger LOG = Logger.getLogger(FeaturestoreHelper.class.getName());
+  private static JAXBContext featuregroupJAXBContext;
   private static JAXBContext descriptiveStatsJAXBContext;
   private static JAXBContext featureCorrelationJAXBContext;
   private static JAXBContext featureHistogramsJAXBContext;
@@ -135,6 +144,7 @@ public class FeaturestoreHelper {
   private static Marshaller featureMarshaller;
   private static Marshaller featurestoreMetadataMarshaller;
   private static Marshaller trainingDatasetMarshaller;
+  private static Marshaller featuregroupMarshaller;
   
   /**
    * Featurestore Metadata Cache
@@ -157,6 +167,8 @@ public class FeaturestoreHelper {
           JAXBContextFactory.createContext(new Class[]{FeaturestoreMetadataDTO.class}, null);
       trainingDatasetJAXBContext =
           JAXBContextFactory.createContext(new Class[]{TrainingDatasetDTO.class}, null);
+      featuregroupJAXBContext =
+        JAXBContextFactory.createContext(new Class[]{FeaturegroupDTO.class}, null);
       descriptiveStatsMarshaller = descriptiveStatsJAXBContext.createMarshaller();
       descriptiveStatsMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
       descriptiveStatsMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
@@ -179,6 +191,9 @@ public class FeaturestoreHelper {
       trainingDatasetMarshaller = trainingDatasetJAXBContext.createMarshaller();
       trainingDatasetMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
       trainingDatasetMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
+      featuregroupMarshaller = featuregroupJAXBContext.createMarshaller();
+      featuregroupMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
+      featuregroupMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
     } catch (JAXBException e) {
       LOG.log(Level.SEVERE, "An error occurred while initializing JAXBContext", e);
     }
@@ -191,7 +206,7 @@ public class FeaturestoreHelper {
    */
   public static String getProjectFeaturestore() {
     String projectName = Hops.getProjectName();
-    return projectName.toLowerCase() + "_featurestore";
+    return projectName.toLowerCase() + Constants.FEATURESTORE_SUFFIX;
   }
 
   /**
@@ -324,8 +339,12 @@ public class FeaturestoreHelper {
     return logAndRunSQL(sparkSession, sqlStr);
   }
 
+  public static Dataset<Row> getExternalTrainingDataset(SparkSession sparkSession, String dataFormat, String hdfsPath) {
+    return null;
+  }
+
   /**
-   * Gets a training dataset from a feature store
+   * Gets an hopsfs training dataset from a feature store
    *
    * @param sparkSession the spark session
    * @param dataFormat   the data format of the training dataset
@@ -336,7 +355,7 @@ public class FeaturestoreHelper {
    * @throws IOException IOException IOException
    * @throws TrainingDatasetDoesNotExistError if the hdfsPath is not found
    */
-  public static Dataset<Row> getTrainingDataset(SparkSession sparkSession, String dataFormat, String hdfsPath)
+  public static Dataset<Row> getHopsfsTrainingDataset(SparkSession sparkSession, String dataFormat, String hdfsPath)
       throws TrainingDatasetFormatNotSupportedError, IOException, TrainingDatasetDoesNotExistError {
     Configuration hdfsConf = new Configuration();
     Path filePath = null;
@@ -932,6 +951,30 @@ public class FeaturestoreHelper {
     unmarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
     return unmarshaller;
   }
+  
+  /**
+   * Converts a FeaturegroupDTO into a JSONObject
+   *
+   * @param featuregroupDTO the DTO to convert
+   * @return the JSONObject
+   * @throws JAXBException JAXBException
+   */
+  public static JSONObject convertFeaturegroupDTOToJsonObject(
+    FeaturegroupDTO featuregroupDTO) throws JAXBException {
+    return dtoToJson(featuregroupMarshaller, featuregroupDTO);
+  }
+  
+  /**
+   * Converts a TrainingDatasetDTO into a JSONObject
+   *
+   * @param trainingDatasetDTO the DTO to convert
+   * @return the JSONObject
+   * @throws JAXBException JAXBException
+   */
+  public static JSONObject convertTrainingDatasetDTOToJsonObject(
+    TrainingDatasetDTO trainingDatasetDTO) throws JAXBException {
+    return dtoToJson(trainingDatasetMarshaller, trainingDatasetDTO);
+  }
 
   /**
    * Converts a FeatureCorrelationMatrixDTO into a JSONObject
@@ -1412,6 +1455,20 @@ public class FeaturestoreHelper {
   }
 
   /**
+   * Writes a training dataset to S3
+   *
+   * @param sparkSession the spark session
+   * @param sparkDf the spark dataframe
+   * @param s3Path path to the s3 bucket to write it
+   * @param dataFormat the format of the dataset
+   * @param writeMode the mode of writing (e.g append or overwrite)
+   */
+  public static void writeTrainingDatasetS3(SparkSession sparkSession, Dataset<Row> sparkDf,
+                                              String s3Path, String dataFormat, String writeMode) {
+
+  }
+
+  /**
    * Materializes a training dataset dataframe to HDFS
    *
    * @param sparkSession the spark session
@@ -1497,6 +1554,31 @@ public class FeaturestoreHelper {
           trainingDatasetName + " , and version: " + trainingDatasetVersion + " , " +
           "among the list of available training datasets in the featurestore: " +
           StringUtils.join(trainingDatasetNames, ","));
+    }
+    return matches.get(0);
+  }
+
+
+  /**
+   * Finds a storage connector with a given name
+   *
+   * @param storageConnectorsList a list of all storage connector DTOs
+   * @param storageConnectorName the name of the storage connector
+   * @return the DTO of the storage connector
+   * @throws StorageConnectorDoesNotExistError
+   */
+  public static FeaturestoreStorageConnectorDTO findStorageConnector(
+      List<FeaturestoreStorageConnectorDTO> storageConnectorsList, String storageConnectorName)
+      throws StorageConnectorDoesNotExistError {
+    List<FeaturestoreStorageConnectorDTO> matches = storageConnectorsList.stream().filter(sc ->
+        sc.getName().equals(storageConnectorName)).collect(Collectors.toList());
+    if (matches.isEmpty()) {
+      List<String> storageConnectorNames =
+          storageConnectorsList.stream().map(sc -> sc.getName()).collect(Collectors.toList());
+      throw new StorageConnectorDoesNotExistError("Could not find the requested training dataset with name: " +
+          storageConnectorName +
+          ", among the list of available training datasets in the featurestore: " +
+          StringUtils.join(storageConnectorNames, ","));
     }
     return matches.get(0);
   }
@@ -1951,4 +2033,109 @@ public class FeaturestoreHelper {
         ", it should be: " +  Constants.SPARK_SQL_CATALOG_HIVE);
     }
   }
+
+  /**
+   * Returns the DTO type for a training dataset
+   *
+   * @param trainingDatasetDTO the training dataset
+   * @param featurestoreClientSettingsDTO the client settings
+   * @return the DTO type of the training dataset
+   */
+  public static String getTrainingDatasetDTOTypeStr(TrainingDatasetDTO trainingDatasetDTO,
+                                                    FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO) {
+    if(trainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
+      return featurestoreClientSettingsDTO.getHopsfsTrainingDatasetDtoType();
+    } else {
+      return featurestoreClientSettingsDTO.getExternalTrainingDatasetDtoType();
+    }
+  }
+
+  /**
+   * Gets the project's default location for storing training datasets in HopsFS
+   *
+   * @return the name of the default storage connector for storing training datasets in HopsFS
+   */
+  public static String getProjectTrainingDatasetsSink() {
+    String projectName = Hops.getProjectName();
+    return projectName.toLowerCase() + Constants.TRAINING_DATASETS_SUFFIX;
+  }
+  
+  /**
+   * Returns the feature group DTO type
+   *
+   * @param featurestoreClientSettingsDTO the settings DTO
+   * @param onDemand boolean flag whether it is an on-demand feature group
+   * @return the DTO string type
+   */
+  public static String getFeaturegroupDtoTypeStr(FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO,
+    Boolean onDemand) {
+    if(onDemand) {
+      return featurestoreClientSettingsDTO.getOnDemandFeaturegroupDtoType();
+    } else {
+      return featurestoreClientSettingsDTO.getCachedFeaturegroupDtoType();
+    }
+  }
+  
+  /**
+   * Returns the feature group type string
+   *
+   * @param onDemand boolean flag whether it is an on-demand feature group or not
+   * @return the feature group type string
+   */
+  public static String getFeaturegroupTypeStr(Boolean onDemand) {
+    if(onDemand) {
+      return FeaturegroupType.ON_DEMAND_FEATURE_GROUP.name();
+    } else {
+      return FeaturegroupType.CACHED_FEATURE_GROUP.name();
+    }
+  }
+  
+  /**
+   * Gets the path to where a hopsfs training dataset is
+   *
+   * @param hopsfsTrainingDatasetDTO information about the training dataset
+   * @return the HDFS path
+   */
+  public static String getHopsfsTrainingDatasetPath(HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO) {
+    return Constants.HDFS_DEFAULT + hopsfsTrainingDatasetDTO.getHdfsStorePath() +
+      Constants.SLASH_DELIMITER + hopsfsTrainingDatasetDTO.getName();
+  }
+  
+  /**
+   * Gets the path to where an external training dataset is
+   *
+   * @param featurestoreS3ConnectorDTO DTO of the s3 connector
+   * @param externalTrainingDatasetDTO DTO of the external training dataset
+   * @return path to where the S3 training dataset is
+   */
+  public static String getS3TrainingDatasetPath(FeaturestoreS3ConnectorDTO featurestoreS3ConnectorDTO,
+    ExternalTrainingDatasetDTO externalTrainingDatasetDTO) {
+    return featurestoreS3ConnectorDTO.getBucket() + Constants.SLASH_DELIMITER + FeaturestoreHelper.getTableName(
+      externalTrainingDatasetDTO.getName(), externalTrainingDatasetDTO.getVersion());
+  }
+  
+  /**
+   * Verify user-provided dataframe
+   *
+   * @param dataframe the dataframe to validate
+   */
+  public static void validateDataframe(Dataset<Row> dataframe) {
+    if(dataframe == null){
+      throw new IllegalArgumentException("Dataframe cannot be null, specify dataframe with " +
+        ".setDataframe(df)");
+    }
+  }
+  
+  /**
+   * Validate user-provided write-mode parameter
+   *
+   * @param mode the mode to verify
+   */
+  public static void validateWriteMode(String mode) {
+    if (mode==null || !mode.equalsIgnoreCase("append") && !mode.equalsIgnoreCase("overwrite"))
+      throw new IllegalArgumentException("The supplied write mode: " + mode +
+        " does not match any of the supported modes: overwrite, append");
+  }
+  
+  
 }

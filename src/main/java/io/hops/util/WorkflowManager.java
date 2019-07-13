@@ -86,7 +86,7 @@ public class WorkflowManager {
                 + "/executions?sort_by=submissiontime:desc&filter_by=state_neq:finished&filter_by=state_neq:failed" +
                 "&filter_by=state_neq:killed&filter_by=state_neq:framework_failure" +
                 "&filter_by=state_neq:app_master_start_failed&filter_by=state_neq:initialization_failed",
-              HttpMethod.GET).readEntity(String.class);
+              HttpMethod.GET, null).readEntity(String.class);
         } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
           throw new WorkflowManagerException(e.getMessage());
         }
@@ -124,7 +124,7 @@ public class WorkflowManager {
     json.append("subject", subject);
     json.append("message", message);
     try {
-      return Hops.clientWrapper(json, "mail", HttpMethod.POST);
+      return Hops.clientWrapper(json, "mail", HttpMethod.POST, null);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new WorkflowManagerException(e.getMessage());
     }
@@ -152,7 +152,8 @@ public class WorkflowManager {
    */
   public static Response startJob(String job) throws WorkflowManagerException {
     try {
-      return Hops.clientWrapper("/project/" + Hops.getProjectId() + "/jobs/" + job + "/executions", HttpMethod.POST);
+      return Hops.clientWrapper("/project/" + Hops.getProjectId() + "/jobs/" + job + "/executions",
+          HttpMethod.POST, null);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new WorkflowManagerException(e.getMessage());
     }

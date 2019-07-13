@@ -1,18 +1,22 @@
 package io.hops.util.featurestore.ops.write_ops;
 
 import io.hops.util.FeaturestoreRestClient;
+import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDataset;
-import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -55,17 +59,40 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public void write()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, IOException, FeaturestoreNotFound,
-    TrainingDatasetDoesNotExistError, TrainingDatasetFormatNotSupportedError, JWTNotFoundException, HiveNotEnabled {
+      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+      JAXBException, FeaturegroupUpdateStatsError, IOException, FeaturestoreNotFound,
+      TrainingDatasetDoesNotExistError, TrainingDatasetFormatNotSupportedError, JWTNotFoundException, HiveNotEnabled,
+      StorageConnectorDoesNotExistError {
     Dataset<Row> sparkDf = new FeaturestoreReadTrainingDataset(name).setSpark(getSpark())
       .setFeaturestore(featurestore).setVersion(version).read();
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), sparkDf,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
-    FeaturestoreRestClient.updateTrainingDatasetStatsRest(name, featurestore, version, statisticsDTO);
+    FeaturestoreMetadataDTO featurestoreMetadataDTO =
+        Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read();
+    TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(
+        featurestoreMetadataDTO.getTrainingDatasets(), name, version);
+    FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO),
+      FeaturestoreHelper.getTrainingDatasetDTOTypeStr(trainingDatasetDTO, featurestoreMetadataDTO.getSettings()));
+  }
+  
+  /**
+   * Group input parameters into a DTO representation
+   *
+   * @param trainingDatasetDTO dto to populate
+   * @param statisticsDTO statistics computed based on the dataframe
+   * @return populated training dataset DTO
+   */
+  private TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO,
+    StatisticsDTO statisticsDTO) {
+    trainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    trainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    trainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    trainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    return trainingDatasetDTO;
   }
   
   public FeaturestoreUpdateTrainingDatasetStats setName(String name) {

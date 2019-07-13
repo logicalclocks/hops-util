@@ -10,9 +10,12 @@ import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.dtos.FeatureDTO;
-import io.hops.util.featurestore.ops.FeaturestoreOp;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -50,7 +53,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
-   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws JWTNotFoundException JWTNotFounfdException
    * @throws HiveNotEnabled HiveNotEnabled
    */
   public void write()
@@ -70,12 +73,40 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
       numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy);
-    FeaturestoreRestClient.createFeaturegroupRest(featurestore, name, version, description, jobName,
-      featuresSchema, statisticsDTO);
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
+      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
     FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
       featurestore, version);
     //Update metadata cache since we created a new feature group
     Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
+  }
+  
+  /**
+   * Group input parameters into a DTO
+   *
+   * @param features feature schema (inferred from the dataframe)
+   * @param statisticsDTO statisticsDTO (computed based on the dataframe)
+   * @return DTO representation of the input parameters
+   */
+  private FeaturegroupDTO groupInputParamsIntoDTO(List<FeatureDTO> features, StatisticsDTO statisticsDTO){
+    FeaturegroupDTO featuregroupDTO = new FeaturegroupDTO();
+    featuregroupDTO.setFeaturestoreName(featurestore);
+    featuregroupDTO.setName(name);
+    featuregroupDTO.setVersion(version);
+    featuregroupDTO.setDescription(description);
+    featuregroupDTO.setJobName(jobName);
+    featuregroupDTO.setFeatures(features);
+    featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    featuregroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    featuregroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    if(onDemand){
+      featuregroupDTO.setFeaturegroupType(FeaturegroupType.ON_DEMAND_FEATURE_GROUP);
+    } else {
+      featuregroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
+    }
+    return featuregroupDTO;
   }
   
   public FeaturestoreCreateFeaturegroup setName(String name) {
