@@ -15,6 +15,7 @@ import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
@@ -32,6 +33,7 @@ import javax.xml.bind.JAXBException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for InsertInto-TrainingDataset operation on the Hopsworks Featurestore
@@ -128,7 +130,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
-  private static void doInsertIntoTrainingDataset(
+  private void doInsertIntoTrainingDataset(
       SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
       String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion,
       Boolean descriptiveStats, Boolean featureCorr,
@@ -174,7 +176,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException
    */
-  private static void insertIntoHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
+  private void insertIntoHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
     SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
     throws TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
     HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
@@ -211,7 +213,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @param writeMode write mode, e.g append or overwrite
    * @throws StorageConnectorDoesNotExistError
    */
-  private static void insertIntoExternalTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
+  private void insertIntoExternalTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
     FeaturestoreMetadataDTO featurestoreMetadata, SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
     throws StorageConnectorDoesNotExistError {
     ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
@@ -230,12 +232,21 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @param statisticsDTO the newly computed statistics of the training dataset
    * @return training dataset DTO
    */
-  private static TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO,
-    StatisticsDTO statisticsDTO){
+  private TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO,
+    StatisticsDTO statisticsDTO) {
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
     trainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
     trainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
     trainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
     trainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    trainingDatasetDTO.setJobs(jobsDTOs);
     return trainingDatasetDTO;
   }
   

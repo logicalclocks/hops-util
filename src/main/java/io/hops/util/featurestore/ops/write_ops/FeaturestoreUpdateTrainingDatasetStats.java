@@ -13,6 +13,7 @@ import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -24,6 +25,7 @@ import org.apache.spark.sql.SparkSession;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for Update-TrainingDataset-Stats operation on the Hopsworks Featurestore
@@ -88,10 +90,19 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
    */
   private TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO,
     StatisticsDTO statisticsDTO) {
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
     trainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
     trainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
     trainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
     trainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    trainingDatasetDTO.setJobs(jobsDTOs);
     return trainingDatasetDTO;
   }
   

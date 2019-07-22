@@ -18,6 +18,7 @@ package io.hops.util.featurestore.dtos.featuregroup;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
 import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
@@ -46,27 +47,27 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
   public CachedFeaturegroupDTO() {
     super();
   }
-
-  public CachedFeaturegroupDTO(Integer featurestoreId, String featurestoreName,
-                               String description, Date created, String creator,
-                               Integer jobId, String jobName, Date lastComputed,
-                               String jobStatus, Integer version, DescriptiveStatsDTO descriptiveStatistics,
-                               FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-                               FeatureDistributionsDTO featuresHistogram, ClusterAnalysisDTO clusterAnalysis,
-                               String name, Integer id, List<FeatureDTO> features,
-                               String location, FeaturegroupType featuregroupType, Long hiveTableId,
-                               List<String> hdfsStorePaths, String inputFormat,
-                               HiveTableType hiveTableType, Long inodeId) {
-    super(featurestoreId, featurestoreName, description, created, creator, jobId, jobName, lastComputed,
-        jobStatus, version, descriptiveStatistics, featureCorrelationMatrix, featuresHistogram, clusterAnalysis,
-        name, id, features, location, featuregroupType);
+  
+  public CachedFeaturegroupDTO(Integer featurestoreId, String featurestoreName, String description,
+    Date created, String creator, Integer version,
+    DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name,
+    Integer id, List<FeatureDTO> features, String location,
+    List<FeaturestoreJobDTO> jobs,
+    FeaturegroupType featuregroupType, Long hiveTableId, List<String> hdfsStorePaths, String inputFormat,
+    HiveTableType hiveTableType, Long inodeId) {
+    super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
+      featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs,
+      featuregroupType);
     this.hiveTableId = hiveTableId;
     this.hdfsStorePaths = hdfsStorePaths;
     this.inputFormat = inputFormat;
     this.hiveTableType = hiveTableType;
     this.inodeId = inodeId;
   }
-
+  
   @XmlElement
   public Long getHiveTableId() {
     return hiveTableId;

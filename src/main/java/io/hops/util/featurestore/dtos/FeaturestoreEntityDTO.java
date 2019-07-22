@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
 import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
@@ -50,10 +51,6 @@ public abstract class FeaturestoreEntityDTO {
   private String description;
   private Date created;
   private String creator;
-  private Integer jobId;
-  private String jobName;
-  private Date lastComputed;
-  private String jobStatus;
   private Integer version;
   private DescriptiveStatsDTO descriptiveStatistics;
   private FeatureCorrelationMatrixDTO featureCorrelationMatrix;
@@ -63,26 +60,24 @@ public abstract class FeaturestoreEntityDTO {
   private Integer id;
   private List<FeatureDTO> features;
   private String location;
+  private List<FeaturestoreJobDTO> jobs;
 
   public FeaturestoreEntityDTO() {
   }
-
-  public FeaturestoreEntityDTO(Integer featurestoreId, String featurestoreName, String description, Date created,
-                               String creator, Integer jobId, String jobName, Date lastComputed,
-                               String jobStatus, Integer version, DescriptiveStatsDTO descriptiveStatistics,
-                               FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-                               FeatureDistributionsDTO featuresHistogram,
-                               ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
-                               List<FeatureDTO> features, String location) {
+  
+  public FeaturestoreEntityDTO(Integer featurestoreId, String featurestoreName, String description,
+    Date created, String creator, Integer version,
+    DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
+    List<FeatureDTO> features, String location,
+    List<FeaturestoreJobDTO> jobs) {
     this.featurestoreId = featurestoreId;
     this.featurestoreName = featurestoreName;
     this.description = description;
     this.created = created;
     this.creator = creator;
-    this.jobId = jobId;
-    this.jobName = jobName;
-    this.lastComputed = lastComputed;
-    this.jobStatus = jobStatus;
     this.version = version;
     this.descriptiveStatistics = descriptiveStatistics;
     this.featureCorrelationMatrix = featureCorrelationMatrix;
@@ -92,8 +87,9 @@ public abstract class FeaturestoreEntityDTO {
     this.id = id;
     this.features = features;
     this.location = location;
+    this.jobs = jobs;
   }
-
+  
   @XmlElement
   public Date getCreated() {
     return created;
@@ -104,21 +100,6 @@ public abstract class FeaturestoreEntityDTO {
     return creator;
   }
 
-  @XmlElement(nillable = true)
-  public Integer getJobId() {
-    return jobId;
-  }
-
-  @XmlElement(nillable = true)
-  public String getJobName() {
-    return jobName;
-  }
-
-  @XmlElement(nillable = true)
-  public Date getLastComputed() {
-    return lastComputed;
-  }
-
   @XmlElement
   public String getDescription() {
     return description;
@@ -127,11 +108,6 @@ public abstract class FeaturestoreEntityDTO {
   @XmlElement
   public Integer getVersion() {
     return version;
-  }
-
-  @XmlElement(nillable = true)
-  public String getJobStatus() {
-    return jobStatus;
   }
 
   @XmlElement
@@ -182,6 +158,11 @@ public abstract class FeaturestoreEntityDTO {
   @XmlElement
   public String getLocation() {
     return location;
+  }
+  
+  @XmlElement
+  public List<FeaturestoreJobDTO> getJobs() {
+    return jobs;
   }
   
   public void setLocation(String location) {
@@ -240,26 +221,14 @@ public abstract class FeaturestoreEntityDTO {
     this.creator = creator;
   }
 
-  public void setJobId(Integer jobId) {
-    this.jobId = jobId;
-  }
-
-  public void setJobName(String jobName) {
-    this.jobName = jobName;
-  }
-
-  public void setLastComputed(Date lastComputed) {
-    this.lastComputed = lastComputed;
-  }
-
-  public void setJobStatus(String jobStatus) {
-    this.jobStatus = jobStatus;
-  }
-
   public void setVersion(Integer version) {
     this.version = version;
   }
-
+  
+  public void setJobs(List<FeaturestoreJobDTO> jobs) {
+    this.jobs = jobs;
+  }
+  
   @Override
   public String toString() {
     return "FeaturestoreEntityDTO{" +
@@ -268,10 +237,6 @@ public abstract class FeaturestoreEntityDTO {
         ", description='" + description + '\'' +
         ", created='" + created + '\'' +
         ", creator='" + creator + '\'' +
-        ", jobId=" + jobId +
-        ", jobName='" + jobName + '\'' +
-        ", lastComputed='" + lastComputed + '\'' +
-        ", jobStatus='" + jobStatus + '\'' +
         ", version=" + version +
         ", descriptiveStatistics=" + descriptiveStatistics +
         ", featureCorrelationMatrix=" + featureCorrelationMatrix +

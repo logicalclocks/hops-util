@@ -15,6 +15,7 @@ import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
@@ -32,6 +33,7 @@ import javax.xml.bind.JAXBException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for Create-TrainingDataset operation on the Hopsworks Featurestore
@@ -77,8 +79,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
-        "with " +
-        ".setDataframe(df)");
+        "with .setDataframe(df)");
     }
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(),
       dataframe, featurestore, version, descriptiveStats, featureCorr, featureHistograms,
@@ -104,13 +105,21 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @return HopsfsTrainingDatasetDTO
    */
   private HopsfsTrainingDatasetDTO groupInputParamsIntoHopsfsDTO(StatisticsDTO statisticsDTO,
-    List<FeatureDTO> features, Integer hopsfsStorageConnectorId){
+    List<FeatureDTO> features, Integer hopsfsStorageConnectorId) {
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
     HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = new HopsfsTrainingDatasetDTO();
     hopsfsTrainingDatasetDTO.setFeaturestoreName(featurestore);
     hopsfsTrainingDatasetDTO.setName(name);
     hopsfsTrainingDatasetDTO.setVersion(version);
     hopsfsTrainingDatasetDTO.setDescription(description);
-    hopsfsTrainingDatasetDTO.setJobName(jobName);
+    hopsfsTrainingDatasetDTO.setJobs(jobsDTOs);
     hopsfsTrainingDatasetDTO.setDataFormat(dataFormat);
     hopsfsTrainingDatasetDTO.setFeatures(features);
     hopsfsTrainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
@@ -132,12 +141,20 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    */
   private ExternalTrainingDatasetDTO groupInputParamsIntoExternalDTO(StatisticsDTO statisticsDTO,
     List<FeatureDTO> features, Integer s3ConnectorId){
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
     ExternalTrainingDatasetDTO externalTrainingDatasetDTO = new ExternalTrainingDatasetDTO();
     externalTrainingDatasetDTO.setFeaturestoreName(featurestore);
     externalTrainingDatasetDTO.setName(name);
     externalTrainingDatasetDTO.setVersion(version);
     externalTrainingDatasetDTO.setDescription(description);
-    externalTrainingDatasetDTO.setJobName(jobName);
+    externalTrainingDatasetDTO.setJobs(jobsDTOs);
     externalTrainingDatasetDTO.setDataFormat(dataFormat);
     externalTrainingDatasetDTO.setFeatures(features);
     externalTrainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
@@ -178,7 +195,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
         FeaturestoreHelper.getProjectTrainingDatasetsSink()).getId();
     }
     Response response = FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoHopsfsDTO(statisticsDTO,
-      featuresSchema, storageConnectorId), featurestoreMetadataDTO.getSettings().getHopsfsTrainingDatasetDtoType());
+      featuresSchema, storageConnectorId),
+      featurestoreMetadataDTO.getSettings().getHopsfsTrainingDatasetDtoType());
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
@@ -302,8 +320,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateTrainingDataset setJobName(String jobName) {
-    this.jobName = jobName;
+  public FeaturestoreCreateTrainingDataset setJobs(List<String> jobs) {
+    this.jobs = jobs;
     return this;
   }
   

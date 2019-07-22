@@ -14,6 +14,7 @@ import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
@@ -22,6 +23,7 @@ import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for Create-Featuregroup operation on the Hopsworks Featurestore
@@ -90,12 +92,20 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @return DTO representation of the input parameters
    */
   private FeaturegroupDTO groupInputParamsIntoDTO(List<FeatureDTO> features, StatisticsDTO statisticsDTO){
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
     FeaturegroupDTO featuregroupDTO = new FeaturegroupDTO();
     featuregroupDTO.setFeaturestoreName(featurestore);
     featuregroupDTO.setName(name);
     featuregroupDTO.setVersion(version);
     featuregroupDTO.setDescription(description);
-    featuregroupDTO.setJobName(jobName);
+    featuregroupDTO.setJobs(jobsDTOs);
     featuregroupDTO.setFeatures(features);
     featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
     featuregroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
@@ -179,8 +189,8 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateFeaturegroup setJobName(String jobName) {
-    this.jobName = jobName;
+  public FeaturestoreCreateFeaturegroup setJobs(List<String> jobs) {
+    this.jobs = jobs;
     return this;
   }
   

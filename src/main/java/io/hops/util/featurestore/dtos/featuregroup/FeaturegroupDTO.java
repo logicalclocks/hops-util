@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.hops.util.featurestore.dtos.FeaturestoreEntityDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
 import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
@@ -49,21 +50,21 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
 
   public FeaturegroupDTO() {
   }
-
-  public FeaturegroupDTO(Integer featurestoreId, String featurestoreName,
-                         String description, Date created, String creator,
-                         Integer jobId, String jobName, Date lastComputed, String jobStatus,
-                         Integer version, DescriptiveStatsDTO descriptiveStatistics,
-                         FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-                         FeatureDistributionsDTO featuresHistogram, ClusterAnalysisDTO clusterAnalysis,
-                         String name, Integer id, List<FeatureDTO> features, String location,
-                         FeaturegroupType featuregroupType) {
-    super(featurestoreId, featurestoreName, description, created, creator, jobId, jobName, lastComputed,
-        jobStatus, version, descriptiveStatistics, featureCorrelationMatrix, featuresHistogram, clusterAnalysis,
-        name, id, features, location);
+  
+  public FeaturegroupDTO(Integer featurestoreId, String featurestoreName, String description, Date created,
+    String creator, Integer version,
+    DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name,
+    Integer id, List<FeatureDTO> features, String location,
+    List<FeaturestoreJobDTO> jobs,
+    FeaturegroupType featuregroupType) {
+    super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
+      featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs);
     this.featuregroupType = featuregroupType;
   }
-
+  
   @XmlElement
   public FeaturegroupType getFeaturegroupType() {
     return featuregroupType;

@@ -363,6 +363,13 @@
           <failsOnError>true</failsOnError>
           <consoleOutput>true</consoleOutput>
         </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>6.11.1</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
 

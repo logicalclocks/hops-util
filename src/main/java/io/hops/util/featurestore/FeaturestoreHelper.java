@@ -785,8 +785,7 @@ public class FeaturestoreHelper {
    */
   public static List<FeaturegroupDTO> filterFeaturegroupsBasedOnMap(
       Map<String, Integer> featuregroupsAndVersions, List<FeaturegroupDTO> featuregroupsMetadata) {
-    return featuregroupsMetadata.stream().filter(
-        fgm -> featuregroupsAndVersions.get(fgm.getName()) != null
+    return featuregroupsMetadata.stream().filter(fgm -> featuregroupsAndVersions.get(fgm.getName()) != null
             && fgm.getVersion().equals(featuregroupsAndVersions.get(fgm.getName()))).collect(Collectors.toList());
   }
 

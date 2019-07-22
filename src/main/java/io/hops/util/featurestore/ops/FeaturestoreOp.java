@@ -51,7 +51,7 @@ public abstract class FeaturestoreOp {
   protected Boolean featureHistograms = true;
   protected Boolean clusterAnalysis = true;
   protected List<String> statColumns = null;
-  protected String jobName = FeaturestoreHelper.jobNameGetOrDefault(null);
+  protected List<String> jobs = new ArrayList<>();
   protected String primaryKey;
   protected String description = "";
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
@@ -219,10 +219,10 @@ public abstract class FeaturestoreOp {
   }
   
   /**
-   * @return name of the job to compute the feature group or training dataset
+   * @return list of jobs linked to a feature group or training dataset
    */
-  public String getJobName() {
-    return jobName;
+  public List<String> getJobs() {
+    return jobs;
   }
   
   /**
