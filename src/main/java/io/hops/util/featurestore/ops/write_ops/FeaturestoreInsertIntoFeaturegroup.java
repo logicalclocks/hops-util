@@ -2,6 +2,7 @@ package io.hops.util.featurestore.ops.write_ops;
 
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
+import io.hops.util.exceptions.CannotInsertIntoOnDemandFeaturegroups;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
@@ -58,11 +59,19 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws FeaturegroupDeletionError FeaturegroupDeletionError
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
    */
   public void write()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-    FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled {
+      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
+      FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled, CannotInsertIntoOnDemandFeaturegroups {
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
+        name, version);
+    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+      throw new CannotInsertIntoOnDemandFeaturegroups(
+          "The insert operation is only supported for cached feature groups");
+    }
     FeaturestoreHelper.validateDataframe(dataframe);
     getSpark().sparkContext().setJobGroup(
       "Inserting dataframe into featuregroup",
@@ -74,7 +83,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       //update cache because in the background, clearing featuregroup will give it a new id
       new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
     }
-    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     try {
       doInsertIntoFeaturegroup(Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read());
     } catch(Exception e) {

@@ -2,8 +2,10 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import com.google.common.base.Strings;
 import io.hops.util.Hops;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
@@ -14,6 +16,7 @@ import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Builder class for Read-Feature operation on the Hopsworks Featurestore
@@ -36,8 +39,12 @@ public class FeaturestoreReadFeature extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
-  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled {
+  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException,
+      HiveNotEnabled, FeaturegroupDoesNotExistError, StorageConnectorDoesNotExistError {
     try {
       return doGetFeature(getSpark(), name, Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(),
         featurestore);
@@ -63,16 +70,21 @@ public class FeaturestoreReadFeature extends FeaturestoreOp {
    * @param featurestoreMetadata metadata of the featurestore to query
    * @param featurestore the featurestore to query
    * @return A dataframe with the feature
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   private Dataset<Row> doGetFeature(
       SparkSession sparkSession, String feature,
-      FeaturestoreMetadataDTO featurestoreMetadata, String featurestore) {
+      FeaturestoreMetadataDTO featurestoreMetadata, String featurestore)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     if(Strings.isNullOrEmpty(featuregroup)) {
-      return FeaturestoreHelper.getFeature(sparkSession, feature, featurestore, featuregroupsMetadata);
+      return FeaturestoreHelper.getFeature(sparkSession, feature, featurestore, featuregroupsMetadata, jdbcArguments);
     } else {
-      return FeaturestoreHelper.getFeature(sparkSession, feature, featurestore, featuregroup, version);
+      return FeaturestoreHelper.getFeature(sparkSession, feature, featurestore, featuregroup, version,
+          featuregroupsMetadata, jdbcArguments);
     }
   }
   
@@ -100,5 +112,9 @@ public class FeaturestoreReadFeature extends FeaturestoreOp {
     this.featuregroup = featuregroup;
     return this;
   }
-  
+
+  public FeaturestoreReadFeature setJdbcArguments(Map<String, String> jdbcArguments) {
+    this.jdbcArguments = jdbcArguments;
+    return this;
+  }
 }

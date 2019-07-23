@@ -2,8 +2,10 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import com.google.common.base.Strings;
 import io.hops.util.Hops;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
@@ -37,8 +39,11 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
-  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled {
+  public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled, FeaturegroupDoesNotExistError,
+      StorageConnectorDoesNotExistError {
     if(features.isEmpty()){
       throw new IllegalArgumentException("Feature List Cannot be Empty");
     }
@@ -57,10 +62,15 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
-  private Dataset<Row> doGetFeatures() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled {
+  private Dataset<Row> doGetFeatures() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled,
+      FeaturegroupDoesNotExistError, StorageConnectorDoesNotExistError {
     if(!Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions != null){
-      return FeaturestoreHelper.getFeatures(getSpark(), features, featurestore, featuregroupsAndVersions, joinKey);
+      return FeaturestoreHelper.getFeatures(getSpark(), features, featurestore, featuregroupsAndVersions, joinKey,
+          Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read().getFeaturegroups(),
+          onDemandFeaturegroupsjdbcArguments);
     }
     if(!Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions == null){
       return doGetFeatures(getSpark(), features, featurestore,
@@ -92,16 +102,20 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @param featurestoreMetadata     metadata of the featurestore to query
    * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @return a spark dataframe with the features
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features, String featurestore,
     FeaturestoreMetadataDTO featurestoreMetadata,
-    Map<String, Integer> featuregroupsAndVersions) {
+    Map<String, Integer> featuregroupsAndVersions) throws FeaturegroupDoesNotExistError, HiveNotEnabled,
+      StorageConnectorDoesNotExistError {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     List<FeaturegroupDTO> filteredFeaturegroupsMetadata =
       FeaturestoreHelper.filterFeaturegroupsBasedOnMap(featuregroupsAndVersions, featuregroupsMetadata);
     String joinKey = FeaturestoreHelper.getJoinColumn(filteredFeaturegroupsMetadata);
-    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsAndVersions, joinKey);
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsAndVersions, joinKey,
+        filteredFeaturegroupsMetadata, onDemandFeaturegroupsjdbcArguments);
   }
   
   /**
@@ -114,12 +128,16 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @param featurestoreMetadata metadata of the featurestore to query
    * @param joinKey      the key to join on
    * @return a spark dataframe with the features
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, String joinKey) {
+    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, String joinKey)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
-    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMetadata, joinKey);
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMetadata, joinKey,
+        onDemandFeaturegroupsjdbcArguments);
   }
   
   /**
@@ -132,15 +150,19 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @param featurestoreMetadata metadata of which features exist in the featurestore, used to infer how to join
    *                             features together
    * @return a spark dataframe with the features
+   * * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
-  private static Dataset<Row> doGetFeatures(
+  private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features,
-    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata) {
+    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     List<FeaturegroupDTO> featuregroupsMatching =
       FeaturestoreHelper.findFeaturegroupsThatContainsFeatures(featuregroupsMetadata, features, featurestore);
     String joinKey = FeaturestoreHelper.getJoinColumn(featuregroupsMatching);
-    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMatching, joinKey);
+    return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMatching, joinKey,
+        onDemandFeaturegroupsjdbcArguments);
   }
   
   public FeaturestoreReadFeatures setFeatures(List<String> features) {
@@ -165,6 +187,12 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
   
   public FeaturestoreReadFeatures setJoinKey(String joinKey) {
     this.joinKey = joinKey;
+    return this;
+  }
+
+  public FeaturestoreReadFeatures setOnDemandFeaturegroupsjdbcArguments(Map<String, Map<String, String>>
+                                                                            onDemandFeaturegroupsjdbcArguments) {
+    this.onDemandFeaturegroupsjdbcArguments = onDemandFeaturegroupsjdbcArguments;
     return this;
   }
   

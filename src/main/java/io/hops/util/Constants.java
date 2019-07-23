@@ -157,12 +157,22 @@ public class Constants {
   public static final String TF_RECORD_FLOAT_TYPE = "float";
   public static final String TF_RECORD_STRING_TYPE = "string";
   public static final String TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME = "tf_record_schema.txt";
+  public static final String JDBC_TRUSTSTORE_ARG = "sslTrustStore";
+  public static final String JDBC_TRUSTSTORE_PW_ARG = "trustStorePassword";
+  public static final String JDBC_KEYSTORE_ARG = "sslKeyStore";
+  public static final String JDBC_KEYSTORE_PW_ARG = "keyStorePassword";
+  public static final String SPARK_JDBC_FORMAT = "jdbc";
+  public static final String SPARK_JDBC_URL = "url";
+  public static final String SPARK_JDBC_DBTABLE = "dbtable";
 
+  public static final String JDBC_CONNECTION_STRING_DELIMITER = ";";
+  public static final String JDBC_CONNECTION_STRING_VALUE_DELIMITER = "=";
   public static final String SLASH_DELIMITER = "/";
   public static final String COMMA_DELIMITER = ",";
   public static final String TAB_DELIMITER = "\t";
   public static final String AMPERSAND_DELIMITER = "&";
   public static final String HDFS_DEFAULT = "hdfs://default";
   public static final int MAX_CORRELATION_MATRIX_COLUMNS = 50;
+
 
 }

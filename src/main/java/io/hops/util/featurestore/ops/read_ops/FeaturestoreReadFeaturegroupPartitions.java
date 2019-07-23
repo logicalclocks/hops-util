@@ -1,7 +1,12 @@
 package io.hops.util.featurestore.ops.read_ops;
 
+import io.hops.util.exceptions.CannotReadPartitionsOfOnDemandFeaturegroups;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.featurestore.FeaturestoreHelper;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -26,9 +31,18 @@ public class FeaturestoreReadFeaturegroupPartitions extends FeaturestoreOp {
    *
    * @return a spark dataframe with the featuregroup
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
    */
-  public Dataset<Row> read() throws HiveNotEnabled {
-    
+  public Dataset<Row> read() throws HiveNotEnabled, FeaturegroupDoesNotExistError,
+      CannotReadPartitionsOfOnDemandFeaturegroups {
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
+        name, version);
+    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP) {
+      throw new CannotReadPartitionsOfOnDemandFeaturegroups(
+          "Read partitions operation is only supported for cached feature groups");
+    }
     return FeaturestoreHelper.getFeaturegroupPartitions(getSpark(), name, featurestore, version);
   }
   

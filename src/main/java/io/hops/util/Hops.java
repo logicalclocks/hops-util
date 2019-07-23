@@ -28,6 +28,8 @@ import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturesList;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadMetadata;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadProjectFeaturestore;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadProjectFeaturestores;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadStorageConnector;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadStorageConnectors;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDataset;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasetLatestVersion;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasetPath;
@@ -662,6 +664,26 @@ public class Hops {
   }
 
   /**
+   * Gets a list of all storage connectors in a featurestore
+   *
+   * @return a lazy java object for the operation of reading the list of available storage connectors in the
+   * featurestore. The operation can be started with read() on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreReadStorageConnectors getStorageConnectors() {
+    return new FeaturestoreReadStorageConnectors();
+  }
+
+  /**
+   * Gets a storage connector with a specific name from the feature store
+   *
+   * @return a lazy java object for the operation of reading the storage connector with the specific name from the
+   * featurestore. The operation can be started with read() on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreReadStorageConnector getStorageConnector(String storageConnectorName) {
+    return new FeaturestoreReadStorageConnector().setName(storageConnectorName);
+  }
+
+  /**
    * Gets the HDFS path to a training dataset with a specific name and version in a featurestore
    * @param trainingDataset the name of the training dataset
    * @return a lazy java object for the operation of getting the hdfs path to the training dataset.
@@ -701,6 +723,7 @@ public class Hops {
   public static FeaturestoreCreateFeaturegroup createFeaturegroup(String featuregroup) {
     return new FeaturestoreCreateFeaturegroup(featuregroup);
   }
+
 
   /**
    * Creates a new training dataset from a spark dataframe, saves metadata about the training dataset to the database

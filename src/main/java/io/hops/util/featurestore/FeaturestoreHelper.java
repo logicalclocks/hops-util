@@ -54,6 +54,7 @@ import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO
 import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -73,6 +74,8 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.jdbc.JdbcDialect;
+import org.apache.spark.sql.jdbc.JdbcDialects;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.DecimalType;
@@ -90,6 +93,8 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
 import javax.ws.rs.core.MediaType;
 import javax.xml.bind.JAXBContext;
@@ -145,7 +150,7 @@ public class FeaturestoreHelper {
   private static Marshaller featurestoreMetadataMarshaller;
   private static Marshaller trainingDatasetMarshaller;
   private static Marshaller featuregroupMarshaller;
-  
+
   /**
    * Featurestore Metadata Cache
    */
@@ -198,7 +203,7 @@ public class FeaturestoreHelper {
       LOG.log(Level.SEVERE, "An error occurred while initializing JAXBContext", e);
     }
   }
-  
+
   /**
    * Gets the project's featurestore name (project_featurestore)
    *
@@ -249,7 +254,7 @@ public class FeaturestoreHelper {
                                             int featuregroupVersion) {
     useFeaturestore(sparkSession, featurestore);
     String tableName = getTableName(featuregroup, featuregroupVersion);
-  
+
     SparkContext sc = sparkSession.sparkContext();
     SQLContext sqlContext = new SQLContext(sc);
     sqlContext.setConf("hive.exec.dynamic.partition", "true");
@@ -308,7 +313,7 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Gets a featuregroup from a particular featurestore
+   * Gets a cached featuregroup from a particular featurestore
    *
    * @param sparkSession        the spark session
    * @param featuregroup        the featuregroup to get
@@ -316,13 +321,39 @@ public class FeaturestoreHelper {
    * @param featuregroupVersion the version of the featuregroup to get
    * @return a spark dataframe with the featuregroup
    */
-  public static Dataset<Row> getFeaturegroup(SparkSession sparkSession, String featuregroup,
-                                             String featurestore, int featuregroupVersion) {
+  public static Dataset<Row> getCachedFeaturegroup(SparkSession sparkSession, String featuregroup,
+                                                   String featurestore, int featuregroupVersion) {
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT * FROM " + getTableName(featuregroup, featuregroupVersion);
-    return logAndRunSQL(sparkSession, sqlStr);
+    Dataset<Row> sparkDf = logAndRunSQL(sparkSession, sqlStr);
+    sparkSession.sparkContext().setJobGroup("", "", true);
+    return sparkDf;
   }
-  
+
+  /**
+   * Gets a on-demand feature group as a Spark dataframe
+   *
+   * @param sparkSession the spark session
+   * @param sqlQuery the sqlQuery to fetch the on-demand featuregroup
+   * @param connectionString the JDBC connection string
+   * @return
+   */
+  public static Dataset<Row> getOnDemandFeaturegroup(SparkSession sparkSession, String sqlQuery,
+                                                     String connectionString) {
+    //Read on-demand feature group using JDBC
+    Dataset<Row> sparkDf = sparkSession.read().format(Constants.SPARK_JDBC_FORMAT)
+        .option(Constants.SPARK_JDBC_URL, connectionString)
+        .option(Constants.SPARK_JDBC_DBTABLE, "(" + sqlQuery + ") fs_q")
+        .load();
+    //Remove Column Prefixes
+    List<String> schemaNames = Arrays.asList(sparkDf.schema().fieldNames())
+        .stream().map(name -> name.replace("fs_q.", "")).collect(Collectors.toList());
+    Dataset<Row> renamedSparkDf = sparkDf.toDF(convertListToSeq(schemaNames));
+    sparkSession.sparkContext().setJobGroup("", "", true);
+    return renamedSparkDf;
+  }
+
+
   /**
    * Gets the partitions of a featuregroup from a particular featurestore
    *
@@ -524,13 +555,27 @@ public class FeaturestoreHelper {
    * @param feature          the feature to get
    * @param featurestore     the featurestore to query
    * @param featuregroupDTOS the list of featuregroups metadata
+   * @param jdbcArguments    map of jdbc arguments, in case the feature belongs to an on-demand feature group
    * @return A dataframe with the feature
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public static Dataset<Row> getFeature(
       SparkSession sparkSession, String feature,
-      String featurestore, List<FeaturegroupDTO> featuregroupDTOS) {
+      String featurestore, List<FeaturegroupDTO> featuregroupDTOS, Map<String, String> jdbcArguments)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
     useFeaturestore(sparkSession, featurestore);
     FeaturegroupDTO matchedFeaturegroup = findFeature(feature, featurestore, featuregroupDTOS);
+    if(matchedFeaturegroup.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+      List<FeaturegroupDTO> onDemandFeaturegroups = new ArrayList<>();
+      onDemandFeaturegroups.add(matchedFeaturegroup);
+      Map<String, Map<String, String>> onDemandFeaturegroupsJdbcArguments = new HashMap<>();
+      onDemandFeaturegroupsJdbcArguments.put(
+          getTableName(matchedFeaturegroup.getName(), matchedFeaturegroup.getVersion()), jdbcArguments);
+      registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore,
+          onDemandFeaturegroupsJdbcArguments);
+    }
     String sqlStr = "SELECT " + feature + " FROM " +
         getTableName(matchedFeaturegroup.getName(), matchedFeaturegroup.getVersion());
     return logAndRunSQL(sparkSession, sqlStr);
@@ -544,10 +589,26 @@ public class FeaturestoreHelper {
    * @param featurestore        the featurestore to query
    * @param featuregroup        the featuregroup where the feature is located
    * @param featuregroupVersion the version of the featuregroup
+   * @param jdbcArguments       map of jdbc arguments, in case the feature belongs to an on-demand feature group
    * @return the resulting spark dataframe with the feature
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public static Dataset<Row> getFeature(SparkSession sparkSession, String feature, String featurestore,
-                                        String featuregroup, int featuregroupVersion) {
+                                        String featuregroup, int featuregroupVersion,
+                                        List<FeaturegroupDTO> featuregroupDTOs, Map<String, String> jdbcArguments)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
+    FeaturegroupDTO featuregroupDTO = findFeaturegroup(featuregroupDTOs, featuregroup, featuregroupVersion);
+    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+      List<FeaturegroupDTO> onDemandFeaturegroups = new ArrayList<>();
+      onDemandFeaturegroups.add(featuregroupDTO);
+      Map<String, Map<String, String>> onDemandFeaturegroupsJdbcArguments = new HashMap<>();
+      onDemandFeaturegroupsJdbcArguments.put(
+          getTableName(featuregroupDTO.getName(), featuregroupDTO.getVersion()), jdbcArguments);
+      registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore,
+          onDemandFeaturegroupsJdbcArguments);
+    }
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT " + feature + " FROM " + getTableName(featuregroup, featuregroupVersion);
     return logAndRunSQL(sparkSession, sqlStr);
@@ -684,19 +745,33 @@ public class FeaturestoreHelper {
    * @param featurestore             the featurestore to query
    * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @param joinKey                  the key to join on
+   * @param jdbcArguments jdbc arguments for fetching the on-demand featuregroups
    * @return the resulting spark dataframe with the features
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public static Dataset<Row> getFeatures(SparkSession sparkSession, List<String> features, String featurestore,
-                                         Map<String, Integer> featuregroupsAndVersions, String joinKey) {
+                                         Map<String, Integer> featuregroupsAndVersions, String joinKey,
+                                         List<FeaturegroupDTO> featuregroupsMetadata,
+                                         Map<String, Map<String, String>> jdbcArguments)
+      throws FeaturegroupDoesNotExistError, StorageConnectorDoesNotExistError, HiveNotEnabled {
     useFeaturestore(sparkSession, featurestore);
     List<FeaturegroupDTO> featuregroupDTOs = convertFeaturegroupAndVersionToDTOs(featuregroupsAndVersions);
     useFeaturestore(sparkSession, featurestore);
     String featuresStr = StringUtils.join(features, ", ");
     List<String> featuregroupStrings = new ArrayList<>();
+    List<FeaturegroupDTO> featuregroupDTOS = new ArrayList<>();
     for (Map.Entry<String, Integer> entry : featuregroupsAndVersions.entrySet()) {
       featuregroupStrings.add(getTableName(entry.getKey(), entry.getValue()));
+      featuregroupDTOS.add(findFeaturegroup(featuregroupsMetadata, entry.getKey(), entry.getValue()));
     }
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
+    List<FeaturegroupDTO> onDemandFeaturegroups =
+        featuregroupDTOS.stream()
+            .filter(fg -> fg.getFeaturegroupType() ==
+                FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
+    registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     if (featuregroupsAndVersions.size() == 1) {
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
       return logAndRunSQL(sparkSession, sqlStr);
@@ -719,11 +794,16 @@ public class FeaturestoreHelper {
    * @param featurestore          the featurestore to query
    * @param featuregroupsMetadata metadata about the featuregroups in the featurestore
    * @param joinKey               the key to join on
+   * @param jdbcArguments         jdbc arguments for fetching on-demand featuregroups
    * @return the resulting spark dataframe with the features
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public static Dataset<Row> getFeatures(SparkSession sparkSession, List<String> features,
                                          String featurestore, List<FeaturegroupDTO> featuregroupsMetadata,
-                                         String joinKey) {
+                                         String joinKey, Map<String, Map<String, String>> jdbcArguments)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
     useFeaturestore(sparkSession, featurestore);
     String featuresStr = StringUtils.join(features, ", ");
     List<FeaturegroupDTO> featureFeatureGroups = new ArrayList<>();
@@ -734,14 +814,19 @@ public class FeaturestoreHelper {
       featureFeatureGroups.add(featuregroupMatched);
     }
     List<String> featuregroupStrings =
-        featuregroupsMetadata.stream()
+        featureFeatureGroups.stream()
             .map(fg -> getTableName(fg.getName(), fg.getVersion())).collect(Collectors.toList());
+    List<FeaturegroupDTO> onDemandFeaturegroups =
+        featureFeatureGroups.stream()
+            .filter(fg -> fg.getFeaturegroupType() ==
+                FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
+    registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
     if (featuregroupsMetadata.size() == 1) {
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
       return logAndRunSQL(sparkSession, sqlStr);
     } else {
-      SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupsMetadata, joinKey);
+      SQLJoinDTO sqlJoinDTO = getJoinStr(featureFeatureGroups, joinKey);
       String sqlStr = "SELECT " + featuresStr + " FROM " +
           getTableName(sqlJoinDTO.getFeaturegroupDTOS().get(0).getName(),
               sqlJoinDTO.getFeaturegroupDTOS().get(0).getVersion())
@@ -950,7 +1035,7 @@ public class FeaturestoreHelper {
     unmarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
     return unmarshaller;
   }
-  
+
   /**
    * Converts a FeaturegroupDTO into a JSONObject
    *
@@ -962,7 +1047,7 @@ public class FeaturestoreHelper {
     FeaturegroupDTO featuregroupDTO) throws JAXBException {
     return dtoToJson(featuregroupMarshaller, featuregroupDTO);
   }
-  
+
   /**
    * Converts a TrainingDatasetDTO into a JSONObject
    *
@@ -1376,7 +1461,7 @@ public class FeaturestoreHelper {
       List<String> statColumns, int numBins, int numClusters,
       String correlationMethod) throws DataframeIsEmpty, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
     if (sparkDf == null) {
-      sparkDf = getFeaturegroup(sparkSession, name, featurestore, version);
+      sparkDf = getCachedFeaturegroup(sparkSession, name, featurestore, version);
     }
     if (statColumns != null && !statColumns.isEmpty()) {
       List<Column> statSparkColumns = statColumns.stream().map(sc -> col(sc)).collect(Collectors.toList());
@@ -1574,9 +1659,9 @@ public class FeaturestoreHelper {
     if (matches.isEmpty()) {
       List<String> storageConnectorNames =
           storageConnectorsList.stream().map(sc -> sc.getName()).collect(Collectors.toList());
-      throw new StorageConnectorDoesNotExistError("Could not find the requested training dataset with name: " +
+      throw new StorageConnectorDoesNotExistError("Could not find the requested storage connector with name: " +
           storageConnectorName +
-          ", among the list of available training datasets in the featurestore: " +
+          ", among the list of available storage connectors in the featurestore: " +
           StringUtils.join(storageConnectorNames, ","));
     }
     return matches.get(0);
@@ -1797,7 +1882,7 @@ public class FeaturestoreHelper {
       return Collections.max(matches.stream().map(fg -> fg.getVersion()).collect(Collectors.toList()));
     }
   }
-  
+
   /**
    * Get the cached metadata of the feature store
    *
@@ -1806,7 +1891,7 @@ public class FeaturestoreHelper {
   public static FeaturestoreMetadataDTO getFeaturestoreMetadataCache() {
     return featurestoreMetadataCache;
   }
-  
+
   /**
    * Update cache of the feature store metadata
    *
@@ -1816,7 +1901,7 @@ public class FeaturestoreHelper {
     FeaturestoreMetadataDTO featurestoreMetadataCache) {
     FeaturestoreHelper.featurestoreMetadataCache = featurestoreMetadataCache;
   }
-  
+
   /**
    * If featurestore is specififed return it, otherwise return default value
    *
@@ -1828,7 +1913,7 @@ public class FeaturestoreHelper {
       return FeaturestoreHelper.getProjectFeaturestore();
     return featurestore;
   }
-  
+
   /**
    * If sparkSession is specififed return it, otherwise return default value
    * @param sparkSession sparkSession
@@ -1839,7 +1924,7 @@ public class FeaturestoreHelper {
       return Hops.findSpark();
     return sparkSession;
   }
-  
+
   /**
    * If primaryKey is specififed return it, otherwise return default value
    * @param primaryKey primaryKey
@@ -1852,7 +1937,7 @@ public class FeaturestoreHelper {
     }
     return primaryKey;
   }
-  
+
   /**
    * If corrMethod is specififed return it, otherwise return default value
    * @param corrMethod corrMethod
@@ -1864,7 +1949,7 @@ public class FeaturestoreHelper {
     }
     return corrMethod;
   }
-  
+
   /**
    * If numBins is specififed return it, otherwise return default value
    * @param numBins numBins
@@ -1876,7 +1961,7 @@ public class FeaturestoreHelper {
     }
     return numBins;
   }
-  
+
   /**
    * If numClusters is specififed return it, otherwise return default value
    * @param numClusters numClusters
@@ -1888,7 +1973,7 @@ public class FeaturestoreHelper {
     }
     return numClusters;
   }
-  
+
   /**
    * If jobName is specififed return it, otherwise return default value
    * @param jobName jobName
@@ -1900,7 +1985,7 @@ public class FeaturestoreHelper {
     }
     return jobName;
   }
-  
+
   /**
    * If dataFormat is specififed return it, otherwise return default value
    * @param dataFormat dataFormat
@@ -1912,7 +1997,7 @@ public class FeaturestoreHelper {
     }
     return dataFormat;
   }
-  
+
   /**
    * Gets the id of a featurestore (temporary workaround until HOPSWORKS-860 where we use Name as unique identifier for
    * resources)
@@ -1928,7 +2013,7 @@ public class FeaturestoreHelper {
       new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
     return getFeaturestoreMetadataCache().getFeaturestore().getFeaturestoreId();
   }
-  
+
   /**
    * Gets the id of a featuregroup (temporary workaround until HOPSWORKs-860) where we use Name as a unique identifier
    * for resources)
@@ -1961,7 +2046,7 @@ public class FeaturestoreHelper {
     throw new FeaturegroupDoesNotExistError("Featuregroup: " + featuregroup + " was not found in the featurestore: "
         + featurestore);
   }
-  
+
   /**
    * Gets the id of a training dataset (temporary workaround until HOPSWORKS-860) where we use Name as a unique
    * identifier for resources)
@@ -1995,7 +2080,7 @@ public class FeaturestoreHelper {
       "featurestore: "
       + featurestore);
   }
-  
+
   /**
    * Checks whether Hive is enabled for a given spark session
    *
@@ -2005,7 +2090,7 @@ public class FeaturestoreHelper {
   public static Boolean isHiveEnabled(SparkSession sparkSession) {
     return getSparkSqlCatalogImpl(sparkSession).equalsIgnoreCase(Constants.SPARK_SQL_CATALOG_HIVE);
   }
-  
+
   /**
    * Gets the SparkSQL catalog implementation for a spark session
    *
@@ -2015,7 +2100,7 @@ public class FeaturestoreHelper {
   public static String getSparkSqlCatalogImpl(SparkSession sparkSession) {
     return sparkSession.sparkContext().getConf().get(Constants.SPARK_SQL_CATALOG_IMPLEMENTATION);
   }
-  
+
   /**
    * Verify that hive is enabled on the spark session. If Hive is not enabled, the featurestore API will not work
    * as it depends on SparkSQL backed by Hive tables
@@ -2058,7 +2143,7 @@ public class FeaturestoreHelper {
     String projectName = Hops.getProjectName();
     return projectName.toLowerCase() + Constants.TRAINING_DATASETS_SUFFIX;
   }
-  
+
   /**
    * Returns the feature group DTO type
    *
@@ -2074,7 +2159,7 @@ public class FeaturestoreHelper {
       return featurestoreClientSettingsDTO.getCachedFeaturegroupDtoType();
     }
   }
-  
+
   /**
    * Returns the feature group type string
    *
@@ -2088,7 +2173,7 @@ public class FeaturestoreHelper {
       return FeaturegroupType.CACHED_FEATURE_GROUP.name();
     }
   }
-  
+
   /**
    * Gets the path to where a hopsfs training dataset is
    *
@@ -2099,7 +2184,7 @@ public class FeaturestoreHelper {
     return Constants.HDFS_DEFAULT + hopsfsTrainingDatasetDTO.getHdfsStorePath() +
       Constants.SLASH_DELIMITER + hopsfsTrainingDatasetDTO.getName();
   }
-  
+
   /**
    * Gets the path to where an external training dataset is
    *
@@ -2112,7 +2197,7 @@ public class FeaturestoreHelper {
     return featurestoreS3ConnectorDTO.getBucket() + Constants.SLASH_DELIMITER + FeaturestoreHelper.getTableName(
       externalTrainingDatasetDTO.getName(), externalTrainingDatasetDTO.getVersion());
   }
-  
+
   /**
    * Verify user-provided dataframe
    *
@@ -2124,7 +2209,7 @@ public class FeaturestoreHelper {
         ".setDataframe(df)");
     }
   }
-  
+
   /**
    * Validate user-provided write-mode parameter
    *
@@ -2135,6 +2220,76 @@ public class FeaturestoreHelper {
       throw new IllegalArgumentException("The supplied write mode: " + mode +
         " does not match any of the supported modes: overwrite, append");
   }
-  
-  
+
+  /**
+   * Registers custom JDBC dialects for the Feature Store
+   */
+  public static void registerCustomJdbcDialects(){
+    JdbcDialects.registerDialect(getHiveJdbcDialect());
+  }
+
+  /**
+   * Custom JDBC dialect for reading from Hive with JDBC. This dialect can be registered with Spark to enable reading
+   * from Hive using JDBC rather than SparkSQL.
+   *
+   * @return the custom JDBC dialect
+   */
+  public static JdbcDialect getHiveJdbcDialect() {
+    JdbcDialect hiveDialect = new JdbcDialect() {
+      @Override
+      public boolean canHandle(String url) {
+        return url.startsWith("jdbc:hive2") || url.contains("hive2");
+      }
+
+      @Override
+      public String quoteIdentifier(String colName) {
+        return colName;
+      }
+
+    };
+    return hiveDialect;
+  }
+
+  /**
+   * Converts a java string list to a scala sequence
+   *
+   * @param inputList the java list to convert
+   * @return scala seq
+   */
+  public static Seq<String> convertListToSeq(List<String> inputList) {
+    return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
+  }
+
+  /**
+   * Registers a list of on-demand featuregroups as temporary tables in SparkSQL. First fetches the on-demand
+   * featuregroups using JDBC and the provided SQL string and then registers the resulting spark dataframes as
+   * temporary tables with the name featuregroupname_featuregroupversion
+   *
+   * @param onDemandFeaturegroups the list of on demand feature groups
+   * @param featurestore the featurestore to query
+   * @param jdbcArguments jdbc arguments for fetching the on-demand featuregroups
+   * @throws FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError
+   */
+  public static void registerOnDemandFeaturegroupsAsTempTables(
+      List<FeaturegroupDTO> onDemandFeaturegroups, String featurestore, Map<String, Map<String, String>> jdbcArguments)
+      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
+    for (FeaturegroupDTO onDemandFeaturegroup : onDemandFeaturegroups) {
+      FeaturestoreReadFeaturegroup readFeaturegroupOp = new FeaturestoreReadFeaturegroup(onDemandFeaturegroup.getName())
+          .setVersion(onDemandFeaturegroup.getVersion())
+          .setFeaturestore(featurestore);
+      if(jdbcArguments != null &&
+          jdbcArguments.containsKey(getTableName(onDemandFeaturegroup.getName(), onDemandFeaturegroup.getVersion()))) {
+        readFeaturegroupOp.setJdbcArguments(
+            jdbcArguments.get(getTableName(onDemandFeaturegroup.getName(), onDemandFeaturegroup.getVersion())));
+      }
+      Dataset<Row> sparkDf = readFeaturegroupOp.read();
+      sparkDf.registerTempTable(getTableName(onDemandFeaturegroup.getName(), onDemandFeaturegroup.getVersion()));
+      LOG.info("Registered On-Demand Feature Group: " + onDemandFeaturegroup.getName() + " with version: " +
+          onDemandFeaturegroup.getVersion() + " as temporary table: " +
+          getTableName(onDemandFeaturegroup.getName(), onDemandFeaturegroup.getVersion()));
+    }
+  }
+
 }

@@ -1,6 +1,9 @@
 package io.hops.util.featurestore.ops;
 
 import io.hops.util.Hops;
+import io.hops.util.exceptions.CannotInsertIntoOnDemandFeaturegroups;
+import io.hops.util.exceptions.CannotReadPartitionsOfOnDemandFeaturegroups;
+import io.hops.util.exceptions.CannotUpdateStatsOfOnDemandFeaturegroups;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
@@ -14,6 +17,7 @@ import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
+import io.hops.util.exceptions.StorageConnectorNotFound;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -61,6 +65,9 @@ public abstract class FeaturestoreOp {
   protected Boolean cached = true;
   protected Boolean onDemand = false;
   protected String storageConnector = null;
+  protected String sqlQuery = "";
+  protected Map<String, String> jdbcArguments;
+  protected Map<String, Map<String, String>> onDemandFeaturegroupsjdbcArguments;
 
   
   /**
@@ -291,6 +298,29 @@ public abstract class FeaturestoreOp {
     return storageConnector;
   }
 
+
+  /**
+   * @return SQL query for on-demand feature groups
+   */
+  public String getSqlQuery() {
+    return sqlQuery;
+  }
+
+  /**
+   * @return arguments for the JDBC connection string to be substituted at runtime
+   */
+  public Map<String, String> getJdbcArguments() {
+    return jdbcArguments;
+  }
+
+  /**
+   * @return arguments for the JDBC connection strings for getting features from multiple feature groups.
+   *         ondemand_featuregroup_name -> Map(argument_name -> argument_value)
+   */
+  public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
+    return onDemandFeaturegroupsjdbcArguments;
+  }
+
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
    * This method is called by the user after populating parameters of the operation
@@ -305,11 +335,14 @@ public abstract class FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorNotFound StorageConnectorNotFound
    */
   public abstract Object read()
       throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
       TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
-      StorageConnectorDoesNotExistError;
+      StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
+      StorageConnectorNotFound;
   
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -332,11 +365,15 @@ public abstract class FeaturestoreOp {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
+   * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
+   * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
    */
   public abstract void write()
       throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
       JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
       TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
       TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
-      FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError;
+      FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+      CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups;
 }
