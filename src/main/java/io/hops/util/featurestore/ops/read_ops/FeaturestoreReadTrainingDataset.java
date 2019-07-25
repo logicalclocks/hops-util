@@ -79,12 +79,13 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws IOException IOException
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   private Dataset<Row> doGetTrainingDataset(
       SparkSession sparkSession, String trainingDataset,
       FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion)
-      throws TrainingDatasetDoesNotExistError,
-      TrainingDatasetFormatNotSupportedError, IOException, StorageConnectorDoesNotExistError {
+    throws TrainingDatasetDoesNotExistError,
+    TrainingDatasetFormatNotSupportedError, IOException, StorageConnectorDoesNotExistError {
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
@@ -110,8 +111,8 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
     throws TrainingDatasetFormatNotSupportedError, TrainingDatasetDoesNotExistError, IOException {
     HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
     String path = FeaturestoreHelper.getHopsfsTrainingDatasetPath(hopsfsTrainingDatasetDTO);
-    return FeaturestoreHelper.getHopsfsTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
-      path);
+    return FeaturestoreHelper.getTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
+      path, TrainingDatasetType.HOPSFS_TRAINING_DATASET);
   }
   
   /**
@@ -122,15 +123,26 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    * @param featurestoreMetadataDTO featurestore metadata
    * @return Spark dataframe with the training dataset
    * @throws StorageConnectorDoesNotExistError
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
+   * @throws IOException IOException
    */
   private Dataset<Row> doGetExternalTrainingDataset(
     TrainingDatasetDTO trainingDatasetDTO, SparkSession sparkSession, FeaturestoreMetadataDTO featurestoreMetadataDTO)
-    throws StorageConnectorDoesNotExistError {
+    throws StorageConnectorDoesNotExistError, TrainingDatasetFormatNotSupportedError,
+    TrainingDatasetDoesNotExistError, IOException {
     ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
+    
     FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
       featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
-    String path = FeaturestoreHelper.getS3TrainingDatasetPath(s3ConnectorDTO, externalTrainingDatasetDTO);
-    return FeaturestoreHelper.getExternalTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(), path);
+    
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
+      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket());
+    
+    FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
+      sparkSession);
+    return FeaturestoreHelper.getTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(), path,
+      TrainingDatasetType.EXTERNAL_TRAINING_DATASET);
   }
   
 

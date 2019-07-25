@@ -60,11 +60,9 @@ public abstract class FeaturestoreOp {
   protected String description = "";
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
   protected List<String> partitionBy = new ArrayList<>();
-  protected Boolean hopsfs = true;
-  protected Boolean external = false;
-  protected Boolean cached = true;
   protected Boolean onDemand = false;
-  protected String storageConnector = null;
+  protected String sink = null;
+  protected String jdbcConnector = null;
   protected String sqlQuery = "";
   protected Map<String, String> jdbcArguments;
   protected Map<String, Map<String, String>> onDemandFeaturegroupsjdbcArguments;
@@ -262,42 +260,11 @@ public abstract class FeaturestoreOp {
   }
 
   /**
-   * @return whether it is a hopsfs training dataset type
-   */
-  public Boolean getHopsfs() {
-    return hopsfs;
-  }
-
-  /**
-   *
-   * @return whether it is an external training dataset
-   */
-  public Boolean getExternal() {
-    return external;
-  }
-
-  /**
-   *
-   * @return whether it is a cached feature group
-   */
-  public Boolean getCached() {
-    return cached;
-  }
-
-  /**
    * @return whether it is an on-demand feature group
    */
   public Boolean getOnDemand() {
     return onDemand;
   }
-
-  /**
-   * @return storage connector for training dataset or on-demand feature group
-   */
-  public String getStorageConnector() {
-    return storageConnector;
-  }
-
 
   /**
    * @return SQL query for on-demand feature groups
@@ -312,7 +279,22 @@ public abstract class FeaturestoreOp {
   public Map<String, String> getJdbcArguments() {
     return jdbcArguments;
   }
-
+  
+  /**
+   * @return sink for saving a training dataset, if not specified it will default to the Training Datasets folder in
+   *         HopsFS but you can also specify an S3 bucket
+   */
+  public String getSink() {
+    return sink;
+  }
+  
+  /**
+   * @return jdbc connector for on-demand feature groups
+   */
+  public String getJdbcConnector() {
+    return jdbcConnector;
+  }
+  
   /**
    * @return arguments for the JDBC connection strings for getting features from multiple feature groups.
    *         ondemand_featuregroup_name -> Map(argument_name -> argument_value)

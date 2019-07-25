@@ -48,9 +48,7 @@ import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelati
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
-import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
@@ -370,141 +368,169 @@ public class FeaturestoreHelper {
     return logAndRunSQL(sparkSession, sqlStr);
   }
 
-  public static Dataset<Row> getExternalTrainingDataset(SparkSession sparkSession, String dataFormat, String hdfsPath) {
-    return null;
-  }
-
   /**
-   * Gets an hopsfs training dataset from a feature store
+   * Gets a training dataset from a feature store
    *
    * @param sparkSession the spark session
    * @param dataFormat   the data format of the training dataset
-   * @param hdfsPath     the hdfs path to the dataset
+   * @param path     the path to the dataset (hdfs or s3 path)
    * @return a spark dataframe with the dataset
    * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
    *                                                tfrecords, tsv, csv, avro, orc, image and parquet
    * @throws IOException IOException IOException
-   * @throws TrainingDatasetDoesNotExistError if the hdfsPath is not found
+   * @throws TrainingDatasetDoesNotExistError if the path is not found
    */
-  public static Dataset<Row> getHopsfsTrainingDataset(SparkSession sparkSession, String dataFormat, String hdfsPath)
+  public static Dataset<Row> getTrainingDataset(SparkSession sparkSession, String dataFormat, String path,
+    TrainingDatasetType trainingDatasetType)
       throws TrainingDatasetFormatNotSupportedError, IOException, TrainingDatasetDoesNotExistError {
     Configuration hdfsConf = new Configuration();
     Path filePath = null;
     FileSystem hdfs = null;
     switch (dataFormat) {
       case Constants.TRAINING_DATASET_CSV_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-              .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_CSV_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-                .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(hdfsPath +
-                    Constants.TRAINING_DATASET_CSV_SUFFIX);
+              .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_CSV_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_CSV_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
+                .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path +
+                  Constants.TRAINING_DATASET_CSV_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_CSV_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
+            .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path);
         }
       case Constants.TRAINING_DATASET_TSV_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-              .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_TSV_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-                .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(hdfsPath +
-                    Constants.TRAINING_DATASET_TSV_SUFFIX);
+              .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_TSV_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_TSV_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
+                .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path +
+                  Constants.TRAINING_DATASET_TSV_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_TSV_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
+            .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path);
         }
       case Constants.TRAINING_DATASET_PARQUET_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().parquet(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
-            return sparkSession.read().parquet(hdfsPath + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
+            return sparkSession.read().parquet(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().parquet(path + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_PARQUET_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().parquet(path);
         }
       case Constants.TRAINING_DATASET_AVRO_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().format(dataFormat).load(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_AVRO_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
-            return sparkSession.read().format(dataFormat).load(hdfsPath + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+            return sparkSession.read().format(dataFormat).load(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().format(dataFormat).load(path + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_AVRO_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_ORC_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().format(dataFormat).load(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_ORC_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
-            return sparkSession.read().format(dataFormat).load(hdfsPath + Constants.TRAINING_DATASET_ORC_SUFFIX);
+            return sparkSession.read().format(dataFormat).load(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_ORC_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_ORC_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().format(dataFormat).load(path + Constants.TRAINING_DATASET_ORC_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_ORC_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_IMAGE_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().format(dataFormat).load(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
-            return sparkSession.read().format(dataFormat).load(hdfsPath + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+            return sparkSession.read().format(dataFormat).load(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().format(dataFormat).load(path + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_IMAGE_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(hdfsPath);
+        filePath = new org.apache.hadoop.fs.Path(path);
         hdfs = filePath.getFileSystem(hdfsConf);
-        if (hdfs.exists(filePath)) {
-          return sparkSession.read().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
-              Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).load(hdfsPath);
-        } else {
-          filePath = new org.apache.hadoop.fs.Path(hdfsPath + Constants.TRAINING_DATASET_TFRECORDS_SUFFIX);
-          hdfs = filePath.getFileSystem(hdfsConf);
+        if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
-                Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).load(hdfsPath +
-                Constants.TRAINING_DATASET_TFRECORDS_SUFFIX);
+              Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).load(path);
           } else {
-            throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
-                + hdfsPath + " or in file: " + hdfsPath + Constants.TRAINING_DATASET_TFRECORDS_SUFFIX);
+            filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_TFRECORDS_SUFFIX);
+            hdfs = filePath.getFileSystem(hdfsConf);
+            if (hdfs.exists(filePath)) {
+              return sparkSession.read().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
+                Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).load(path +
+                Constants.TRAINING_DATASET_TFRECORDS_SUFFIX);
+            } else {
+              throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
+                + path + " or in file: " + path + Constants.TRAINING_DATASET_TFRECORDS_SUFFIX);
+            }
           }
+        } else {
+          return sparkSession.read().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
+            Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).load(path);
         }
       default:
         throw new TrainingDatasetFormatNotSupportedError("The provided data format: " + dataFormat +
@@ -806,31 +832,29 @@ public class FeaturestoreHelper {
       throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
     useFeaturestore(sparkSession, featurestore);
     String featuresStr = StringUtils.join(features, ", ");
-    List<FeaturegroupDTO> featureFeatureGroups = new ArrayList<>();
-    Map<String, FeaturegroupDTO> featuresToFeaturegroup = new HashMap<>();
-    for (String feature : features) {
-      FeaturegroupDTO featuregroupMatched = findFeature(feature, featurestore, featuregroupsMetadata);
-      featuresToFeaturegroup.put(feature, featuregroupMatched);
-      featureFeatureGroups.add(featuregroupMatched);
-    }
     List<String> featuregroupStrings =
-        featureFeatureGroups.stream()
+        featuregroupsMetadata.stream()
             .map(fg -> getTableName(fg.getName(), fg.getVersion())).collect(Collectors.toList());
+    LOG.severe("Featuregroup Strings: " + StringUtils.join(featuregroupStrings, ","));
     List<FeaturegroupDTO> onDemandFeaturegroups =
-        featureFeatureGroups.stream()
+        featuregroupsMetadata.stream()
             .filter(fg -> fg.getFeaturegroupType() ==
                 FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
+    LOG.severe("OnDemandFeaturegroups Size: " + onDemandFeaturegroups.size());
     registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
+    LOG.severe("featuregroupStr: " + featuregroupStr);
     if (featuregroupsMetadata.size() == 1) {
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
       return logAndRunSQL(sparkSession, sqlStr);
     } else {
-      SQLJoinDTO sqlJoinDTO = getJoinStr(featureFeatureGroups, joinKey);
+      SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupsMetadata, joinKey);
       String sqlStr = "SELECT " + featuresStr + " FROM " +
           getTableName(sqlJoinDTO.getFeaturegroupDTOS().get(0).getName(),
               sqlJoinDTO.getFeaturegroupDTOS().get(0).getVersion())
           + " " + sqlJoinDTO.getJoinStr();
+      LOG.severe("sqlStr: " + sqlStr);
+      LOG.severe("joinStr: " + sqlJoinDTO.getJoinStr());
       return logAndRunSQL(sparkSession, sqlStr);
     }
   }
@@ -1539,65 +1563,52 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Writes a training dataset to S3
-   *
-   * @param sparkSession the spark session
-   * @param sparkDf the spark dataframe
-   * @param s3Path path to the s3 bucket to write it
-   * @param dataFormat the format of the dataset
-   * @param writeMode the mode of writing (e.g append or overwrite)
-   */
-  public static void writeTrainingDatasetS3(SparkSession sparkSession, Dataset<Row> sparkDf,
-                                              String s3Path, String dataFormat, String writeMode) {
-
-  }
-
-  /**
-   * Materializes a training dataset dataframe to HDFS
+   * Materializes a training dataset dataframe using Spark, writes to HDFS for Hopsworks Training Datasets and to S3
+   * for external training datasets
    *
    * @param sparkSession the spark session
    * @param sparkDf      the spark dataframe to materialize
-   * @param hdfsPath     the HDFS path
+   * @param path     the HDFS path
    * @param dataFormat   the format to serialize to
    * @param writeMode    the spark write mode (append/overwrite)
    * @throws TrainingDatasetFormatNotSupportedError if the provided dataframe format is not supported, supported formats
    * are tfrecords, csv, tsv, avro, orc, image and parquet
    * @throws CannotWriteImageDataFrameException if the user tries to save a dataframe in image format
    */
-  public static void writeTrainingDatasetHdfs(SparkSession sparkSession, Dataset<Row> sparkDf,
-                                              String hdfsPath, String dataFormat, String writeMode) throws
+  public static void writeTrainingDataset(SparkSession sparkSession, Dataset<Row> sparkDf,
+                                              String path, String dataFormat, String writeMode) throws
       TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
     sparkSession.sparkContext().setJobGroup("Materializing dataframe as training dataset",
-        "Saving training dataset in path: " + hdfsPath + ", in format: " + dataFormat, true);
+        "Saving training dataset in path: " + path + ", in format: " + dataFormat, true);
     switch (dataFormat) {
       case Constants.TRAINING_DATASET_CSV_FORMAT:
         sparkDf.write().option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).mode(
-            writeMode).option(Constants.SPARK_WRITE_HEADER, "true").csv(hdfsPath);
+            writeMode).option(Constants.SPARK_WRITE_HEADER, "true").csv(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
       case Constants.TRAINING_DATASET_TSV_FORMAT:
         sparkDf.write().option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER)
             .mode(writeMode).option(
-            Constants.SPARK_WRITE_HEADER, "true").csv(hdfsPath);
+            Constants.SPARK_WRITE_HEADER, "true").csv(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
       case Constants.TRAINING_DATASET_PARQUET_FORMAT:
-        sparkDf.write().format(dataFormat).mode(writeMode).parquet(hdfsPath);
+        sparkDf.write().format(dataFormat).mode(writeMode).parquet(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
       case Constants.TRAINING_DATASET_AVRO_FORMAT:
-        sparkDf.write().format(dataFormat).mode(writeMode).save(hdfsPath);
+        sparkDf.write().format(dataFormat).mode(writeMode).save(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
       case Constants.TRAINING_DATASET_ORC_FORMAT:
-        sparkDf.write().format(dataFormat).mode(writeMode).save(hdfsPath);
+        sparkDf.write().format(dataFormat).mode(writeMode).save(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
       case Constants.TRAINING_DATASET_IMAGE_FORMAT:
         throw new CannotWriteImageDataFrameException("Image Dataframes can only be read, not written");
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
         sparkDf.write().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
-            Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).mode(writeMode).save(hdfsPath);
+            Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).mode(writeMode).save(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
         break;
       default:
@@ -1686,7 +1697,7 @@ public class FeaturestoreHelper {
     if (matches.isEmpty()) {
       List<String> featuregroupNames =
           featuregroupDTOList.stream().map(td -> td.getName()).collect(Collectors.toList());
-      throw new FeaturegroupDoesNotExistError("Could not find the requested feature grup with name: " +
+      throw new FeaturegroupDoesNotExistError("Could not find the requested feature group with name: " +
           featuregroupName + " , and version: " + featuregroupVersion + " , " +
           "among the list of available feature groups in the featurestore: " +
           StringUtils.join(featuregroupNames, ","));
@@ -2186,19 +2197,6 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Gets the path to where an external training dataset is
-   *
-   * @param featurestoreS3ConnectorDTO DTO of the s3 connector
-   * @param externalTrainingDatasetDTO DTO of the external training dataset
-   * @return path to where the S3 training dataset is
-   */
-  public static String getS3TrainingDatasetPath(FeaturestoreS3ConnectorDTO featurestoreS3ConnectorDTO,
-    ExternalTrainingDatasetDTO externalTrainingDatasetDTO) {
-    return featurestoreS3ConnectorDTO.getBucket() + Constants.SLASH_DELIMITER + FeaturestoreHelper.getTableName(
-      externalTrainingDatasetDTO.getName(), externalTrainingDatasetDTO.getVersion());
-  }
-
-  /**
    * Verify user-provided dataframe
    *
    * @param dataframe the dataframe to validate
@@ -2290,6 +2288,40 @@ public class FeaturestoreHelper {
           onDemandFeaturegroup.getVersion() + " as temporary table: " +
           getTableName(onDemandFeaturegroup.getName(), onDemandFeaturegroup.getVersion()));
     }
+  }
+  
+  /**
+   * Utility function for getting the S3 path of an external training dataset in the feature store
+   *
+   * @param trainingDatasetName the name of the training dataset
+   * @param trainingDatasetVersion the version of the training dataset
+   * @param bucket the S3 bucket
+   * @return the path to the training dataset
+   */
+  public static String getExternalTrainingDatasetPath(String trainingDatasetName, int trainingDatasetVersion,
+    String bucket) {
+    String path = "";
+    if(!path.contains(Constants.S3_FILE_PREFIX)) {
+      path = path + Constants.S3_FILE_PREFIX;
+    }
+    path =
+      path + bucket + Constants.SLASH_DELIMITER +  Constants.S3_TRAINING_DATASETS_FOLDER
+        + Constants.SLASH_DELIMITER + FeaturestoreHelper.getTableName(trainingDatasetName, trainingDatasetVersion);
+    return path;
+  }
+  
+  /**
+   * Utility function that registers access key and secret key environment variables for writing/read to/from S3
+   * with Spark
+   *
+   * @param accessKey the s3 access key
+   * @param secretKey the s3 secret key
+   * @param sparkSession the spark session
+   */
+  public static void setupS3CredentialsForSpark(String accessKey, String secretKey, SparkSession sparkSession) {
+    SparkContext sparkContext = sparkSession.sparkContext();
+    sparkContext.hadoopConfiguration().set(Constants.S3_ACCESS_KEY_ENV, accessKey);
+    sparkContext.hadoopConfiguration().set(Constants.S3_SECRET_KEY_ENV, secretKey);
   }
 
 }

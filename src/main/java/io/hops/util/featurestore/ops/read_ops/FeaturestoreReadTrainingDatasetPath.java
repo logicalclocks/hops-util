@@ -115,7 +115,8 @@ public class FeaturestoreReadTrainingDatasetPath extends FeaturestoreOp {
     ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
     FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
       featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
-    String path = FeaturestoreHelper.getS3TrainingDatasetPath(s3ConnectorDTO, externalTrainingDatasetDTO);
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
+      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket());
     return path;
   }
   

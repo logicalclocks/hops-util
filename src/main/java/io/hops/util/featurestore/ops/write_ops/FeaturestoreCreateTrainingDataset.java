@@ -17,7 +17,10 @@ import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreHopsfsConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
 import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
@@ -87,10 +90,21 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
       null);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
-    if(hopsfs){
-      doCreateHopsfsTrainingDataset(featurestoreMetadata, statisticsDTO, featuresSchema);
+    FeaturestoreStorageConnectorDTO storageConnectorDTO;
+    if(sink != null){
+      storageConnectorDTO =
+        FeaturestoreHelper.findStorageConnector(featurestoreMetadata.getStorageConnectors(),
+          sink);
     } else {
-      doCreateExternalTrainingDataset(featurestoreMetadata, statisticsDTO, featuresSchema);
+      storageConnectorDTO = FeaturestoreHelper.findStorageConnector(featurestoreMetadata.getStorageConnectors(),
+        FeaturestoreHelper.getProjectTrainingDatasetsSink());
+    }
+    if(storageConnectorDTO.getStorageConnectorType() == FeaturestoreStorageConnectorType.S3) {
+      doCreateExternalTrainingDataset(featurestoreMetadata, statisticsDTO, featuresSchema,
+        (FeaturestoreS3ConnectorDTO) storageConnectorDTO);
+    } else {
+      doCreateHopsfsTrainingDataset(featurestoreMetadata, statisticsDTO, featuresSchema,
+        (FeaturestoreHopsfsConnectorDTO) storageConnectorDTO);
     }
     //Update metadata cache since we created a new training dataset
     Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
@@ -172,7 +186,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    *
    * @param featurestoreMetadataDTO metadata about the feature store
    * @param statisticsDTO statistics about the training dataset
-   * @param featuresSchema
+   * @param featuresSchema schema of the training dataset
+   * @param featurestoreHopsfsConnectorDTO the HopsFS storage connector
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
@@ -183,26 +198,19 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
   private void doCreateHopsfsTrainingDataset(FeaturestoreMetadataDTO featurestoreMetadataDTO,
-    StatisticsDTO statisticsDTO, List<FeatureDTO> featuresSchema)
-    throws StorageConnectorDoesNotExistError, JAXBException, FeaturestoreNotFound, TrainingDatasetCreationError,
+    StatisticsDTO statisticsDTO, List<FeatureDTO> featuresSchema,
+    FeaturestoreHopsfsConnectorDTO featurestoreHopsfsConnectorDTO)
+    throws JAXBException, FeaturestoreNotFound, TrainingDatasetCreationError,
     JWTNotFoundException, HiveNotEnabled, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
-    Integer storageConnectorId;
-    if(storageConnector != null){
-      storageConnectorId = FeaturestoreHelper.findStorageConnector(featurestoreMetadataDTO.getStorageConnectors(),
-        storageConnector).getId();
-    } else {
-      storageConnectorId = FeaturestoreHelper.findStorageConnector(featurestoreMetadataDTO.getStorageConnectors(),
-        FeaturestoreHelper.getProjectTrainingDatasetsSink()).getId();
-    }
     Response response = FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoHopsfsDTO(statisticsDTO,
-      featuresSchema, storageConnectorId),
+      featuresSchema, featurestoreHopsfsConnectorDTO.getId()),
       featurestoreMetadataDTO.getSettings().getHopsfsTrainingDatasetDtoType());
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
     HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
     String hdfsPath = hopsfsTrainingDatasetDTO.getHdfsStorePath() + Constants.SLASH_DELIMITER + name;
-    FeaturestoreHelper.writeTrainingDatasetHdfs(getSpark(), dataframe, hdfsPath, dataFormat,
+    FeaturestoreHelper.writeTrainingDataset(getSpark(), dataframe, hdfsPath, dataFormat,
       Constants.SPARK_OVERWRITE_MODE);
     if (dataFormat.equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
       try {
@@ -223,30 +231,26 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @param featurestoreMetadataDTO metadata about the featurestore
    * @param statisticsDTO statistics about the training dataset
    * @param featuresSchema schema of the training dataset
-   * @throws StorageConnectorDoesNotExistError
+   * @param s3ConnectorDTO S3 connector
    * @throws FeaturestoreNotFound
    * @throws JWTNotFoundException
    * @throws TrainingDatasetCreationError
    * @throws JAXBException
    * @throws HiveNotEnabled
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
   private void doCreateExternalTrainingDataset(FeaturestoreMetadataDTO featurestoreMetadataDTO,
-    StatisticsDTO statisticsDTO, List<FeatureDTO> featuresSchema)
-    throws StorageConnectorDoesNotExistError, FeaturestoreNotFound, JWTNotFoundException, TrainingDatasetCreationError,
-    JAXBException, HiveNotEnabled {
-    FeaturestoreS3ConnectorDTO s3ConnectorDTO;
-    if(storageConnector != null){
-      s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
-        featurestoreMetadataDTO.getStorageConnectors(),
-        storageConnector);
-    } else {
-      throw new IllegalArgumentException("Storage Connector cannot be null for External Training Datasets");
-    }
-    String path = s3ConnectorDTO.getBucket() + Constants.SLASH_DELIMITER + FeaturestoreHelper.getTableName(
-      name, version);
+    StatisticsDTO statisticsDTO, List<FeatureDTO> featuresSchema,
+    FeaturestoreS3ConnectorDTO s3ConnectorDTO)
+    throws FeaturestoreNotFound, JWTNotFoundException, TrainingDatasetCreationError,
+    JAXBException, HiveNotEnabled, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(name, version, s3ConnectorDTO.getBucket());
+    FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
+      getSpark());
     FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoExternalDTO(statisticsDTO, featuresSchema,
         s3ConnectorDTO.getId()), featurestoreMetadataDTO.getSettings().getExternalTrainingDatasetDtoType());
-    FeaturestoreHelper.writeTrainingDatasetS3(getSpark(), dataframe, path, dataFormat,
+    FeaturestoreHelper.writeTrainingDataset(getSpark(), dataframe, path, dataFormat,
       Constants.SPARK_OVERWRITE_MODE);
   }
   
@@ -339,20 +343,12 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     this.dataFormat = dataFormat;
     return this;
   }
-
-  public FeaturestoreCreateTrainingDataset setHopsfs(Boolean hopsfs) {
-    this.hopsfs = hopsfs;
+  
+  public FeaturestoreCreateTrainingDataset setSink(String sink) {
+    this.sink = sink;
     return this;
   }
 
-  public FeaturestoreCreateTrainingDataset setExternal(Boolean external) {
-    this.external = external;
-    return this;
-  }
-
-  public FeaturestoreCreateTrainingDataset setStorageConnector(String storageConnector) {
-    this.storageConnector = storageConnector;
-    return this;
-  }
+  
   
 }

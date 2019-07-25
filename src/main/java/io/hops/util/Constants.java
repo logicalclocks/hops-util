@@ -173,6 +173,10 @@ public class Constants {
   public static final String AMPERSAND_DELIMITER = "&";
   public static final String HDFS_DEFAULT = "hdfs://default";
   public static final int MAX_CORRELATION_MATRIX_COLUMNS = 50;
+  public static final String S3_FILE_PREFIX = "s3a://";
+  public static final String S3_ACCESS_KEY_ENV = "fs.s3a.access.key";
+  public static final String S3_SECRET_KEY_ENV = "fs.s3a.secret.key";
+  public static final String S3_TRAINING_DATASETS_FOLDER = "TRAINING_DATASETS";
 
 
 }

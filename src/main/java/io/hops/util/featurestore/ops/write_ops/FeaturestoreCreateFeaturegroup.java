@@ -90,13 +90,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     if(Strings.isNullOrEmpty(sqlQuery)){
       throw new IllegalArgumentException("SQL Query Cannot be Empty or Null for On-Demand Feature Groups");
     }
-    if(Strings.isNullOrEmpty(storageConnector)){
+    if(Strings.isNullOrEmpty(jdbcConnector)){
       throw new IllegalArgumentException("To create an on-demand feature group you must specify the name of a " +
           "JDBC Storage Connector");
     }
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturestoreStorageConnectorDTO storageConnectorDTO = FeaturestoreHelper.findStorageConnector(
-        featurestoreMetadata.getStorageConnectors(), storageConnector);
+        featurestoreMetadata.getStorageConnectors(), jdbcConnector);
     if(storageConnectorDTO.getStorageConnectorType() != FeaturestoreStorageConnectorType.JDBC){
       throw new IllegalArgumentException("OnDemand Feature groups can only be linked to JDBC Storage Connectors, " +
           "the provided storage connector is of type: " + storageConnectorDTO.getStorageConnectorType());
@@ -285,8 +285,8 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
 
-  public FeaturestoreCreateFeaturegroup setStorageConnector(String storageConnector) {
-    this.storageConnector = storageConnector;
+  public FeaturestoreCreateFeaturegroup setJdbcConnector(String jdbcConnector) {
+    this.jdbcConnector = jdbcConnector;
     return this;
   }
 
