@@ -95,6 +95,7 @@ public class Hops {
   private static List<String> brokerEndpointsList;
   private static String brokerEndpoints;
   private static String restEndpoint;
+  private static boolean insecure;
   private static String keyStore;
   private static String trustStore;
   private static String keystorePwd;
@@ -121,6 +122,7 @@ public class Hops {
     if (sysProps.containsKey(Constants.JOBTYPE_ENV_VAR) && sysProps.getProperty(Constants.JOBTYPE_ENV_VAR).
       equalsIgnoreCase("spark")) {
       restEndpoint = sysProps.getProperty(Constants.HOPSWORKS_RESTENDPOINT);
+      insecure = Boolean.parseBoolean(sysProps.getProperty(Constants.HOPSUTIL_INSECURE));
       projectName = sysProps.getProperty(Constants.PROJECTNAME_ENV_VAR);
       keyStore = Constants.K_CERTIFICATE_ENV_VAR;
       trustStore = Constants.T_CERTIFICATE_ENV_VAR;
@@ -748,7 +750,7 @@ public class Hops {
 
     @Override
     public boolean verify(String string, SSLSession ssls) {
-      return string.equals(restEndpoint.split(":")[0]);
+      return insecure || string.equals(restEndpoint.split(":")[0]);
     }
   }
 
