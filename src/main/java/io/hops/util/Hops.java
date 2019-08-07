@@ -676,6 +676,7 @@ public class Hops {
   /**
    * Gets a storage connector with a specific name from the feature store
    *
+   * @param storageConnectorName the name of the storage connector
    * @return a lazy java object for the operation of reading the storage connector with the specific name from the
    * featurestore. The operation can be started with read() on the object and parameters can be updated with setters.
    */

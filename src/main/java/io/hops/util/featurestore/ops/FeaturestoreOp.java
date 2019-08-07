@@ -100,6 +100,7 @@ public abstract class FeaturestoreOp {
   
   /**
    * @return spark session to use for the operation
+   * @throws HiveNotEnabled
    */
   public SparkSession getSpark() throws HiveNotEnabled {
     if(spark == null){
@@ -297,7 +298,6 @@ public abstract class FeaturestoreOp {
   
   /**
    * @return arguments for the JDBC connection strings for getting features from multiple feature groups.
-   *         ondemand_featuregroup_name -> Map(argument_name -> argument_value)
    */
   public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
     return onDemandFeaturegroupsjdbcArguments;
@@ -319,6 +319,7 @@ public abstract class FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws StorageConnectorNotFound StorageConnectorNotFound
+   * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
    */
   public abstract Object read()
       throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,

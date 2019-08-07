@@ -37,7 +37,7 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    *
    * @return a spark dataframe with the featuregroup
    * @throws HiveNotEnabled HiveNotEnabled
-   * @throws StorageConnectorDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public Dataset<Row> read() throws HiveNotEnabled, FeaturegroupDoesNotExistError,
       StorageConnectorDoesNotExistError {
@@ -60,6 +60,7 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @param featurestoreMetadataDTO featurestore metadata
    * @return a spark dataframe with the featuregroup
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public Dataset<Row> readOnDemandFeaturegroup(
       OnDemandFeaturegroupDTO onDemandFeaturegroupDTO, FeaturestoreMetadataDTO featurestoreMetadataDTO)
