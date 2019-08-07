@@ -2,8 +2,8 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
-import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;

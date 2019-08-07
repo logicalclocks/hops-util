@@ -1,6 +1,7 @@
 package io.hops.util.featurestore.ops.write_ops;
 
 import io.hops.util.FeaturestoreRestClient;
+import io.hops.util.exceptions.CannotUpdateStatsOfOnDemandFeaturegroups;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
@@ -9,14 +10,19 @@ import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.ops.FeaturestoreOp;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for Update-Featuregroup-Stats operation on the Hopsworks Featurestore
@@ -49,15 +55,48 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
    */
   public void write()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-    FeaturegroupDoesNotExistError, HiveNotEnabled {
+      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
+      FeaturegroupDoesNotExistError, HiveNotEnabled, CannotUpdateStatsOfOnDemandFeaturegroups {
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
+        name, version);
+    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+      throw new CannotUpdateStatsOfOnDemandFeaturegroups("The update-statistics operation is only supported for " +
+          "cached feature groups");
+    }
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
-    FeaturestoreRestClient.updateFeaturegroupStatsRest(name, featurestore, version, statisticsDTO);
+    Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
+    FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(featuregroupDTO, statisticsDTO),
+      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
+  }
+  
+  /**
+   * Groups input parameters into a DTO representation
+   *
+   * @param statisticsDTO statistics computed based on the dataframe
+   * @return FeaturegroupDTO
+   */
+  private FeaturegroupDTO groupInputParamsIntoDTO(FeaturegroupDTO featuregroupDTO, StatisticsDTO statisticsDTO){
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
+    featuregroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    featuregroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    featuregroupDTO.setJobs(jobsDTOs);
+    return featuregroupDTO;
   }
   
   public FeaturestoreUpdateFeaturegroupStats setName(String name) {

@@ -9,16 +9,26 @@ import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.dtos.FeatureDTO;
-import io.hops.util.featurestore.ops.FeaturestoreOp;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
+import io.hops.util.featurestore.ops.FeaturestoreOp;
+import org.apache.parquet.Strings;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for Create-Featuregroup operation on the Hopsworks Featurestore
@@ -50,10 +60,64 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JWTNotFoundException JWTNotFounfdException
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   */
+  public void write() throws JWTNotFoundException, FeaturegroupCreationError, SparkDataTypeNotRecognizedError,
+      FeaturestoreNotFound, JAXBException, InvalidPrimaryKeyForFeaturegroup, HiveNotEnabled, DataframeIsEmpty,
+      StorageConnectorDoesNotExistError {
+    if(onDemand){
+      writeOnDemandFeaturegroup();
+    } else {
+      writeCachedFeaturegroup();
+    }
+    //Update metadata cache since we created a new feature group
+    Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
+  }
+
+  /**
+   * Creates a new onDemand Featuregroup in teh Feature store
+   *
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws JWTNotFoundException JWTNotFoundException
+   * @throws JAXBException JAXBException
+   */
+  public void writeOnDemandFeaturegroup() throws StorageConnectorDoesNotExistError, FeaturestoreNotFound,
+      FeaturegroupCreationError, JWTNotFoundException, JAXBException {
+    if(Strings.isNullOrEmpty(sqlQuery)){
+      throw new IllegalArgumentException("SQL Query Cannot be Empty or Null for On-Demand Feature Groups");
+    }
+    if(Strings.isNullOrEmpty(jdbcConnector)){
+      throw new IllegalArgumentException("To create an on-demand feature group you must specify the name of a " +
+          "JDBC Storage Connector");
+    }
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturestoreStorageConnectorDTO storageConnectorDTO = FeaturestoreHelper.findStorageConnector(
+        featurestoreMetadata.getStorageConnectors(), jdbcConnector);
+    if(storageConnectorDTO.getStorageConnectorType() != FeaturestoreStorageConnectorType.JDBC){
+      throw new IllegalArgumentException("OnDemand Feature groups can only be linked to JDBC Storage Connectors, " +
+          "the provided storage connector is of type: " + storageConnectorDTO.getStorageConnectorType());
+    }
+    FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(storageConnectorDTO.getId()),
+        FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
+  }
+
+  /**
+   * Creates a new cached feature group in the featurestore
+   *
+   * @throws DataframeIsEmpty DataframeIsEmpty
+   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
+   * @throws JAXBException JAXBException
+   * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JWTNotFoundException JWTNotFounfdException
    * @throws HiveNotEnabled HiveNotEnabled
    */
-  public void write()
+  public void writeCachedFeaturegroup()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError, FeaturestoreNotFound,
     JWTNotFoundException, HiveNotEnabled {
@@ -64,18 +128,66 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     }
     primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
     FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
-    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), dependencies, description);
+    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy);
-    FeaturestoreRestClient.createFeaturegroupRest(featurestore, name, version, description, jobName, dependencies,
-      featuresSchema, statisticsDTO);
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
+      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
     FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
       featurestore, version);
-    //Update metadata cache since we created a new feature group
-    Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
+  }
+
+  /**
+   * Group input parameters into a DTO for creating an on-demand feature group
+   *
+   * @param jdbcConnectorId id of the jdbc connector to get the on-demand feature group from
+   * @return DTO representation of the input parameters
+   */
+  private FeaturegroupDTO groupInputParamsIntoDTO(Integer jdbcConnectorId) {
+    OnDemandFeaturegroupDTO onDemandFeaturegroupDTO = new OnDemandFeaturegroupDTO();
+    onDemandFeaturegroupDTO.setFeaturestoreName(featurestore);
+    onDemandFeaturegroupDTO.setName(name);
+    onDemandFeaturegroupDTO.setVersion(version);
+    onDemandFeaturegroupDTO.setDescription(description);
+    onDemandFeaturegroupDTO.setQuery(sqlQuery);
+    onDemandFeaturegroupDTO.setJdbcConnectorId(jdbcConnectorId);
+    onDemandFeaturegroupDTO.setFeaturegroupType(FeaturegroupType.ON_DEMAND_FEATURE_GROUP);
+    return onDemandFeaturegroupDTO;
+  }
+  
+  /**
+   * Group input parameters into a DTO for creating a cached feature group
+   *
+   * @param features feature schema (inferred from the dataframe)
+   * @param statisticsDTO statisticsDTO (computed based on the dataframe)
+   * @return DTO representation of the input parameters
+   */
+  private FeaturegroupDTO groupInputParamsIntoDTO(List<FeatureDTO> features, StatisticsDTO statisticsDTO){
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
+    FeaturegroupDTO featuregroupDTO = new FeaturegroupDTO();
+    featuregroupDTO.setFeaturestoreName(featurestore);
+    featuregroupDTO.setName(name);
+    featuregroupDTO.setVersion(version);
+    featuregroupDTO.setDescription(description);
+    featuregroupDTO.setJobs(jobsDTOs);
+    featuregroupDTO.setFeatures(features);
+    featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    featuregroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    featuregroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    featuregroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
+    return featuregroupDTO;
   }
   
   public FeaturestoreCreateFeaturegroup setName(String name) {
@@ -148,8 +260,8 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateFeaturegroup setJobName(String jobName) {
-    this.jobName = jobName;
+  public FeaturestoreCreateFeaturegroup setJobs(List<String> jobs) {
+    this.jobs = jobs;
     return this;
   }
   
@@ -163,13 +275,23 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateFeaturegroup setDependencies(List<String> dependencies) {
-    this.dependencies = dependencies;
-    return this;
-  }
-  
   public FeaturestoreCreateFeaturegroup setPartitionBy(List<String> partitionBy) {
     this.partitionBy = partitionBy;
+    return this;
+  }
+
+  public FeaturestoreCreateFeaturegroup setSqlQuery(String sqlQuery) {
+    this.sqlQuery = sqlQuery;
+    return this;
+  }
+
+  public FeaturestoreCreateFeaturegroup setJdbcConnector(String jdbcConnector) {
+    this.jdbcConnector = jdbcConnector;
+    return this;
+  }
+
+  public FeaturestoreCreateFeaturegroup setOnDemand(Boolean onDemand) {
+    this.onDemand = onDemand;
     return this;
   }
   

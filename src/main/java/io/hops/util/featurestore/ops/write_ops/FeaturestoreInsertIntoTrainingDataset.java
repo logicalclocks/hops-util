@@ -10,13 +10,19 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
-import io.hops.util.featurestore.dtos.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.ops.FeaturestoreOp;
+import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
-import io.hops.util.featurestore.dtos.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
+import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -27,6 +33,7 @@ import javax.xml.bind.JAXBException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Builder class for InsertInto-TrainingDataset operation on the Hopsworks Featurestore
@@ -64,11 +71,13 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public void write()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
-    TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException, JWTNotFoundException, HiveNotEnabled {
+      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
+      TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException, JWTNotFoundException, HiveNotEnabled,
+      StorageConnectorDoesNotExistError {
     if(dataframe == null){
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
@@ -119,39 +128,63 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws JWTNotFoundException JWTNotFoundException
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
    */
-  private static void doInsertIntoTrainingDataset(
-    SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
-    String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion,
-    Boolean descriptiveStats, Boolean featureCorr,
-    Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
-    String corrMethod, Integer numClusters, String writeMode)
+  private void doInsertIntoTrainingDataset(
+      SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
+      String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion,
+      Boolean descriptiveStats, Boolean featureCorr,
+      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
+      String corrMethod, Integer numClusters, String writeMode)
     throws JAXBException, TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
     TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, FeaturestoreNotFound,
-    CannotWriteImageDataFrameException, JWTNotFoundException {
+    CannotWriteImageDataFrameException, JWTNotFoundException, StorageConnectorDoesNotExistError, HiveNotEnabled {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     corrMethod = FeaturestoreHelper.correlationMethodGetOrDefault(corrMethod);
     numBins = FeaturestoreHelper.numBinsGetOrDefault(numBins);
     numClusters = FeaturestoreHelper.numClustersGetOrDefault(numClusters);
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
-    FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
+    TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
       trainingDataset, trainingDatasetVersion);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession,
       sparkDf,
       featurestore, trainingDatasetVersion,
       descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
       corrMethod);
-    Response response = FeaturestoreRestClient.updateTrainingDatasetStatsRest(trainingDataset, featurestore,
-      trainingDatasetVersion,
-      statisticsDTO);
+    Response response =
+      FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO),
+        FeaturestoreHelper.getTrainingDatasetDTOTypeStr(trainingDatasetDTO, featurestoreMetadata.getSettings()));
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO updatedTrainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
-    String hdfsPath = updatedTrainingDatasetDTO.getHdfsStorePath() + "/" + trainingDataset;
-    FeaturestoreHelper.writeTrainingDatasetHdfs(sparkSession, sparkDf, hdfsPath,
-      updatedTrainingDatasetDTO.getDataFormat(), writeMode);
-    if (updatedTrainingDatasetDTO.getDataFormat() == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
+    if(updatedTrainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
+      insertIntoHopsfsTrainingDataset(updatedTrainingDatasetDTO, sparkSession, sparkDf, writeMode);
+    } else {
+      insertIntoExternalTrainingDataset(updatedTrainingDatasetDTO, featurestoreMetadata, sparkSession, sparkDf,
+        writeMode);
+    }
+  }
+  
+  /**
+   * Inserts into a Hopsfs training dataset using Spark
+   *
+   * @param trainingDatasetDTO DTO of the training dataset to insert into
+   * @param sparkSession sparksesison to use for the insertion
+   * @param sparkDf spark dataframe with data to insert in the training dataset
+   * @param writeMode write mode for the operation (e.g append or overwrite)
+   * @throws TrainingDatasetFormatNotSupportedError
+   * @throws CannotWriteImageDataFrameException
+   */
+  private void insertIntoHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
+    SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
+    throws TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
+    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
+    String hdfsPath = hopsfsTrainingDatasetDTO.getHdfsStorePath() + "/" + trainingDatasetDTO.getName();
+    FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, hdfsPath,
+      hopsfsTrainingDatasetDTO.getDataFormat(), writeMode);
+    if (hopsfsTrainingDatasetDTO.getDataFormat() == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
       JSONObject tfRecordSchemaJson = null;
       try{
         tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
@@ -160,15 +193,68 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       }
       if(tfRecordSchemaJson != null){
         try {
-          FeaturestoreHelper.writeTfRecordSchemaJson(updatedTrainingDatasetDTO.getHdfsStorePath()
+          FeaturestoreHelper.writeTfRecordSchemaJson(hopsfsTrainingDatasetDTO.getHdfsStorePath()
               + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
             tfRecordSchemaJson.toString());
         } catch (Exception e) {
           LOG.log(Level.WARNING, "Could not save tf record schema json to HDFS for training dataset: "
-            + trainingDataset, e);
+            + trainingDatasetDTO.getName(), e);
         }
       }
     }
+  }
+  
+  /**
+   * Inserts into an external training dataset using Spark
+   *
+   * @param trainingDatasetDTO DTO of the training dataset
+   * @param featurestoreMetadata metadata of the featurestore
+   * @param sparkSession sparkSession to use for insertion
+   * @param sparkDf dataframe with data to insert in the training dataset
+   * @param writeMode write mode, e.g append or overwrite
+   * @throws StorageConnectorDoesNotExistError
+   * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
+   * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
+   * @throws HiveNotEnabled HiveNotEnabled
+   */
+  private void insertIntoExternalTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
+    FeaturestoreMetadataDTO featurestoreMetadata, SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
+    throws StorageConnectorDoesNotExistError, TrainingDatasetFormatNotSupportedError,
+    CannotWriteImageDataFrameException, HiveNotEnabled {
+    ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
+    FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
+      featurestoreMetadata.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
+      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket());
+    FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
+      getSpark());
+    FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, path,
+      externalTrainingDatasetDTO.getDataFormat(), writeMode);
+  }
+  
+  /**
+   * Groups input parameters into a DTO
+   *
+   * @param trainingDatasetDTO DTO representation of the training dataset before updating the statistics
+   * @param statisticsDTO the newly computed statistics of the training dataset
+   * @return training dataset DTO
+   */
+  private TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO,
+    StatisticsDTO statisticsDTO) {
+    if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
+      jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
+    }
+    List<FeaturestoreJobDTO> jobsDTOs = jobs.stream().map(jobName -> {
+      FeaturestoreJobDTO featurestoreJobDTO = new FeaturestoreJobDTO();
+      featurestoreJobDTO.setJobName(jobName);
+      return featurestoreJobDTO;
+    }).collect(Collectors.toList());
+    trainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    trainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    trainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    trainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    trainingDatasetDTO.setJobs(jobsDTOs);
+    return trainingDatasetDTO;
   }
   
   public FeaturestoreInsertIntoTrainingDataset setName(String name) {

@@ -1,13 +1,36 @@
+/*
+ * This file is part of Hopsworks
+ * Copyright (C) 2018, Logical Clocks AB. All rights reserved
+ *
+ * Hopsworks is free software: you can redistribute it and/or modify it under the terms of
+ * the GNU Affero General Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or (at your option) any later version.
+ *
+ * Hopsworks is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+ * PURPOSE.  See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.hops.util.featurestore.dtos;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
 import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
+import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlSeeAlso;
 import java.util.Date;
 import java.util.List;
 
@@ -16,57 +39,57 @@ import java.util.List;
  * and training dataset entities.
  */
 @XmlRootElement
+@XmlSeeAlso({FeaturegroupDTO.class, TrainingDatasetDTO.class})
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = FeaturegroupDTO.class, name = "FeaturegroupDTO"),
+    @JsonSubTypes.Type(value = TrainingDatasetDTO.class, name = "TrainingDatasetDTO")})
 public abstract class FeaturestoreEntityDTO {
   private Integer featurestoreId;
   private String featurestoreName;
   private String description;
   private Date created;
   private String creator;
-  private Integer jobId;
-  private String jobName;
-  private Date lastComputed;
-  private String jobStatus;
   private Integer version;
-  private Long inodeId;
   private DescriptiveStatsDTO descriptiveStatistics;
   private FeatureCorrelationMatrixDTO featureCorrelationMatrix;
   private FeatureDistributionsDTO featuresHistogram;
   private ClusterAnalysisDTO clusterAnalysis;
   private String name;
   private Integer id;
-  private List<FeaturestoreDependencyDTO> dependencies;
   private List<FeatureDTO> features;
+  private String location;
+  private List<FeaturestoreJobDTO> jobs;
 
-  public FeaturestoreEntityDTO(
-      Integer featurestoreId, String featurestoreName, String description, Date created, String creator,
-      Integer jobId, String jobName, Date lastComputed, String jobStatus, Integer version, Long inodeId,
-      DescriptiveStatsDTO descriptiveStatistics, FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-      FeatureDistributionsDTO featuresHistogram, ClusterAnalysisDTO clusterAnalysis, String name,
-      Integer id, List<FeaturestoreDependencyDTO> dependencies, List<FeatureDTO> features) {
+  public FeaturestoreEntityDTO() {
+  }
+  
+  public FeaturestoreEntityDTO(Integer featurestoreId, String featurestoreName, String description,
+    Date created, String creator, Integer version,
+    DescriptiveStatsDTO descriptiveStatistics,
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
+    FeatureDistributionsDTO featuresHistogram,
+    ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
+    List<FeatureDTO> features, String location,
+    List<FeaturestoreJobDTO> jobs) {
     this.featurestoreId = featurestoreId;
     this.featurestoreName = featurestoreName;
     this.description = description;
     this.created = created;
     this.creator = creator;
-    this.jobId = jobId;
-    this.jobName = jobName;
-    this.lastComputed = lastComputed;
-    this.jobStatus = jobStatus;
     this.version = version;
-    this.inodeId = inodeId;
     this.descriptiveStatistics = descriptiveStatistics;
     this.featureCorrelationMatrix = featureCorrelationMatrix;
     this.featuresHistogram = featuresHistogram;
     this.clusterAnalysis = clusterAnalysis;
     this.name = name;
     this.id = id;
-    this.dependencies = dependencies;
     this.features = features;
+    this.location = location;
+    this.jobs = jobs;
   }
-
-  public FeaturestoreEntityDTO() {
-  }
-
+  
   @XmlElement
   public Date getCreated() {
     return created;
@@ -77,21 +100,6 @@ public abstract class FeaturestoreEntityDTO {
     return creator;
   }
 
-  @XmlElement(nillable = true)
-  public Integer getJobId() {
-    return jobId;
-  }
-
-  @XmlElement(nillable = true)
-  public String getJobName() {
-    return jobName;
-  }
-
-  @XmlElement(nillable = true)
-  public Date getLastComputed() {
-    return lastComputed;
-  }
-
   @XmlElement
   public String getDescription() {
     return description;
@@ -100,16 +108,6 @@ public abstract class FeaturestoreEntityDTO {
   @XmlElement
   public Integer getVersion() {
     return version;
-  }
-
-  @XmlElement(nillable = true)
-  public String getJobStatus() {
-    return jobStatus;
-  }
-
-  @XmlElement
-  public Long getInodeId() {
-    return inodeId;
   }
 
   @XmlElement
@@ -153,17 +151,26 @@ public abstract class FeaturestoreEntityDTO {
   }
 
   @XmlElement
-  public List<FeaturestoreDependencyDTO> getDependencies() {
-    return dependencies;
-  }
-
-  @XmlElement
   public List<FeatureDTO> getFeatures() {
     return features;
   }
-
-  public void setFeaturestoreId(Integer featurestoreId) {
-    this.featurestoreId = featurestoreId;
+  
+  @XmlElement
+  public String getLocation() {
+    return location;
+  }
+  
+  @XmlElement
+  public List<FeaturestoreJobDTO> getJobs() {
+    return jobs;
+  }
+  
+  public void setLocation(String location) {
+    this.location = location;
+  }
+  
+  public void setFeatures(List<FeatureDTO> features) {
+    this.features = features;
   }
 
   public void setFeaturestoreName(String featurestoreName) {
@@ -174,6 +181,38 @@ public abstract class FeaturestoreEntityDTO {
     this.description = description;
   }
 
+  public void setName(String name) {
+    this.name = name;
+  }
+  
+  public void setDescriptiveStatistics(
+    DescriptiveStatsDTO descriptiveStatistics) {
+    this.descriptiveStatistics = descriptiveStatistics;
+  }
+  
+  public void setFeatureCorrelationMatrix(
+    FeatureCorrelationMatrixDTO featureCorrelationMatrix) {
+    this.featureCorrelationMatrix = featureCorrelationMatrix;
+  }
+  
+  public void setFeaturesHistogram(
+    FeatureDistributionsDTO featuresHistogram) {
+    this.featuresHistogram = featuresHistogram;
+  }
+  
+  public void setClusterAnalysis(
+    ClusterAnalysisDTO clusterAnalysis) {
+    this.clusterAnalysis = clusterAnalysis;
+  }
+
+  public void setId(Integer id) {
+    this.id = id;
+  }
+
+  public void setFeaturestoreId(Integer featurestoreId) {
+    this.featurestoreId = featurestoreId;
+  }
+
   public void setCreated(Date created) {
     this.created = created;
   }
@@ -182,62 +221,14 @@ public abstract class FeaturestoreEntityDTO {
     this.creator = creator;
   }
 
-  public void setJobId(Integer jobId) {
-    this.jobId = jobId;
-  }
-
-  public void setJobName(String jobName) {
-    this.jobName = jobName;
-  }
-
-  public void setLastComputed(Date lastComputed) {
-    this.lastComputed = lastComputed;
-  }
-
-  public void setJobStatus(String jobStatus) {
-    this.jobStatus = jobStatus;
-  }
-
   public void setVersion(Integer version) {
     this.version = version;
   }
-
-  public void setInodeId(Long inodeId) {
-    this.inodeId = inodeId;
+  
+  public void setJobs(List<FeaturestoreJobDTO> jobs) {
+    this.jobs = jobs;
   }
-
-  public void setDescriptiveStatistics(DescriptiveStatsDTO descriptiveStatistics) {
-    this.descriptiveStatistics = descriptiveStatistics;
-  }
-
-  public void setFeatureCorrelationMatrix(FeatureCorrelationMatrixDTO featureCorrelationMatrix) {
-    this.featureCorrelationMatrix = featureCorrelationMatrix;
-  }
-
-  public void setFeaturesHistogram(FeatureDistributionsDTO featuresHistogram) {
-    this.featuresHistogram = featuresHistogram;
-  }
-
-  public void setClusterAnalysis(ClusterAnalysisDTO clusterAnalysis) {
-    this.clusterAnalysis = clusterAnalysis;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public void setId(Integer id) {
-    this.id = id;
-  }
-
-  public void setDependencies(List<FeaturestoreDependencyDTO> dependencies) {
-    this.dependencies = dependencies;
-  }
-
-  public void setFeatures(List<FeatureDTO> features) {
-    this.features = features;
-  }
-
+  
   @Override
   public String toString() {
     return "FeaturestoreEntityDTO{" +
@@ -246,17 +237,11 @@ public abstract class FeaturestoreEntityDTO {
         ", description='" + description + '\'' +
         ", created='" + created + '\'' +
         ", creator='" + creator + '\'' +
-        ", jobId=" + jobId +
-        ", jobName='" + jobName + '\'' +
-        ", lastComputed='" + lastComputed + '\'' +
-        ", jobStatus='" + jobStatus + '\'' +
         ", version=" + version +
-        ", inodeId=" + inodeId +
         ", descriptiveStatistics=" + descriptiveStatistics +
         ", featureCorrelationMatrix=" + featureCorrelationMatrix +
         ", featuresHistogram=" + featuresHistogram +
         ", clusterAnalysis=" + clusterAnalysis +
-        ", dependencies=" + dependencies +
         ", name='" + name + '\'' +
         ", id=" + id +
         '}';

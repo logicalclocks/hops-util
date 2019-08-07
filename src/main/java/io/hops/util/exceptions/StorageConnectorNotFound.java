@@ -12,27 +12,30 @@
  * limitations under the License.
  */
 
-package io.hops.util.featurestore.dtos;
-
-import java.util.List;
+package io.hops.util.exceptions;
 
 /**
- * SQL Join DTO, when JOIN str is constructed we also assign alias to each featuregroup
+ * Exception thrown when storage connector not found
+ * 
  */
-public class SQLJoinDTO {
-  String joinStr;
-  List<FeaturegroupDTO> featuregroupDTOS;
+public class StorageConnectorNotFound extends Exception {
 
-  public SQLJoinDTO(String joinStr, List<FeaturegroupDTO> featuregroupDTOS) {
-    this.joinStr = joinStr;
-    this.featuregroupDTOS = featuregroupDTOS;
+  Integer status;
+
+  public StorageConnectorNotFound(String message) {
+    super(message);
   }
 
-  public String getJoinStr() {
-    return joinStr;
+  public StorageConnectorNotFound(Integer status, String message) {
+    super(message);
+    this.status = status;
   }
 
-  public List<FeaturegroupDTO> getFeaturegroupDTOS() {
-    return featuregroupDTOS;
+  public Integer getStatus() {
+    return status;
+  }
+
+  public void setStatus(Integer status) {
+    this.status = status;
   }
 }

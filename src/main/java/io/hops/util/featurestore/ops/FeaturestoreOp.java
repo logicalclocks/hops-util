@@ -1,6 +1,9 @@
 package io.hops.util.featurestore.ops;
 
 import io.hops.util.Hops;
+import io.hops.util.exceptions.CannotInsertIntoOnDemandFeaturegroups;
+import io.hops.util.exceptions.CannotReadPartitionsOfOnDemandFeaturegroups;
+import io.hops.util.exceptions.CannotUpdateStatsOfOnDemandFeaturegroups;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
@@ -13,6 +16,8 @@ import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
+import io.hops.util.exceptions.StorageConnectorNotFound;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -50,12 +55,18 @@ public abstract class FeaturestoreOp {
   protected Boolean featureHistograms = true;
   protected Boolean clusterAnalysis = true;
   protected List<String> statColumns = null;
-  protected String jobName = FeaturestoreHelper.jobNameGetOrDefault(null);
+  protected List<String> jobs = new ArrayList<>();
   protected String primaryKey;
   protected String description = "";
-  protected List<String> dependencies = new ArrayList<>();
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
   protected List<String> partitionBy = new ArrayList<>();
+  protected Boolean onDemand = false;
+  protected String sink = null;
+  protected String jdbcConnector = null;
+  protected String sqlQuery = "";
+  protected Map<String, String> jdbcArguments;
+  protected Map<String, Map<String, String>> onDemandFeaturegroupsjdbcArguments;
+
   
   /**
    * Class constructor
@@ -213,10 +224,10 @@ public abstract class FeaturestoreOp {
   }
   
   /**
-   * @return name of the job to compute the feature group or training dataset
+   * @return list of jobs linked to a feature group or training dataset
    */
-  public String getJobName() {
-    return jobName;
+  public List<String> getJobs() {
+    return jobs;
   }
   
   /**
@@ -235,13 +246,6 @@ public abstract class FeaturestoreOp {
   }
   
   /**
-   * @return list of the datasets that this featuregroup depends on (e.g input datasets to the feature engineering job)
-   */
-  public List<String> getDependencies() {
-    return dependencies;
-  }
-  
-  /**
    * @return the format of the materialized training dataset
    */
   public String getDataFormat() {
@@ -254,7 +258,51 @@ public abstract class FeaturestoreOp {
   public List<String> getPartitionBy() {
     return partitionBy;
   }
+
+  /**
+   * @return whether it is an on-demand feature group
+   */
+  public Boolean getOnDemand() {
+    return onDemand;
+  }
+
+  /**
+   * @return SQL query for on-demand feature groups
+   */
+  public String getSqlQuery() {
+    return sqlQuery;
+  }
+
+  /**
+   * @return arguments for the JDBC connection string to be substituted at runtime
+   */
+  public Map<String, String> getJdbcArguments() {
+    return jdbcArguments;
+  }
   
+  /**
+   * @return sink for saving a training dataset, if not specified it will default to the Training Datasets folder in
+   *         HopsFS but you can also specify an S3 bucket
+   */
+  public String getSink() {
+    return sink;
+  }
+  
+  /**
+   * @return jdbc connector for on-demand feature groups
+   */
+  public String getJdbcConnector() {
+    return jdbcConnector;
+  }
+  
+  /**
+   * @return arguments for the JDBC connection strings for getting features from multiple feature groups.
+   *         ondemand_featuregroup_name -> Map(argument_name -> argument_value)
+   */
+  public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
+    return onDemandFeaturegroupsjdbcArguments;
+  }
+
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
    * This method is called by the user after populating parameters of the operation
@@ -268,10 +316,15 @@ public abstract class FeaturestoreOp {
    * @throws FeaturestoresNotFound FeaturestoresNotFound
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws StorageConnectorNotFound StorageConnectorNotFound
    */
   public abstract Object read()
-    throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
-    TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled;
+      throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
+      TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
+      StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
+      StorageConnectorNotFound;
   
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -293,11 +346,16 @@ public abstract class FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
+   * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
+   * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
    */
   public abstract void write()
-    throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
-    TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
-    TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
-    FeaturegroupDoesNotExistError, HiveNotEnabled;
+      throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
+      TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
+      TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
+      FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+      CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups;
 }
