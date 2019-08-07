@@ -374,7 +374,7 @@ public class FeaturestoreHelper {
    * @param sparkSession the spark session
    * @param dataFormat   the data format of the training dataset
    * @param path     the path to the dataset (hdfs or s3 path)
-   * @param TrainingDatasetType the type of the training dataset
+   * @param trainingDatasetType the type of the training dataset
    * @return a spark dataframe with the dataset
    * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
    *                                                tfrecords, tsv, csv, avro, orc, image and parquet
