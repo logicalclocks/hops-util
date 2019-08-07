@@ -334,7 +334,7 @@ public class FeaturestoreHelper {
    * @param sparkSession the spark session
    * @param sqlQuery the sqlQuery to fetch the on-demand featuregroup
    * @param connectionString the JDBC connection string
-   * @return
+   * @return on demand feature group spark dataframe
    */
   public static Dataset<Row> getOnDemandFeaturegroup(SparkSession sparkSession, String sqlQuery,
                                                      String connectionString) {
@@ -374,6 +374,7 @@ public class FeaturestoreHelper {
    * @param sparkSession the spark session
    * @param dataFormat   the data format of the training dataset
    * @param path     the path to the dataset (hdfs or s3 path)
+   * @param TrainingDatasetType the type of the training dataset
    * @return a spark dataframe with the dataset
    * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
    *                                                tfrecords, tsv, csv, avro, orc, image and parquet
@@ -616,6 +617,7 @@ public class FeaturestoreHelper {
    * @param featuregroup        the featuregroup where the feature is located
    * @param featuregroupVersion the version of the featuregroup
    * @param jdbcArguments       map of jdbc arguments, in case the feature belongs to an on-demand feature group
+   * @param featuregroupDTOs    list of feature groups
    * @return the resulting spark dataframe with the feature
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
@@ -772,6 +774,7 @@ public class FeaturestoreHelper {
    * @param featuregroupsAndVersions a map of (featuregroup to version) where the featuregroups are located
    * @param joinKey                  the key to join on
    * @param jdbcArguments jdbc arguments for fetching the on-demand featuregroups
+   * @param featuregroupsMetadata    metadata of the feature groups
    * @return the resulting spark dataframe with the features
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
@@ -1660,7 +1663,7 @@ public class FeaturestoreHelper {
    * @param storageConnectorsList a list of all storage connector DTOs
    * @param storageConnectorName the name of the storage connector
    * @return the DTO of the storage connector
-   * @throws StorageConnectorDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public static FeaturestoreStorageConnectorDTO findStorageConnector(
       List<FeaturestoreStorageConnectorDTO> storageConnectorsList, String storageConnectorName)
@@ -2266,9 +2269,9 @@ public class FeaturestoreHelper {
    * @param onDemandFeaturegroups the list of on demand feature groups
    * @param featurestore the featurestore to query
    * @param jdbcArguments jdbc arguments for fetching the on-demand featuregroups
-   * @throws FeaturegroupDoesNotExistError
-   * @throws HiveNotEnabled
-   * @throws StorageConnectorDoesNotExistError
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public static void registerOnDemandFeaturegroupsAsTempTables(
       List<FeaturegroupDTO> onDemandFeaturegroups, String featurestore, Map<String, Map<String, String>> jdbcArguments)
