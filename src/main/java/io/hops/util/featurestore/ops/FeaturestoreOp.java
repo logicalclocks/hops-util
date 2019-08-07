@@ -100,7 +100,7 @@ public abstract class FeaturestoreOp {
   
   /**
    * @return spark session to use for the operation
-   * @throws HiveNotEnabled
+   * @throws HiveNotEnabled HiveNotEnabled
    */
   public SparkSession getSpark() throws HiveNotEnabled {
     if(spark == null){
@@ -350,7 +350,6 @@ public abstract class FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
    * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
-   * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
    */
   public abstract void write()
       throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
