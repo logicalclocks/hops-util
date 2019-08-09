@@ -24,6 +24,7 @@ import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -161,8 +162,8 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),
       name, version);
     getSpark().sparkContext().setJobGroup("", "", true);
-    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
-      featurestore, version);
+    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name, featurestore, version, hudi, hudiArgs,
+          hudiTableBasePath, null);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version,
       descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
@@ -240,6 +241,21 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreInsertIntoFeaturegroup setStatColumns(List<String> statColumns) {
     this.statColumns = statColumns;
+    return this;
+  }
+
+  public FeaturestoreInsertIntoFeaturegroup setHudi(boolean hudi) {
+    this.hudi = hudi;
+    return this;
+  }
+
+  public FeaturestoreInsertIntoFeaturegroup setHudiArgs(Map<String, String> hudiArgs) {
+    this.hudiArgs = hudiArgs;
+    return this;
+  }
+
+  public FeaturestoreInsertIntoFeaturegroup setHudiTableBasePath(String hudiTableBasePath) {
+    this.hudiTableBasePath = hudiTableBasePath;
     return this;
   }
   

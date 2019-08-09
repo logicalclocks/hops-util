@@ -66,6 +66,9 @@ public abstract class FeaturestoreOp {
   protected String sqlQuery = "";
   protected Map<String, String> jdbcArguments;
   protected Map<String, Map<String, String>> onDemandFeaturegroupsjdbcArguments;
+  protected boolean hudi = false;
+  protected Map<String, String> hudiArgs = null;
+  protected String hudiTableBasePath = null;
 
   
   /**
@@ -301,6 +304,27 @@ public abstract class FeaturestoreOp {
    */
   public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
     return onDemandFeaturegroupsjdbcArguments;
+  }
+
+  /**
+   * @return the hudi boolean flag
+   */
+  public boolean isHudi() {
+    return hudi;
+  }
+
+  /**
+   * @return the hudi arguments
+   */
+  public Map<String, String> getHudiArgs() {
+    return hudiArgs;
+  }
+
+  /**
+   * @return hudi base path of the external table
+   */
+  public String getHudiTableBasePath() {
+    return hudiTableBasePath;
   }
 
   /**

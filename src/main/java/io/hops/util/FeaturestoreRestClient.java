@@ -110,17 +110,19 @@ public class FeaturestoreRestClient {
    *
    * @param featuregroupDTO        the featurestore where the group will be created
    * @param featuregroupDTOType    the DTO type
+   * @param createTableSql      SQL for creating the Hive External table (in case of Hudi)
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
-  public static void createFeaturegroupRest(FeaturegroupDTO featuregroupDTO, String featuregroupDTOType)
+  public static void createFeaturegroupRest(FeaturegroupDTO featuregroupDTO, String featuregroupDTOType, String createTableSql)
     throws JWTNotFoundException, JAXBException, FeaturegroupCreationError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Creating featuregroup " + featuregroupDTO.getName() +
       " in featurestore: " + featuregroupDTO.getFeaturestoreName());
     JSONObject json = FeaturestoreHelper.convertFeaturegroupDTOToJsonObject(featuregroupDTO);
     json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, featuregroupDTOType);
+    json.put(Constants.JSON_FEATUREGROUP_HUDI_CREATE_TABLE, createTableSql);
     Response response;
     try {
       int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featuregroupDTO.getFeaturestoreName());

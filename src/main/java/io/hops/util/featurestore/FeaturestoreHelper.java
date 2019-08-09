@@ -16,6 +16,11 @@ package io.hops.util.featurestore;
 
 
 import com.google.common.base.Strings;
+import com.uber.hoodie.DataSourceWriteOptions;
+import com.uber.hoodie.DataSourceReadOptions;
+import com.uber.hoodie.common.model.HoodieTableType;
+import com.uber.hoodie.config.HoodieWriteConfig;
+import com.uber.hoodie.hive.HiveSyncTool;
 import io.hops.util.Constants;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
@@ -154,6 +159,12 @@ public class FeaturestoreHelper {
    */
   private static FeaturestoreMetadataDTO featurestoreMetadataCache = null;
 
+  /**
+   * String constants
+   */
+  private static String HOODIE_DATA_FORMAT = "com.uber.hoodie";
+  private static String HOODIE_HIVE_FORMAT = "hive";
+
   static {
     try {
       descriptiveStatsJAXBContext =
@@ -246,10 +257,15 @@ public class FeaturestoreHelper {
    * @param featuregroup        the name of the featuregroup (hive table name)
    * @param featurestore        the featurestore to save the featuregroup to (hive database)
    * @param featuregroupVersion the version of the featuregroup
+   * @param hudi                a boolean flag indicating whether the feature group is a hudi table or not
+   * @param hudiArgs            a java map with hudi arguments
+   * @param hudiTableBasePath   the base direcotry to where the external hudi table is stored
+   * @param hiveSyncTool        the hive sync tool for Hudi
+   *
    */
   public static void insertIntoFeaturegroup(Dataset<Row> sparkDf, SparkSession sparkSession,
-                                            String featuregroup, String featurestore,
-                                            int featuregroupVersion) {
+                                            String featuregroup, String featurestore, int featuregroupVersion, boolean hudi,
+                                            Map<String, String> hudiArgs, String hudiTableBasePath, HiveSyncTool hiveSyncTool) {
     useFeaturestore(sparkSession, featurestore);
     String tableName = getTableName(featuregroup, featuregroupVersion);
 
@@ -261,8 +277,60 @@ public class FeaturestoreHelper {
     //this means that all the featuregroup metadata will be dropped due to ON DELETE CASCADE
     String mode = "append";
     //Specify format hive as it is managed table
-    String format = "hive";
-    sparkDf.write().format(format).mode(mode).insertInto(tableName);
+
+    if (hudi) {
+      //Sync Hudi External Table with Hive
+      hiveSyncTool.syncHoodieTable();
+    } else {
+      //Specify format hive as it is managed table
+      String format = HOODIE_HIVE_FORMAT;
+      sparkDf.write().format(format).mode(mode).insertInto(tableName);
+    }
+  }
+
+  public static void hoodieTable(Dataset<Row> sparkDf, Map<String, String> hudiArgs, String hudiTableBasePath,
+                                 String tableName) {
+
+    String mode = "append";
+    String format = "com.uber.hoodie";
+    String COMMIT_CHECKPOINT_KEY = "_deltastreamer.checkpoint.key";
+
+    //String tableName = hudiTableBasePath.substring(hudiTableBasePath.lastIndexOf("/")+1);
+    if (!hudiArgs.containsKey(DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceWriteOptions.HIVE_USER_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceWriteOptions.HIVE_PASS_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceWriteOptions.HIVE_URL_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY())
+    ) {
+      throw new IllegalArgumentException("HudiArgs map must contain the fields: " +
+            DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY() + ", " +
+            DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY() + ", " +
+            DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY() + ", " +
+            DataSourceWriteOptions.HIVE_USER_OPT_KEY() + ", " +
+            DataSourceWriteOptions.HIVE_PASS_OPT_KEY() + ", " +
+            DataSourceWriteOptions.HIVE_URL_OPT_KEY() + ", " +
+            DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY()
+      );
+    }
+    //Write Hudi External Table
+    sparkDf.write().format(format)
+          .option(DataSourceWriteOptions.STORAGE_TYPE_OPT_KEY(), HoodieTableType.COPY_ON_WRITE.name())
+          .option(DataSourceWriteOptions.OPERATION_OPT_KEY(), hudiArgs.get(DataSourceWriteOptions.OPERATION_OPT_KEY()))
+          .option(DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY(),
+                hudiArgs.get(DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY()))
+          .option(DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY(),
+                hudiArgs.get(DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY()))
+          .option(DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY(),
+                hudiArgs.get(DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY()))
+          .option(COMMIT_CHECKPOINT_KEY, hudiArgs.get(COMMIT_CHECKPOINT_KEY))
+          .option(HoodieWriteConfig.INSERT_PARALLELISM, hudiArgs.get(HoodieWriteConfig.INSERT_PARALLELISM))
+          .option(HoodieWriteConfig.UPSERT_PARALLELISM, hudiArgs.get(HoodieWriteConfig.UPSERT_PARALLELISM))
+          .option(HoodieWriteConfig.BULKINSERT_PARALLELISM, hudiArgs.get(HoodieWriteConfig.BULKINSERT_PARALLELISM))
+          .option(HoodieWriteConfig.TABLE_NAME, tableName)
+          .mode(mode)
+          .save(hudiTableBasePath);
   }
 
   /**
@@ -349,6 +417,43 @@ public class FeaturestoreHelper {
     Dataset<Row> renamedSparkDf = sparkDf.toDF(convertListToSeq(schemaNames));
     sparkSession.sparkContext().setJobGroup("", "", true);
     return renamedSparkDf;
+  }
+
+
+  /**
+   * Gets a featuregroup from a particular featurestore
+   *
+   * @param sparkSession
+   *   the spark session
+   * @param featurestore
+   *   the featurestore to query
+   * @param hudiArgs
+   *   a java map with hudi arguments
+   * @param hudiTableBasePath
+   *   the base directory to store and retrive hudi table
+   * @return a spark dataframe with the featuregroup
+   */
+
+  public static Dataset<Row> getHudiFeaturegroup(SparkSession sparkSession, String featurestore,
+                                                 Map<String, String> hudiArgs, String hudiTableBasePath) {
+    useFeaturestore(sparkSession, featurestore);
+    String format = "com.uber.hoodie";
+
+    if (!hudiArgs.containsKey(DataSourceReadOptions.VIEW_TYPE_OPT_KEY()) ||
+          !hudiArgs.containsKey(DataSourceReadOptions.BEGIN_INSTANTTIME_OPT_KEY())
+
+    ) {
+      throw new IllegalArgumentException("HudiArgs map must contain the fields: " +
+            DataSourceReadOptions.VIEW_TYPE_OPT_KEY() + ", " +
+            DataSourceReadOptions.BEGIN_INSTANTTIME_OPT_KEY()
+      );
+    }
+    return sparkSession.read().format(format)
+          .option(DataSourceReadOptions.VIEW_TYPE_OPT_KEY(),
+                hudiArgs.get(DataSourceReadOptions.VIEW_TYPE_OPT_KEY()))
+          .option(DataSourceReadOptions.BEGIN_INSTANTTIME_OPT_KEY(),
+                hudiArgs.get(DataSourceReadOptions.BEGIN_INSTANTTIME_OPT_KEY()))
+          .load(hudiTableBasePath);
   }
 
 

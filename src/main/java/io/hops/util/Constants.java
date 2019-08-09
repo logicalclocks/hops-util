@@ -82,6 +82,7 @@ public class Constants {
   public static final String JSON_FEATUREGROUP_FEATURES_HISTOGRAM = "featuresHistogram";
   public static final String JSON_FEATUREGROUP_CLUSTER_ANALYSIS = "clusterAnalysis";
   public static final String JSON_FEATUREGROUP_TYPE =  "featuregroupType";
+  public static final String JSON_FEATUREGROUP_HUDI_CREATE_TABLE = "createTableSql";
   
   public static final String JSON_FEATURE_DESCRIPTION = "description";
 

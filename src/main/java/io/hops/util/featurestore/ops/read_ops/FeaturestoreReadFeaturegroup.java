@@ -119,7 +119,15 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @throws HiveNotEnabled HiveNotEnabled
    */
   public Dataset<Row> readCachedFeaturegroup() throws HiveNotEnabled {
-    return FeaturestoreHelper.getCachedFeaturegroup(getSpark(), name, featurestore, version);
+
+    if(hudi){
+      // returns spark dataframe from a hudi featuregroup
+      return  FeaturestoreHelper.getHudiFeaturegroup(spark, featurestore, hudiArgs, hudiTableBasePath);
+    } else {
+      // returns spark dataframe from a featuregroup
+      return FeaturestoreHelper.getCachedFeaturegroup(getSpark(), name, featurestore, version);
+    }
+
   }
   
   /**
@@ -151,6 +159,21 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
 
   public FeaturestoreReadFeaturegroup setJdbcArguments(Map<String, String> jdbcArguments) {
     this.jdbcArguments = jdbcArguments;
+    return this;
+  }
+
+  public FeaturestoreReadFeaturegroup setHudi(boolean hudi) {
+    this.hudi = hudi;
+    return this;
+  }
+
+  public FeaturestoreReadFeaturegroup setHudiArgs(Map<String, String> hudiArgs) {
+    this.hudiArgs = hudiArgs;
+    return this;
+  }
+
+  public FeaturestoreReadFeaturegroup setHudiTableBasePath(String hudiTableBasePath) {
+    this.hudiTableBasePath = hudiTableBasePath;
     return this;
   }
   
