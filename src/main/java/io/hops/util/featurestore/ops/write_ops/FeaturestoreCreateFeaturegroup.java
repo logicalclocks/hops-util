@@ -163,17 +163,10 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     String createTableSql = null;
     HiveSyncTool hiveSyncTool = null;
     if(hudi){
-      LOG.info("HUDI");
       String tableName = FeaturestoreHelper.getTableName(name, version);
-      LOG.info("Got Table Name");
       FeaturestoreHelper.hoodieTable(dataframe, hudiArgs, hudiTableBasePath, tableName);
-      LOG.info("Called HoodieTable");
-      //String tableName = hudiTableBasePath.substring(hudiTableBasePath.lastIndexOf("/")+1);
       hiveSyncTool = buildHiveSyncTool(tableName);
-      LOG.info("Built SyncTool");
       createTableSql = getHudiTableDDLSql(hiveSyncTool);
-      LOG.info("Got SQL: " + createTableSql);
-      LOG.info("TableName: " + tableName);
     }
     FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
       FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand), createTableSql);
