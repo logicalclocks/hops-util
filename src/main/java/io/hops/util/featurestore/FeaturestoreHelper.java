@@ -48,6 +48,7 @@ import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelati
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
@@ -68,6 +69,7 @@ import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.linalg.DenseMatrix;
 import org.apache.spark.ml.stat.Correlation;
 import org.apache.spark.sql.Column;
+import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
@@ -263,6 +265,116 @@ public class FeaturestoreHelper {
     //Specify format hive as it is managed table
     String format = "hive";
     sparkDf.write().format(format).mode(mode).insertInto(tableName);
+  }
+  
+  /**
+   *  Writes the given dataframe as a Hudi dataset on HDFS.
+   *
+   * @param sparkDf the dataframe to write
+   * @param sparkSession the spark sesison
+   * @param featuregroup the name of the feature group (hive table name)
+   * @param featurestore the featurestore to save the featuregroup to (hive database)
+   * @param featuregroupVersion the version of the featuregroup
+   * @param hudiArgs hudiWriteArguments
+   * @param hudiBasePath path for the external table
+   */
+  public static void writeHudiDataset(Dataset<Row> sparkDf, SparkSession sparkSession,
+    String featuregroup, String featurestore, int featuregroupVersion, Map<String, String> hudiArgs,
+    String hudiBasePath, String mode) {
+    useFeaturestore(sparkSession, featurestore);
+    DataFrameWriter writer = sparkDf.write().format(Constants.HUDI_SPARK_FORMAT);
+    for(Map.Entry<String, String> entry : hudiArgs.entrySet()){
+      writer = writer.option(entry.getKey(), entry.getValue());
+    }
+    writer = writer.mode(mode);
+    if(!Strings.isNullOrEmpty(hudiBasePath)) {
+      writer.save(hudiBasePath);
+    } else {
+      writer.save(getDefaultHudiBasePath(featuregroup, featuregroupVersion));
+    }
+  }
+  
+  /**
+   * Default Hudi base path (external table) for a feature group
+   *
+   * @param tableName name of the feature group
+   * @param version version of the feature group
+   * @return default base path for hudi feature group (in resources dataset)
+   */
+  public static String getDefaultHudiBasePath(String tableName, int version) {
+    return ("hdfs:///" + Constants.PROJECT_ROOT_DIR + Constants.SLASH_DELIMITER +
+      Hops.getProjectName() + Constants.SLASH_DELIMITER + "Resources" +
+      Constants.SLASH_DELIMITER + getTableName(tableName, version));
+  }
+  
+  /**
+   * Setup Hive arguments for Hudi Sync Tool to connect to Feature Store Hive Database
+   *
+   * @param hudiArgs the hudi arguments
+   * @param tableName name of the table to sync in Hive
+   * @return the updated hudi arguments
+   * @throws StorageConnectorDoesNotExistError
+   */
+  public static Map<String, String> setupHudiHiveArgs(Map<String, String> hudiArgs, String tableName)
+    throws StorageConnectorDoesNotExistError {
+    hudiArgs.put(Constants.HUDI_HIVE_SYNC_ENABLE, "true");
+    hudiArgs.put(Constants.HUDI_HIVE_SYNC_TABLE, tableName);
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    // Gets the JDBC Connector for the project's Hive metastore
+    FeaturestoreJdbcConnectorDTO jdbcConnector = (FeaturestoreJdbcConnectorDTO) FeaturestoreHelper.findStorageConnector(
+      featurestoreMetadata.getStorageConnectors(), Hops.getProjectFeaturestore().read());
+    hudiArgs.put(Constants.HUDI_HIVE_SYNC_JDBC_URL, getJDBCUrlFromConnector(jdbcConnector,
+      new HashMap<String, String>()));
+    hudiArgs.put(Constants.HUDI_HIVE_SYNC_DB, Hops.getProjectFeaturestore().read());
+    return hudiArgs;
+  }
+  
+  /**
+   * Gets the JDBC connection string from a JDBC connector in the feature store. Substitutes arguments if necessary.
+   *
+   * @param jdbcConnector the jdbc connector to get the string for
+   * @param jdbcArguments the arguments for the jdbc connection (e.g password and certificate locations)
+   * @return the JDBC string
+   */
+  public static String getJDBCUrlFromConnector(FeaturestoreJdbcConnectorDTO jdbcConnector,
+    Map<String, String> jdbcArguments) {
+    String jdbcConnectionString = jdbcConnector.getConnectionString();
+    String[] jdbcConnectionStringArguments = jdbcConnector.getArguments().split(",");
+  
+    // Substitute jdbc arguments in the connection string
+    for (int i = 0; i < jdbcConnectionStringArguments.length; i++) {
+      if (jdbcArguments != null && jdbcArguments.containsKey(jdbcConnectionStringArguments[i])) {
+        jdbcConnectionString = jdbcConnectionString + jdbcConnectionStringArguments[i] +
+          Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + jdbcArguments.get(jdbcConnectionStringArguments[i]) +
+          Constants.JDBC_CONNECTION_STRING_DELIMITER;
+      } else {
+        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_TRUSTSTORE_ARG)){
+          String trustStore = Hops.getTrustStore();
+          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_TRUSTSTORE_ARG +
+            Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + trustStore +
+            Constants.JDBC_CONNECTION_STRING_DELIMITER;
+        }
+        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_TRUSTSTORE_PW_ARG)){
+          String pw = Hops.getKeystorePwd();
+          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_TRUSTSTORE_PW_ARG +
+            Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + pw +
+            Constants.JDBC_CONNECTION_STRING_DELIMITER;
+        }
+        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_KEYSTORE_ARG)){
+          String keyStore = Hops.getKeyStore();
+          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_KEYSTORE_ARG +
+            Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + keyStore +
+            Constants.JDBC_CONNECTION_STRING_DELIMITER;
+        }
+        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_KEYSTORE_PW_ARG)){
+          String pw = Hops.getKeystorePwd();
+          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_KEYSTORE_PW_ARG +
+            Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + pw +
+            Constants.JDBC_CONNECTION_STRING_DELIMITER;
+        }
+      }
+    }
+    return jdbcConnectionString;
   }
 
   /**

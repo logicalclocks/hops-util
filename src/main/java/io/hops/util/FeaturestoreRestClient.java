@@ -307,5 +307,41 @@ public class FeaturestoreRestClient {
     }
     return response;
   }
+  
+  /**
+   * Makes a REST call to Hopsworks for synchronizing an existing Hive table with feature store metadata
+   *
+   * @param featuregroupDTO        the featurestore where the group will be created
+   * @param featuregroupDTOType    the DTO type
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   */
+  public static void syncHiveTableWithFeaturestoreRest(FeaturegroupDTO featuregroupDTO, String featuregroupDTOType)
+    throws JWTNotFoundException, JAXBException, FeaturegroupCreationError, FeaturestoreNotFound {
+    LOG.log(Level.FINE, "Creating featuregroup " + featuregroupDTO.getName() +
+      " in featurestore: " + featuregroupDTO.getFeaturestoreName());
+    JSONObject json = FeaturestoreHelper.convertFeaturegroupDTOToJsonObject(featuregroupDTO);
+    json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, featuregroupDTOType);
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featuregroupDTO.getFeaturestoreName());
+      response = Hops.clientWrapper(json,
+        "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" +
+          Constants.HOPSWORKS_REST_FEATUREGROUPS_SYNC_RESOURCE,
+        HttpMethod.POST, null);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupCreationError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.CREATED.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = Hops.parseHopsworksErrorResponse(response);
+      throw new FeaturegroupCreationError("Could not create featuregroup:" + featuregroupDTO.getName() +
+        " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+        + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+  }
 }
 

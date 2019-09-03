@@ -1,5 +1,6 @@
 package io.hops.util.featurestore.ops.write_ops;
 
+import io.hops.util.Constants;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
@@ -21,6 +22,7 @@ import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.parquet.Strings;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -28,6 +30,7 @@ import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -120,7 +123,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
   public void writeCachedFeaturegroup()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError, FeaturestoreNotFound,
-    JWTNotFoundException, HiveNotEnabled {
+    JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with " +
@@ -135,10 +138,46 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
-    FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
-      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
-    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
-      featurestore, version);
+    if(!hudi) {
+      FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
+        FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
+      FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
+        featurestore, version);
+    } else {
+      Map<String, String> hudiWriteArgs = setupHudiArgs();
+      FeaturestoreHelper.writeHudiDataset(dataframe, getSpark(), name, featurestore, version,
+        hudiWriteArgs, hudiBasePath, Constants.SPARK_OVERWRITE_MODE);
+      new FeaturestoreSyncHiveTable(name).setFeaturestore(featurestore).setDescription(description)
+        .setVersion(version).setStatisticsDTO(statisticsDTO).setJobs(jobs).write();
+    }
+  }
+  
+  /**
+   * Setup the Hudi arguments for doing a bulk insert and creating a new hudi feature group
+   *
+   * @return the hudi write arguments
+   * @throws StorageConnectorDoesNotExistError
+   */
+  private Map<String, String> setupHudiArgs() throws StorageConnectorDoesNotExistError {
+    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
+    //Add default args
+    Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
+    hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_BULK_INSERT);
+    hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
+    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey);
+    if(!partitionBy.isEmpty()) {
+      hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
+      hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
+      hArgs.put(Constants.HUDI_HIVE_SYNC_PARTITION_FIELDS, StringUtils.join(partitionBy, ","));
+    }
+    hArgs = FeaturestoreHelper.setupHudiHiveArgs(hArgs, FeaturestoreHelper.getTableName(name, version));
+    
+    //Add User-supplied args
+    for (Map.Entry<String, String> entry : hudiArgs.entrySet()) {
+      hArgs.put(entry.getKey(), entry.getValue());
+    }
+    
+    return hArgs;
   }
 
   /**
@@ -292,6 +331,21 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
 
   public FeaturestoreCreateFeaturegroup setOnDemand(Boolean onDemand) {
     this.onDemand = onDemand;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setHudi(Boolean hudi) {
+    this.hudi = hudi;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setHudiArgs(Map<String, String> hudiArgs) {
+    this.hudiArgs = hudiArgs;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setHudiBasePath(String hudiBasePath) {
+    this.hudiBasePath = hudiBasePath;
     return this;
   }
   

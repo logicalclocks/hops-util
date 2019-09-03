@@ -15,7 +15,9 @@
 package io.hops.util;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,6 +31,7 @@ public class Constants {
   public static final String HOPSWORKS_REST_FEATUREGROUPS_RESOURCE = "featuregroups";
   public static final String HOPSWORKS_REST_TRAININGDATASETS_RESOURCE = "trainingdatasets";
   public static final String HOPSWORKS_REST_FEATUREGROUP_CLEAR_RESOURCE = "clear";
+  public static final String HOPSWORKS_REST_FEATUREGROUPS_SYNC_RESOURCE = "sync";
   
   public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
@@ -177,6 +180,28 @@ public class Constants {
   public static final String S3_ACCESS_KEY_ENV = "fs.s3a.access.key";
   public static final String S3_SECRET_KEY_ENV = "fs.s3a.secret.key";
   public static final String S3_TRAINING_DATASETS_FOLDER = "TRAINING_DATASETS";
+  public static final String HUDI_SPARK_FORMAT = "org.apache.hudi";
+  public static final String HUDI_TABLE_NAME = "hoodie.table.name";
+  public static final String HUDI_TABLE_STORAGE_TYPE = "hoodie.datasource.write.storage.type";
+  public static final String HUDI_TABLE_OPERATION = "hoodie.datasource.write.operation";
+  public static final String HUDI_RECORD_KEY = "hoodie.datasource.write.recordkey.field";
+  public static final String HUDI_PARTITION_FIELD= "hoodie.datasource.write.partitionpath.field";
+  public static final String HUDI_PRECOMBINE_FIELD= "hoodie.datasource.write.precombine.field";
+  public static final String HUDI_HIVE_SYNC_ENABLE = "hoodie.datasource.hive_sync.enable";
+  public static final String HUDI_HIVE_SYNC_TABLE = "hoodie.datasource.hive_sync.table";
+  public static final String HUDI_HIVE_SYNC_DB = "hoodie.datasource.hive_sync.database";
+  public static final String HUDI_HIVE_SYNC_JDBC_URL = "hoodie.datasource.hive_sync.jdbcurl";
+  public static final String HUDI_HIVE_SYNC_PARTITION_FIELDS = "hoodie.datasource.hive_sync.partition_fields";
+  public static final String HUDI_COPY_ON_WRITE = "COPY_ON_WRITE";
+  public static final String HUDI_BULK_INSERT = "bulk_insert";
+  public static final String HUDI_UPSERT = "upsert";
+  public static final Map<String, String> HUDI_DEFAULT_ARGS = new HashMap<String, String>() {
+    {
+      put(HUDI_TABLE_STORAGE_TYPE, HUDI_COPY_ON_WRITE);
+      
+    }
+  };
+  public static final String HUDI_INPUT_FORMAT = "org.apache.hudi.hadoop.HoodieInputFormat";
 
 
 }

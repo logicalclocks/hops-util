@@ -1,7 +1,5 @@
 package io.hops.util.featurestore.ops.read_ops;
 
-import io.hops.util.Constants;
-import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
@@ -67,42 +65,8 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
       throws HiveNotEnabled, StorageConnectorDoesNotExistError {
     FeaturestoreJdbcConnectorDTO jdbcConnector = (FeaturestoreJdbcConnectorDTO) FeaturestoreHelper.findStorageConnector(
         featurestoreMetadataDTO.getStorageConnectors(), onDemandFeaturegroupDTO.getJdbcConnectorName());
-    String jdbcConnectionString = jdbcConnector.getConnectionString();
-    String[] jdbcConnectionStringArguments = jdbcConnector.getArguments().split(",");
-
-    // Substitute jdbc arguments in the connection string
-    for (int i = 0; i < jdbcConnectionStringArguments.length; i++) {
-      if (jdbcArguments != null && jdbcArguments.containsKey(jdbcConnectionStringArguments[i])) {
-        jdbcConnectionString = jdbcConnectionString + jdbcConnectionStringArguments[i] +
-            Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + jdbcArguments.get(jdbcConnectionStringArguments[i]) +
-            Constants.JDBC_CONNECTION_STRING_DELIMITER;
-      } else {
-        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_TRUSTSTORE_ARG)){
-          String trustStore = Hops.getTrustStore();
-          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_TRUSTSTORE_ARG +
-              Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + trustStore +
-              Constants.JDBC_CONNECTION_STRING_DELIMITER;
-        }
-        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_TRUSTSTORE_PW_ARG)){
-          String pw = Hops.getKeystorePwd();
-          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_TRUSTSTORE_PW_ARG +
-              Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + pw +
-              Constants.JDBC_CONNECTION_STRING_DELIMITER;
-        }
-        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_KEYSTORE_ARG)){
-          String keyStore = Hops.getKeyStore();
-          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_KEYSTORE_ARG +
-              Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + keyStore +
-              Constants.JDBC_CONNECTION_STRING_DELIMITER;
-        }
-        if(jdbcConnectionStringArguments[i].equalsIgnoreCase(Constants.JDBC_KEYSTORE_PW_ARG)){
-          String pw = Hops.getKeystorePwd();
-          jdbcConnectionString = jdbcConnectionString + Constants.JDBC_KEYSTORE_PW_ARG +
-              Constants.JDBC_CONNECTION_STRING_VALUE_DELIMITER + pw +
-              Constants.JDBC_CONNECTION_STRING_DELIMITER;
-        }
-      }
-    }
+    
+    String jdbcConnectionString = FeaturestoreHelper.getJDBCUrlFromConnector(jdbcConnector, jdbcArguments);
 
     // Add custom JDBC dialects
     FeaturestoreHelper.registerCustomJdbcDialects();
