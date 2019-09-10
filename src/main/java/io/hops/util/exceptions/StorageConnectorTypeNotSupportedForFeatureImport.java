@@ -15,18 +15,18 @@
 package io.hops.util.exceptions;
 
 /**
- * Exception thrown when a dataformat for a training dataset is not supported
- * 
+ * Exception thrown when the user supplies a storage connector type to an external storage system for feature import
+ * that is not supported
  */
-public class TrainingDatasetFormatNotSupportedError extends Exception {
+public class StorageConnectorTypeNotSupportedForFeatureImport extends Exception {
 
   Integer status;
 
-  public TrainingDatasetFormatNotSupportedError(String message) {
+  public StorageConnectorTypeNotSupportedForFeatureImport(String message) {
     super(message);
   }
 
-  public TrainingDatasetFormatNotSupportedError(Integer status, String message) {
+  public StorageConnectorTypeNotSupportedForFeatureImport(Integer status, String message) {
     super(message);
     this.status = status;
   }

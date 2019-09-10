@@ -501,9 +501,9 @@ public class FeaturestoreHelper {
     FileSystem hdfs = null;
     switch (dataFormat) {
       case Constants.TRAINING_DATASET_CSV_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
               .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path);
@@ -524,9 +524,9 @@ public class FeaturestoreHelper {
             .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path);
         }
       case Constants.TRAINING_DATASET_TSV_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
               .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path);
@@ -547,9 +547,9 @@ public class FeaturestoreHelper {
             .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path);
         }
       case Constants.TRAINING_DATASET_PARQUET_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().parquet(path);
           } else {
@@ -566,9 +566,9 @@ public class FeaturestoreHelper {
           return sparkSession.read().parquet(path);
         }
       case Constants.TRAINING_DATASET_AVRO_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).load(path);
           } else {
@@ -585,9 +585,9 @@ public class FeaturestoreHelper {
           return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_ORC_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).load(path);
           } else {
@@ -604,9 +604,9 @@ public class FeaturestoreHelper {
           return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_IMAGE_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).load(path);
           } else {
@@ -623,9 +623,9 @@ public class FeaturestoreHelper {
           return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
-        filePath = new org.apache.hadoop.fs.Path(path);
-        hdfs = filePath.getFileSystem(hdfsConf);
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
+          filePath = new org.apache.hadoop.fs.Path(path);
+          hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
             return sparkSession.read().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
               Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).load(path);
@@ -2438,5 +2438,29 @@ public class FeaturestoreHelper {
     sparkContext.hadoopConfiguration().set(Constants.S3_ACCESS_KEY_ENV, accessKey);
     sparkContext.hadoopConfiguration().set(Constants.S3_SECRET_KEY_ENV, secretKey);
   }
+  
+  /**
+   * Utility function for getting the S3 path of a feature dataset on S3
+   *
+   * @param datasetPath path to the dataset on S3
+   * @param bucket the S3 bucket
+   * @return S3 path to the dataset (bucket and file prefix appended if not in the user-supplied path
+   */
+  public static String getBucketPath(String bucket, String datasetPath) {
+    if(datasetPath.contains(bucket)){
+      if(!datasetPath.contains(Constants.S3_FILE_PREFIX)) {
+        return Constants.S3_FILE_PREFIX + datasetPath;
+      } else {
+        return datasetPath;
+      }
+    }
+    String path = "";
+    if(!path.contains(Constants.S3_FILE_PREFIX)) {
+      path = path + Constants.S3_FILE_PREFIX;
+    }
+    path = path + bucket + Constants.SLASH_DELIMITER + datasetPath;
+    return path;
+  }
+  
 
 }

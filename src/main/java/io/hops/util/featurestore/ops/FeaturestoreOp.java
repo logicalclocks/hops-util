@@ -18,6 +18,7 @@ import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.StorageConnectorNotFound;
+import io.hops.util.exceptions.StorageConnectorTypeNotSupportedForFeatureImport;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -38,7 +39,7 @@ import java.util.Map;
  * Abstract feature store operation, uses builder-pattern for concrete operation implementations
  */
 public abstract class FeaturestoreOp {
-  
+
   protected String name;
   protected SparkSession spark = null;
   protected String featurestore = FeaturestoreHelper.featurestoreGetOrDefault(null);
@@ -72,8 +73,10 @@ public abstract class FeaturestoreOp {
   protected Boolean hudi = false;
   protected Map<String, String> hudiArgs = new HashMap<>();
   protected String hudiBasePath = "";
+  protected String storageConnector = null;
+  protected String externalPath;
 
-  
+
   /**
    * Class constructor
    *
@@ -83,7 +86,7 @@ public abstract class FeaturestoreOp {
   public FeaturestoreOp(String name) {
     this.name = name;
   }
-  
+
   /**
    * Class constructor
    *
@@ -93,8 +96,8 @@ public abstract class FeaturestoreOp {
   public FeaturestoreOp(List<String> features) {
     this.features = features;
   }
-  
-  
+
+
   /**
    *
    * @return name of featuregroup/feature/training dataset that the operation concerns. Empty string if the
@@ -103,7 +106,7 @@ public abstract class FeaturestoreOp {
   public String getName() {
     return name;
   }
-  
+
   /**
    * @return spark session to use for the operation
    * @throws HiveNotEnabled HiveNotEnabled
@@ -115,7 +118,7 @@ public abstract class FeaturestoreOp {
     }
     return spark;
   }
-  
+
   /**
    *
    * @return featurestore to apply the operation on
@@ -123,7 +126,7 @@ public abstract class FeaturestoreOp {
   public String getFeaturestore() {
     return featurestore;
   }
-  
+
   /**
    *
    * @return version of the featuregroup/training dataset that the operation concerns
@@ -131,112 +134,112 @@ public abstract class FeaturestoreOp {
   public int getVersion() {
     return version;
   }
-  
+
   /**
    * @return The featuregroup used for queries of features
    */
   public String getFeaturegroup() {
     return featuregroup;
   }
-  
+
   /**
    * @return List of features to use in the query
    */
   public List<String> getFeatures() {
     return features;
   }
-  
+
   /**
    * @return a map with featuregroups and their versions
    */
   public Map<String, Integer> getFeaturegroupsAndVersions() {
     return featuregroupsAndVersions;
   }
-  
+
   /**
    * @return the join key to use for the query
    */
   public String getJoinKey() {
     return joinKey;
   }
-  
+
   /**
    * @return the correlation method to use for feature correlation analysis (e.g pearson or spearman)
    */
   public String getCorrMethod() {
     return corrMethod;
   }
-  
+
   /**
    * @return the number of bins to use for histogram statistics
    */
   public int getNumBins() {
     return numBins;
   }
-  
+
   /**
    * @return the number of clusters to use for k-means clustering analysis
    */
   public int getNumClusters() {
     return numClusters;
   }
-  
+
   /**
    * @return the write mode (append or overwrite)
    */
   public String getMode() {
     return mode;
   }
-  
+
   /**
    * @return the dataframe to use for write operations
    */
   public Dataset<Row> getDataframe() {
     return dataframe;
   }
-  
+
   /**
    * @return boolean flag indicating whether descriptive stats should be computed for statistics update
    */
   public Boolean getDescriptiveStats() {
     return descriptiveStats;
   }
-  
+
   /**
    * @return boolean flag indicating whether feature correlation should be computed for statistics update
    */
   public Boolean getFeatureCorr() {
     return featureCorr;
   }
-  
+
   /**
    * @return boolean flag indicating whether feature histograms should be computed for statistics update
    */
   public Boolean getFeatureHistograms() {
     return featureHistograms;
   }
-  
+
   /**
    * @return boolean flag indicating whether cluster analysis should be computed for statistics update
    */
   public Boolean getClusterAnalysis() {
     return clusterAnalysis;
   }
-  
+
   /**
    * @return a list of columns to compute statistics for (defaults to all columns that are numeric)
    */
   public List<String> getStatColumns() {
     return statColumns;
   }
-  
+
   /**
    * @return list of jobs linked to a feature group or training dataset
    */
   public List<String> getJobs() {
     return jobs;
   }
-  
+
   /**
    * @return the primary key of the new featuregroup, if not specified, the first column in the
    * dataframe will be used as primary
@@ -244,21 +247,21 @@ public abstract class FeaturestoreOp {
   public String getPrimaryKey() {
     return primaryKey;
   }
-  
+
   /**
    * @return a description of the featuregroup/training dataset
    */
   public String getDescription() {
     return description;
   }
-  
+
   /**
    * @return the format of the materialized training dataset
    */
   public String getDataFormat() {
     return dataFormat;
   }
-  
+
   /**
    * @return the columns to partition feature group by
    */
@@ -286,7 +289,7 @@ public abstract class FeaturestoreOp {
   public Map<String, String> getJdbcArguments() {
     return jdbcArguments;
   }
-  
+
   /**
    * @return sink for saving a training dataset, if not specified it will default to the Training Datasets folder in
    *         HopsFS but you can also specify an S3 bucket
@@ -294,49 +297,66 @@ public abstract class FeaturestoreOp {
   public String getSink() {
     return sink;
   }
-  
+
   /**
    * @return jdbc connector for on-demand feature groups
    */
   public String getJdbcConnector() {
     return jdbcConnector;
   }
-  
+
   /**
    * @return arguments for the JDBC connection strings for getting features from multiple feature groups.
    */
   public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
     return onDemandFeaturegroupsjdbcArguments;
   }
-  
+
   /**
    * @return statistics provided by the user to set for a hive table to sync with the feature store
    */
   public StatisticsDTO getStatisticsDTO() {
     return statisticsDTO;
   }
-  
+
   /**
    * @return boolean flag whether the operation concerns a Hudi dataset or not
    */
   public Boolean getHudi() {
     return hudi;
   }
-  
+
   /**
    * @return hudi arguments provided by the user
    */
   public Map<String, String> getHudiArgs() {
     return hudiArgs;
   }
-  
+
   /**
    * @return the base path to the hudi dataset
    */
   public String getHudiBasePath() {
     return hudiBasePath;
   }
-  
+
+
+
+  /**
+   * @return storage connector for importing external feature groups into Hopsworks Feature Store
+   */
+  public String getStorageConnector() {
+    return storageConnector;
+  }
+
+  /**
+   * @return path for external storage systems (e.g for importing an external feature group into the Hopsworks
+   * feature store
+   */
+  public String getExternalPath() {
+    return externalPath;
+  }
+
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
    * This method is called by the user after populating parameters of the operation
@@ -360,7 +380,7 @@ public abstract class FeaturestoreOp {
       TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
       StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
       StorageConnectorNotFound;
-  
+
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
    * This method is called by the user after populating parameters of the operation
@@ -384,12 +404,14 @@ public abstract class FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
    * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
+   * @throws StorageConnectorTypeNotSupportedForFeatureImport StorageConnectorTypeNotSupportedForFeatureImport
    */
   public abstract void write()
-      throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
-      TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
-      TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
-      FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
-      CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups;
+    throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
+    TrainingDatasetFormatNotSupportedError, IOException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError,
+    TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
+    FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+    CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups,
+    StorageConnectorTypeNotSupportedForFeatureImport;
 }

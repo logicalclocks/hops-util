@@ -37,6 +37,7 @@ import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasets;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreSQLQuery;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateTrainingDataset;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreImportFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoTrainingDataset;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreSyncHiveTable;
@@ -547,7 +548,7 @@ public class Hops {
   public static FeaturestoreReadFeaturegroup getFeaturegroup(String featuregroup) {
     return new FeaturestoreReadFeaturegroup(featuregroup);
   }
-  
+
   /**
    * Gets the partitions featuregroup from a particular featurestore
    *
@@ -762,7 +763,7 @@ public class Hops {
   {
     return new FeaturestoreReadTrainingDatasetLatestVersion(trainingDatasetName);
   }
-  
+
   /**
    * Synchronizes a Hive table with the Feature Store
    *
@@ -773,6 +774,20 @@ public class Hops {
   public static FeaturestoreSyncHiveTable syncHiveTableWithFeaturestore(String hiveTableName)
   {
     return new FeaturestoreSyncHiveTable(hiveTableName);
+  }
+
+  /**
+   * Imports an external dataset of feature data as a Feature Group in the Hopsworks Feature Store. E.g if you have a
+   * bucket on s3 containing feature data you can configure an S3 connector to that bucket in the Hopsworks Feature
+   * Store and then use this method to import data from S3 into Hopsworks.
+   *
+   * @param featuregroupName name of featuregroup to create
+   * @return a lazy java object for the operation of getting importing an external dataset into the Feature Store
+   * The operation can be started with write() on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreImportFeaturegroup importFeaturegroup(String featuregroupName)
+  {
+    return new FeaturestoreImportFeaturegroup(featuregroupName);
   }
 
   /**
