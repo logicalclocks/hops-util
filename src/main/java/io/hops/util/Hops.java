@@ -39,6 +39,7 @@ import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateTrainingDataset;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoTrainingDataset;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreSyncHiveTable;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateFeaturegroupStats;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateTrainingDatasetStats;
@@ -760,6 +761,18 @@ public class Hops {
   public static FeaturestoreReadTrainingDatasetLatestVersion getLatestTrainingDatasetVersion(String trainingDatasetName)
   {
     return new FeaturestoreReadTrainingDatasetLatestVersion(trainingDatasetName);
+  }
+  
+  /**
+   * Synchronizes a Hive table with the Feature Store
+   *
+   * @param hiveTableName the name of the hive table to synchronize with the feature store
+   * @return a lazy java object for the operation of getting synchronizing the hive table with the feature store
+   * The operation can be started with write() on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreSyncHiveTable syncHiveTableWithFeaturestore(String hiveTableName)
+  {
+    return new FeaturestoreSyncHiveTable(hiveTableName);
   }
 
   /**

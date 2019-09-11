@@ -22,6 +22,7 @@ import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
+import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -29,6 +30,7 @@ import org.apache.spark.sql.SparkSession;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +68,10 @@ public abstract class FeaturestoreOp {
   protected String sqlQuery = "";
   protected Map<String, String> jdbcArguments;
   protected Map<String, Map<String, String>> onDemandFeaturegroupsjdbcArguments;
+  protected StatisticsDTO statisticsDTO;
+  protected Boolean hudi = false;
+  protected Map<String, String> hudiArgs = new HashMap<>();
+  protected String hudiBasePath = "";
 
   
   /**
@@ -302,7 +308,35 @@ public abstract class FeaturestoreOp {
   public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
     return onDemandFeaturegroupsjdbcArguments;
   }
-
+  
+  /**
+   * @return statistics provided by the user to set for a hive table to sync with the feature store
+   */
+  public StatisticsDTO getStatisticsDTO() {
+    return statisticsDTO;
+  }
+  
+  /**
+   * @return boolean flag whether the operation concerns a Hudi dataset or not
+   */
+  public Boolean getHudi() {
+    return hudi;
+  }
+  
+  /**
+   * @return hudi arguments provided by the user
+   */
+  public Map<String, String> getHudiArgs() {
+    return hudiArgs;
+  }
+  
+  /**
+   * @return the base path to the hudi dataset
+   */
+  public String getHudiBasePath() {
+    return hudiBasePath;
+  }
+  
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
    * This method is called by the user after populating parameters of the operation

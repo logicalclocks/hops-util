@@ -1,9 +1,11 @@
 package io.hops.util.featurestore.ops.write_ops;
 
+import io.hops.util.Constants;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotInsertIntoOnDemandFeaturegroups;
 import io.hops.util.exceptions.DataframeIsEmpty;
+import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
@@ -11,19 +13,23 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import javax.xml.bind.JAXBException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -60,11 +66,14 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public void write()
-      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-      FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled, CannotInsertIntoOnDemandFeaturegroups {
+    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
+    FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled, CannotInsertIntoOnDemandFeaturegroups,
+    StorageConnectorDoesNotExistError, FeaturegroupCreationError {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -83,14 +92,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       //update cache because in the background, clearing featuregroup will give it a new id
       new FeaturestoreUpdateMetadataCache().setFeaturestore(featurestore).write();
     }
-    featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
-    try {
-      doInsertIntoFeaturegroup(Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read());
-    } catch(Exception e) {
-      Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
-      doInsertIntoFeaturegroup(Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read());
-    }
-    doInsertIntoFeaturegroup(featurestoreMetadata);
+    doInsertIntoFeaturegroup(Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read());
   }
   
   /**
@@ -154,23 +156,73 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws JAXBException JAXBException
    * @throws JWTNotFoundException JWTNotFoundException
+   * @throws FeaturegroupCreationError FeaturegroupCreationError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   private void doInsertIntoFeaturegroup(FeaturestoreMetadataDTO featurestoreMetadataDTO)
     throws HiveNotEnabled, FeaturestoreNotFound, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    FeaturegroupDoesNotExistError, FeaturegroupUpdateStatsError, JAXBException, JWTNotFoundException {
-    FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),
-      name, version);
+    FeaturegroupDoesNotExistError, FeaturegroupUpdateStatsError, JAXBException, JWTNotFoundException,
+    StorageConnectorDoesNotExistError, FeaturegroupCreationError {
+    FeaturegroupDTO featuregroupDTO;
+    try {
+      featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),name, version);
+    } catch(Exception e) {
+      Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
+      featurestoreMetadataDTO = Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read();
+      featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),name, version);
+    }
     getSpark().sparkContext().setJobGroup("", "", true);
-    FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
-      featurestore, version);
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
-      featurestore, version,
-      descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
-      corrMethod);
-    Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
-    FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(statisticsDTO),
-      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadataDTO.getSettings(), onDemand));
+    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.CACHED_FEATURE_GROUP &&
+      ((CachedFeaturegroupDTO) featuregroupDTO).getInputFormat().equalsIgnoreCase(Constants.HUDI_INPUT_FORMAT)) {
+      Map<String, String> hudiWriteArgs = setupHudiArgs();
+      FeaturestoreHelper.writeHudiDataset(dataframe, getSpark(), name, featurestore, version,
+        hudiWriteArgs, ((CachedFeaturegroupDTO) featuregroupDTO).getHdfsStorePaths().get(0), mode);
+      StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
+        featurestore, version,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+      new FeaturestoreSyncHiveTable(name).setFeaturestore(featurestore).setDescription(featuregroupDTO.getDescription())
+        .setVersion(featuregroupDTO.getVersion()).setStatisticsDTO(statisticsDTO).setJobs(jobs).write();
+    } else {
+      FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
+        featurestore, version);
+      StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
+        featurestore, version,
+        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
+        corrMethod);
+      Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
+      FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(statisticsDTO),
+        FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadataDTO.getSettings(), onDemand));
+    }
     getSpark().sparkContext().setJobGroup("", "", true);
+  }
+  
+  /**
+   * Setup the Hudi arguments for doing an upsert into a hudi feature group
+   *
+   * @return the hudi write arguments
+   * @throws StorageConnectorDoesNotExistError
+   */
+  private Map<String, String> setupHudiArgs() throws StorageConnectorDoesNotExistError {
+    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
+    //Add default args
+    Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
+    hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_UPSERT);
+    hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
+    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey);
+    if(!partitionBy.isEmpty()) {
+      hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
+      hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
+      hArgs.put(Constants.HUDI_HIVE_SYNC_PARTITION_FIELDS, StringUtils.join(partitionBy, ","));
+    }
+    hArgs = FeaturestoreHelper.setupHudiHiveArgs(hArgs, FeaturestoreHelper.getTableName(name, version));
+    
+    //Add User-supplied args
+    for (Map.Entry<String, String> entry : hudiArgs.entrySet()) {
+      hArgs.put(entry.getKey(), entry.getValue());
+    }
+    
+    return hArgs;
   }
   
   public FeaturestoreInsertIntoFeaturegroup setName(String name) {
@@ -240,6 +292,31 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreInsertIntoFeaturegroup setStatColumns(List<String> statColumns) {
     this.statColumns = statColumns;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setHudi(Boolean hudi) {
+    this.hudi = hudi;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setHudiArgs(Map<String, String> hudiArgs) {
+    this.hudiArgs = hudiArgs;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setHudiBasePath(String hudiBasePath) {
+    this.hudiBasePath = hudiBasePath;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setPartitionBy(List<String> partitionBy) {
+    this.partitionBy = partitionBy;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setPrimaryKey(String primaryKey) {
+    this.primaryKey = primaryKey;
     return this;
   }
   
