@@ -2,6 +2,9 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;
@@ -31,11 +34,28 @@ public class FeaturestoreReadFeaturesList extends FeaturestoreOp {
   public List<String> read() throws FeaturestoreNotFound, JAXBException {
     List<List<String>> featureNamesLists = Hops.getFeaturestoreMetadata().setFeaturestore(featurestore)
       .read().getFeaturegroups().stream()
+      .filter(fg -> filterOnline(fg))
       .map(fg -> fg.getFeatures().stream().map(f -> f.getName())
-        .collect(Collectors.toList())).collect(Collectors.toList());
+      .collect(Collectors.toList())).collect(Collectors.toList());
     List<String> featureNames = new ArrayList<>();
     featureNamesLists.stream().forEach(flist -> featureNames.addAll(flist));
     return featureNames;
+  }
+  
+  /**
+   * @param featuregroupDTO the featuregroup to filter
+   * @return true if online filter is on and the featuregroup is online, otherwise false
+   */
+  private Boolean filterOnline(FeaturegroupDTO featuregroupDTO){
+    if(online == null || !online) {
+      return true;
+    }
+    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP) {
+      return false;
+    } else {
+      CachedFeaturegroupDTO cachedFeaturegroupDTO = (CachedFeaturegroupDTO) featuregroupDTO;
+      return cachedFeaturegroupDTO.getOnlineFeaturegroupEnabled();
+    }
   }
   
   /**
@@ -47,6 +67,11 @@ public class FeaturestoreReadFeaturesList extends FeaturestoreOp {
   
   public FeaturestoreReadFeaturesList setFeaturestore(String featurestore) {
     this.featurestore = featurestore;
+    return this;
+  }
+  
+  public FeaturestoreReadFeaturesList setOnline(Boolean online) {
+    this.online = online;
     return this;
   }
   

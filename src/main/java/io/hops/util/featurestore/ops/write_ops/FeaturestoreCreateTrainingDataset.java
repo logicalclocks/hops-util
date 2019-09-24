@@ -8,6 +8,8 @@ import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
@@ -74,12 +76,16 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public void write()
-      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-      JAXBException, FeaturestoreNotFound,
-      TrainingDatasetCreationError, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException,
-      JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError {
+    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    JAXBException, FeaturestoreNotFound,
+    TrainingDatasetCreationError, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException,
+    JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestorePasswordNotFound {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with .setDataframe(df)");
@@ -88,7 +94,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       dataframe, featurestore, version, descriptiveStats, featureCorr, featureHistograms,
       clusterAnalysis, statColumns, numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
-      null);
+      null, false, null);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
     if(sink != null){

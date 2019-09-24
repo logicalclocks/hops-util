@@ -1,7 +1,10 @@
 package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
@@ -14,6 +17,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import javax.xml.bind.JAXBException;
 import java.util.Map;
 
 /**
@@ -36,9 +40,14 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @return a spark dataframe with the featuregroup
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws JAXBException JAXBException
    */
   public Dataset<Row> read() throws HiveNotEnabled, FeaturegroupDoesNotExistError,
-      StorageConnectorDoesNotExistError {
+    StorageConnectorDoesNotExistError, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound,
+    OnlineFeaturestoreUserNotFound, JAXBException {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -81,9 +90,15 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    *
    * @return a spark dataframe with the featuregroup
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws JAXBException JAXBException
    */
-  public Dataset<Row> readCachedFeaturegroup() throws HiveNotEnabled {
-    return FeaturestoreHelper.getCachedFeaturegroup(getSpark(), name, featurestore, version);
+  public Dataset<Row> readCachedFeaturegroup()
+    throws HiveNotEnabled, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
+    JAXBException {
+    return FeaturestoreHelper.getCachedFeaturegroup(getSpark(), name, featurestore, version, online);
   }
   
   /**
@@ -115,6 +130,11 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
 
   public FeaturestoreReadFeaturegroup setJdbcArguments(Map<String, String> jdbcArguments) {
     this.jdbcArguments = jdbcArguments;
+    return this;
+  }
+  
+  public FeaturestoreReadFeaturegroup setOnline(Boolean online) {
+    this.online = online;
     return this;
   }
   

@@ -9,6 +9,8 @@ import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
@@ -72,12 +74,14 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    */
   public void write()
-      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
-      TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException, JWTNotFoundException, HiveNotEnabled,
-      StorageConnectorDoesNotExistError {
+    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, TrainingDatasetDoesNotExistError,
+    TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException, JWTNotFoundException, HiveNotEnabled,
+    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
     if(dataframe == null){
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
@@ -126,10 +130,11 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @throws DataframeIsEmpty DataframeIsEmpty
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
-   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   private void doInsertIntoTrainingDataset(
       SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
@@ -138,8 +143,9 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
       String corrMethod, Integer numClusters, String writeMode)
     throws JAXBException, TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
-    TrainingDatasetFormatNotSupportedError, SparkDataTypeNotRecognizedError, FeaturestoreNotFound,
-    CannotWriteImageDataFrameException, JWTNotFoundException, StorageConnectorDoesNotExistError, HiveNotEnabled {
+    TrainingDatasetFormatNotSupportedError, FeaturestoreNotFound,
+    CannotWriteImageDataFrameException, JWTNotFoundException, StorageConnectorDoesNotExistError, HiveNotEnabled,
+    OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
     corrMethod = FeaturestoreHelper.correlationMethodGetOrDefault(corrMethod);

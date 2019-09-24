@@ -75,6 +75,8 @@ public class FeaturestoreClientSettingsDTO {
   private String featurestoreUtilPythonExecutable;
   private String s3BucketTrainingDatasetsFolder;
   private List<String> featureImportConnectors;
+  private Boolean onlineFeaturestoreEnabled = false;
+  private List<String> suggestedMysqlFeatureTypes;
   
   
   public FeaturestoreClientSettingsDTO() {
@@ -511,5 +513,23 @@ public class FeaturestoreClientSettingsDTO {
   
   public void setFeatureImportConnectors(List<String> featureImportConnectors) {
     this.featureImportConnectors = featureImportConnectors;
+  }
+  
+  @XmlElement
+  public Boolean getOnlineFeaturestoreEnabled() {
+    return onlineFeaturestoreEnabled;
+  }
+  
+  public void setOnlineFeaturestoreEnabled(Boolean onlineFeaturestoreEnabled) {
+    this.onlineFeaturestoreEnabled = onlineFeaturestoreEnabled;
+  }
+  
+  @XmlElement
+  public List<String> getSuggestedMysqlFeatureTypes() {
+    return suggestedMysqlFeatureTypes;
+  }
+  
+  public void setSuggestedMysqlFeatureTypes(List<String> suggestedMysqlFeatureTypes) {
+    this.suggestedMysqlFeatureTypes = suggestedMysqlFeatureTypes;
   }
 }

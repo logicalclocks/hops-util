@@ -26,6 +26,7 @@ import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroups;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeatures;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturesList;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadMetadata;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadOnlineConnector;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadProjectFeaturestore;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadProjectFeaturestores;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadStorageConnector;
@@ -37,6 +38,8 @@ import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasets;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreSQLQuery;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateTrainingDataset;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreDisableFeaturegroupOnline;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreEnableFeaturegroupOnline;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreImportFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoTrainingDataset;
@@ -788,6 +791,42 @@ public class Hops {
   public static FeaturestoreImportFeaturegroup importFeaturegroup(String featuregroupName)
   {
     return new FeaturestoreImportFeaturegroup(featuregroupName);
+  }
+  
+  /**
+   * Gets the online JDBC connector for the featurestore
+   *
+   * @return a lazy java object for the operation of reading the online featurestore JDBC connector. The operation can
+   * be started with read() on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreReadOnlineConnector getOnlineFeaturestoreConnector() {
+    return new FeaturestoreReadOnlineConnector();
+  }
+  
+  /**
+   * Enables online feature serving for an existing cached feature group. If the feature group already has feature
+   * serving enabled, this method does nothing.
+   *
+   * @param featuregroupName name of featuregroup to enable online serving for
+   * @return a lazy java object for the operation enabling online serving. The operation can be started with write()
+   * on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreEnableFeaturegroupOnline enableFeaturegroupOnline(String featuregroupName)
+  {
+    return new FeaturestoreEnableFeaturegroupOnline(featuregroupName);
+  }
+  
+  /**
+   * Disables online feature serving for an existing cached feature group. If the feature group does not have feature
+   * serving enabled, this method does nothing.
+   *
+   * @param featuregroupName name of featuregroup to disable online serving for
+   * @return a lazy java object for the operation disabling online serving. The operation can be started with write()
+   * on the object and parameters can be updated with setters.
+   */
+  public static FeaturestoreDisableFeaturegroupOnline disableFeaturegroupOnline(String featuregroupName)
+  {
+    return new FeaturestoreDisableFeaturegroupOnline(featuregroupName);
   }
 
   /**

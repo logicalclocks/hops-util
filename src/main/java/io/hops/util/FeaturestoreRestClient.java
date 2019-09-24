@@ -2,7 +2,9 @@ package io.hops.util;
 
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
+import io.hops.util.exceptions.FeaturegroupDisableOnlineError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
@@ -13,6 +15,7 @@ import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
@@ -47,7 +50,7 @@ public class FeaturestoreRestClient {
    */
   public static FeaturestoreMetadataDTO getFeaturestoreMetadataRest(String featurestore)
     throws FeaturestoreNotFound, JAXBException {
-    LOG.log(Level.FINE, "Getting featuregroups for featurestore " + featurestore);
+    LOG.log(Level.FINE, "Getting metadata for featurestore " + featurestore);
     
     Response response;
     try {
@@ -61,7 +64,7 @@ public class FeaturestoreRestClient {
     }
     LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
     if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
-      throw new FeaturestoreNotFound("Could not fetch featuregroups for featurestore:" + featurestore);
+      throw new FeaturestoreNotFound("Could not fetch metadata for featurestore:" + featurestore);
     }
     final String responseEntity = response.readEntity(String.class);
     
@@ -342,6 +345,148 @@ public class FeaturestoreRestClient {
         " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
         + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
     }
+  }
+  
+  /**
+   * Makes a REST call to Hopsworks for enabling online serving of a feature group (create MySQL table)
+   *
+   * @param featuregroupDTO        DTO of the feature group
+   * @param featuregroupDTOType    the DTO type
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   */
+  public static void enableFeaturegroupOnlineRest(
+    FeaturegroupDTO featuregroupDTO, String featuregroupDTOType)
+    throws JWTNotFoundException,
+    JAXBException, FeaturestoreNotFound, FeaturegroupDoesNotExistError, FeaturegroupEnableOnlineError {
+    LOG.log(Level.FINE,
+      "Enabling online feature serving for feature group: " + featuregroupDTO.getName() +
+        " in featurestore: " + featuregroupDTO.getFeaturestoreName());
+    JSONObject json = FeaturestoreHelper.convertFeaturegroupDTOToJsonObject(featuregroupDTO);
+    json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, featuregroupDTOType);
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featuregroupDTO.getFeaturestoreName());
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featuregroupDTO.getFeaturestoreName(),
+        featuregroupDTO.getName(), featuregroupDTO.getVersion());
+      Map<String, Object> queryParams = new HashMap<>();
+      queryParams.put(Constants.JSON_FEATURESTORE_ENABLE_ONLINE_QUERY_PARAM, true);
+      queryParams.put(Constants.JSON_FEATURESTORE_DISABLE_ONLINE_QUERY_PARAM, false);
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, false);
+      if(!featuregroupDTO.getJobs().isEmpty()) {
+        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
+      } else {
+        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, false);
+      }
+      response = Hops.clientWrapper(json,
+        "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
+        HttpMethod.PUT, queryParams);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupEnableOnlineError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = Hops.parseHopsworksErrorResponse(response);
+      LOG.severe("Could not enable online feature serving for featuregroup:" + featuregroupDTO.getName() +
+        " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+        + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+      throw new FeaturegroupEnableOnlineError("Could not enable online feature serving for featuregroup:" +
+        featuregroupDTO.getName() + " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+        + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+  }
+  
+  /**
+   * Makes a REST call to Hopsworks for enabling online serving of a feature group (create MySQL table)
+   *
+   * @param featuregroupDTO        DTO of the feature group
+   * @param featuregroupDTOType    the DTO type
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   */
+  public static void disableFeaturegroupOnlineRest(
+    FeaturegroupDTO featuregroupDTO, String featuregroupDTOType) throws JWTNotFoundException,
+    JAXBException, FeaturestoreNotFound, FeaturegroupDoesNotExistError, FeaturegroupDisableOnlineError {
+    LOG.log(Level.FINE,
+      "Enabling online feature serving for feature group: " + featuregroupDTO.getName() +
+        " in featurestore: " + featuregroupDTO.getFeaturestoreName());
+    JSONObject json = FeaturestoreHelper.convertFeaturegroupDTOToJsonObject(featuregroupDTO);
+    json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, featuregroupDTOType);
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featuregroupDTO.getFeaturestoreName());
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featuregroupDTO.getFeaturestoreName(),
+        featuregroupDTO.getName(), featuregroupDTO.getVersion());
+      Map<String, Object> queryParams = new HashMap<>();
+      queryParams.put(Constants.JSON_FEATURESTORE_DISABLE_ONLINE_QUERY_PARAM, true);
+      queryParams.put(Constants.JSON_FEATURESTORE_ENABLE_ONLINE_QUERY_PARAM, false);
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, false);
+      if(!featuregroupDTO.getJobs().isEmpty()) {
+        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
+      } else {
+        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, false);
+      }
+      response = Hops.clientWrapper(json,
+        "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
+          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
+        HttpMethod.PUT, queryParams);
+    } catch (HTTPSClientInitializationException e) {
+      throw new FeaturegroupDisableOnlineError(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = Hops.parseHopsworksErrorResponse(response);
+      LOG.severe("Could not disable online feature serving for featuregroup:" + featuregroupDTO.getName() +
+        " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+        + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+      throw new FeaturegroupDisableOnlineError("Could not disable online feature serving for featuregroup:" +
+        featuregroupDTO.getName() + " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
+        + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
+    }
+  }
+  
+  /**
+   * Makes a REST call to Hopsworks to get the JDBC connection to the online featurestore
+   *
+   * @param featurestore the featurestore to get the JDBC connection for the online featurestore
+   * @return DTO of the JDBC connector to the online featurestore
+   * @throws FeaturestoreNotFound FeaturestoresNotFound
+   * @throws JAXBException JAXBException
+   */
+  public static FeaturestoreJdbcConnectorDTO getOnlineFeaturestoreJdbcConnectorRest(String featurestore)
+    throws FeaturestoreNotFound, JAXBException {
+    LOG.log(Level.FINE, "Getting JDBC connector for online feature store: " + featurestore);
+    
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      response =
+        Hops.clientWrapper(
+          Constants.SLASH_DELIMITER + Constants.HOPSWORKS_REST_PROJECT_RESOURCE
+            + Constants.SLASH_DELIMITER + Hops.getProjectId()
+            + Constants.SLASH_DELIMITER
+            + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + Constants.SLASH_DELIMITER +
+            featurestoreId + Constants.SLASH_DELIMITER + Constants.HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE +
+            Constants.SLASH_DELIMITER + Constants.HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE,
+          HttpMethod.GET, null);
+    } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
+      throw new FeaturestoreNotFound(e.getMessage());
+    }
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new FeaturestoreNotFound("Could not get JDBC Connector for online featurestore:" + featurestore);
+    }
+    final String responseEntity = response.readEntity(String.class);
+    
+    JSONObject onlineFeaturestoreConnector = new JSONObject(responseEntity);
+    return FeaturestoreHelper.parseJdbcConnectorJson(onlineFeaturestoreConnector);
   }
 }
 

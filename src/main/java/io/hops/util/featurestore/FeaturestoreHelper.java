@@ -17,6 +17,7 @@ package io.hops.util.featurestore;
 
 import com.google.common.base.Strings;
 import io.hops.util.Constants;
+import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
@@ -25,6 +26,8 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InferTFRecordSchemaError;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
@@ -54,6 +57,7 @@ import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadMetadata;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -141,6 +145,7 @@ public class FeaturestoreHelper {
   private static JAXBContext featureJAXBContext;
   private static JAXBContext featurestoreMetadataJAXBContext;
   private static JAXBContext trainingDatasetJAXBContext;
+  private static JAXBContext jdbcConnectorJAXBContext;
 
   private static Marshaller descriptiveStatsMarshaller;
   private static Marshaller featureCorrelationMarshaller;
@@ -150,6 +155,9 @@ public class FeaturestoreHelper {
   private static Marshaller featurestoreMetadataMarshaller;
   private static Marshaller trainingDatasetMarshaller;
   private static Marshaller featuregroupMarshaller;
+  private static Marshaller jdbcConnectorMarshaller;
+  
+  
 
   /**
    * Featurestore Metadata Cache
@@ -174,6 +182,8 @@ public class FeaturestoreHelper {
           JAXBContextFactory.createContext(new Class[]{TrainingDatasetDTO.class}, null);
       featuregroupJAXBContext =
         JAXBContextFactory.createContext(new Class[]{FeaturegroupDTO.class}, null);
+      jdbcConnectorJAXBContext =
+        JAXBContextFactory.createContext(new Class[]{FeaturestoreJdbcConnectorDTO.class}, null);
       descriptiveStatsMarshaller = descriptiveStatsJAXBContext.createMarshaller();
       descriptiveStatsMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
       descriptiveStatsMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
@@ -199,6 +209,9 @@ public class FeaturestoreHelper {
       featuregroupMarshaller = featuregroupJAXBContext.createMarshaller();
       featuregroupMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
       featuregroupMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
+      jdbcConnectorMarshaller = jdbcConnectorJAXBContext.createMarshaller();
+      jdbcConnectorMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
+      jdbcConnectorMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
     } catch (JAXBException e) {
       LOG.log(Level.SEVERE, "An error occurred while initializing JAXBContext", e);
     }
@@ -219,12 +232,17 @@ public class FeaturestoreHelper {
    *
    * @param sparkSession the spark session
    * @param featurestore the featurestore database to select
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
-  public static void useFeaturestore(SparkSession sparkSession, String featurestore) {
+  public static void useFeaturestore(SparkSession sparkSession, String featurestore)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     if (featurestore == null)
       featurestore = getProjectFeaturestore();
     String sqlStr = "use " + featurestore;
-    logAndRunSQL(sparkSession, sqlStr);
+    logAndRunSQL(sparkSession, sqlStr, false, featurestore);
   }
 
   /**
@@ -237,7 +255,30 @@ public class FeaturestoreHelper {
   public static String getTableName(String featuregroupName, int version) {
     return featuregroupName + "_" + version;
   }
-
+  
+  
+  /**
+   * Saves the given dataframe to online featuregroup.
+   *
+   * @param sparkDf             the dataframe containing the data to insert into the featuregroup
+   * @param featuregroup        the name of the featuregroup (hive table name)
+   * @param featurestore        the featurestore to save the featuregroup to (hive database)
+   * @param featuregroupVersion the version of the featuregroup
+   * @param mode                the write mode
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   */
+  public static void insertIntoOnlineFeaturegroup(Dataset<Row> sparkDf,
+    String featuregroup, String featurestore, int featuregroupVersion, String mode)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
+    FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO = doGetOnlineFeaturestoreJdbcConnector(featurestore,
+      new FeaturestoreReadMetadata().setFeaturestore(featurestore).read());
+    String tableName = getTableName(featuregroup, featuregroupVersion);
+    writeJdbcDataframe(sparkDf, featurestoreJdbcConnectorDTO, tableName, mode);
+  }
+  
   /**
    * Saves the given dataframe to the specified featuregroup. Defaults to the project-featurestore
    * This will append to  the featuregroup. To overwrite a featuregroup, create a new version of the featuregroup
@@ -248,10 +289,15 @@ public class FeaturestoreHelper {
    * @param featuregroup        the name of the featuregroup (hive table name)
    * @param featurestore        the featurestore to save the featuregroup to (hive database)
    * @param featuregroupVersion the version of the featuregroup
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
-  public static void insertIntoFeaturegroup(Dataset<Row> sparkDf, SparkSession sparkSession,
+  public static void insertIntoOfflineFeaturegroup(Dataset<Row> sparkDf, SparkSession sparkSession,
                                             String featuregroup, String featurestore,
-                                            int featuregroupVersion) {
+                                            int featuregroupVersion)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     String tableName = getTableName(featuregroup, featuregroupVersion);
 
@@ -277,10 +323,15 @@ public class FeaturestoreHelper {
    * @param featuregroupVersion the version of the featuregroup
    * @param hudiArgs hudiWriteArguments
    * @param hudiBasePath path for the external table
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static void writeHudiDataset(Dataset<Row> sparkDf, SparkSession sparkSession,
     String featuregroup, String featurestore, int featuregroupVersion, Map<String, String> hudiArgs,
-    String hudiBasePath, String mode) {
+    String hudiBasePath, String mode)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     DataFrameWriter writer = sparkDf.write().format(Constants.HUDI_SPARK_FORMAT);
     for(Map.Entry<String, String> entry : hudiArgs.entrySet()){
@@ -429,13 +480,19 @@ public class FeaturestoreHelper {
    * @param featuregroup        the featuregroup to get
    * @param featurestore        the featurestore to query
    * @param featuregroupVersion the version of the featuregroup to get
+   * @param online              boolean flag whether to read from the online feature store
    * @return a spark dataframe with the featuregroup
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static Dataset<Row> getCachedFeaturegroup(SparkSession sparkSession, String featuregroup,
-                                                   String featurestore, int featuregroupVersion) {
+                                                   String featurestore, int featuregroupVersion, Boolean online)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT * FROM " + getTableName(featuregroup, featuregroupVersion);
-    Dataset<Row> sparkDf = logAndRunSQL(sparkSession, sqlStr);
+    Dataset<Row> sparkDf = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
     sparkSession.sparkContext().setJobGroup("", "", true);
     return sparkDf;
   }
@@ -471,13 +528,19 @@ public class FeaturestoreHelper {
    * @param featuregroup        the featuregroup to get partitions for
    * @param featurestore        the featurestore where the featuregroup resides
    * @param featuregroupVersion the version of the featuregroup
+   * @param online                whether to read from the online feature group or offline
    * @return a spark dataframe with the partitions of the featuregroup
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static Dataset<Row> getFeaturegroupPartitions(SparkSession sparkSession, String featuregroup,
-    String featurestore, int featuregroupVersion) {
+    String featurestore, int featuregroupVersion, Boolean online)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SHOW PARTITIONS " + getTableName(featuregroup, featuregroupVersion);
-    return logAndRunSQL(sparkSession, sqlStr);
+    return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
   }
 
   /**
@@ -695,15 +758,21 @@ public class FeaturestoreHelper {
    * @param featurestore     the featurestore to query
    * @param featuregroupDTOS the list of featuregroups metadata
    * @param jdbcArguments    map of jdbc arguments, in case the feature belongs to an on-demand feature group
+   * @param online           whether to read from the online feature group or offline
    * @return A dataframe with the feature
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static Dataset<Row> getFeature(
       SparkSession sparkSession, String feature,
-      String featurestore, List<FeaturegroupDTO> featuregroupDTOS, Map<String, String> jdbcArguments)
-      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
+      String featurestore, List<FeaturegroupDTO> featuregroupDTOS, Map<String, String> jdbcArguments, Boolean online)
+    throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     FeaturegroupDTO matchedFeaturegroup = findFeature(feature, featurestore, featuregroupDTOS);
     if(matchedFeaturegroup.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
@@ -717,7 +786,7 @@ public class FeaturestoreHelper {
     }
     String sqlStr = "SELECT " + feature + " FROM " +
         getTableName(matchedFeaturegroup.getName(), matchedFeaturegroup.getVersion());
-    return logAndRunSQL(sparkSession, sqlStr);
+    return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
   }
 
   /**
@@ -730,15 +799,22 @@ public class FeaturestoreHelper {
    * @param featuregroupVersion the version of the featuregroup
    * @param jdbcArguments       map of jdbc arguments, in case the feature belongs to an on-demand feature group
    * @param featuregroupDTOs    list of feature groups
+   * @param online               whether to read from the online feature group or offline
    * @return the resulting spark dataframe with the feature
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static Dataset<Row> getFeature(SparkSession sparkSession, String feature, String featurestore,
                                         String featuregroup, int featuregroupVersion,
-                                        List<FeaturegroupDTO> featuregroupDTOs, Map<String, String> jdbcArguments)
-      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
+                                        List<FeaturegroupDTO> featuregroupDTOs, Map<String, String> jdbcArguments,
+                                        Boolean online)
+    throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     FeaturegroupDTO featuregroupDTO = findFeaturegroup(featuregroupDTOs, featuregroup, featuregroupVersion);
     if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
       List<FeaturegroupDTO> onDemandFeaturegroups = new ArrayList<>();
@@ -751,7 +827,7 @@ public class FeaturestoreHelper {
     }
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT " + feature + " FROM " + getTableName(featuregroup, featuregroupVersion);
-    return logAndRunSQL(sparkSession, sqlStr);
+    return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
   }
 
   /**
@@ -891,12 +967,17 @@ public class FeaturestoreHelper {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static Dataset<Row> getFeatures(SparkSession sparkSession, List<String> features, String featurestore,
                                          Map<String, Integer> featuregroupsAndVersions, String joinKey,
                                          List<FeaturegroupDTO> featuregroupsMetadata,
-                                         Map<String, Map<String, String>> jdbcArguments)
-      throws FeaturegroupDoesNotExistError, StorageConnectorDoesNotExistError, HiveNotEnabled {
+                                         Map<String, Map<String, String>> jdbcArguments, Boolean online)
+    throws FeaturegroupDoesNotExistError, StorageConnectorDoesNotExistError, HiveNotEnabled,
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     List<FeaturegroupDTO> featuregroupDTOs = convertFeaturegroupAndVersionToDTOs(featuregroupsAndVersions);
     useFeaturestore(sparkSession, featurestore);
@@ -915,14 +996,14 @@ public class FeaturestoreHelper {
     registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     if (featuregroupsAndVersions.size() == 1) {
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
-      return logAndRunSQL(sparkSession, sqlStr);
+      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
     } else {
       SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupDTOs, joinKey);
       String sqlStr = "SELECT " + featuresStr + " FROM " +
           getTableName(sqlJoinDTO.getFeaturegroupDTOS().get(0).getName(),
               sqlJoinDTO.getFeaturegroupDTOS().get(0).getVersion())
           + " " + sqlJoinDTO.getJoinStr();
-      return logAndRunSQL(sparkSession, sqlStr);
+      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
     }
   }
 
@@ -936,41 +1017,42 @@ public class FeaturestoreHelper {
    * @param featuregroupsMetadata metadata about the featuregroups in the featurestore
    * @param joinKey               the key to join on
    * @param jdbcArguments         jdbc arguments for fetching on-demand featuregroups
+   * @param online                whether to read from the online feature group or offline
    * @return the resulting spark dataframe with the features
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static Dataset<Row> getFeatures(SparkSession sparkSession, List<String> features,
                                          String featurestore, List<FeaturegroupDTO> featuregroupsMetadata,
-                                         String joinKey, Map<String, Map<String, String>> jdbcArguments)
-      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
+                                         String joinKey, Map<String, Map<String, String>> jdbcArguments, Boolean online)
+    throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
     String featuresStr = StringUtils.join(features, ", ");
     List<String> featuregroupStrings =
         featuregroupsMetadata.stream()
             .map(fg -> getTableName(fg.getName(), fg.getVersion())).collect(Collectors.toList());
-    LOG.severe("Featuregroup Strings: " + StringUtils.join(featuregroupStrings, ","));
     List<FeaturegroupDTO> onDemandFeaturegroups =
         featuregroupsMetadata.stream()
             .filter(fg -> fg.getFeaturegroupType() ==
                 FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
-    LOG.severe("OnDemandFeaturegroups Size: " + onDemandFeaturegroups.size());
     registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
-    LOG.severe("featuregroupStr: " + featuregroupStr);
     if (featuregroupsMetadata.size() == 1) {
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
-      return logAndRunSQL(sparkSession, sqlStr);
+      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
     } else {
       SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupsMetadata, joinKey);
       String sqlStr = "SELECT " + featuresStr + " FROM " +
           getTableName(sqlJoinDTO.getFeaturegroupDTOS().get(0).getName(),
               sqlJoinDTO.getFeaturegroupDTOS().get(0).getVersion())
           + " " + sqlJoinDTO.getJoinStr();
-      LOG.severe("sqlStr: " + sqlStr);
-      LOG.severe("joinStr: " + sqlJoinDTO.getJoinStr());
-      return logAndRunSQL(sparkSession, sqlStr);
+      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
     }
   }
 
@@ -981,11 +1063,18 @@ public class FeaturestoreHelper {
    * @param sparkSession the spark session
    * @param query        the query to run
    * @param featurestore the featurestore to query
+   * @param online       whether to read from the online feature group or offline
    * @return the resulting Spark dataframe
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
-  public static Dataset<Row> queryFeaturestore(SparkSession sparkSession, String query, String featurestore) {
+  public static Dataset<Row> queryFeaturestore(SparkSession sparkSession, String query, String featurestore,
+    Boolean online)
+    throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     useFeaturestore(sparkSession, featurestore);
-    return logAndRunSQL(sparkSession, query);
+    return logAndRunSQL(sparkSession, query, online, featurestore);
   }
 
   /**
@@ -994,10 +1083,23 @@ public class FeaturestoreHelper {
    * @param sparkSession the spark session
    * @param sqlStr       the query to run
    * @return the resulting spark dataframe
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
-  private static Dataset<Row> logAndRunSQL(SparkSession sparkSession, String sqlStr) {
-    LOG.log(Level.INFO, "Running sql: " + sqlStr);
-    return sparkSession.sql(sqlStr);
+  private static Dataset<Row> logAndRunSQL(SparkSession sparkSession, String sqlStr, Boolean online,
+    String featurestore) throws JAXBException, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestorePasswordNotFound {
+    if(online == null || !online) {
+      LOG.log(Level.INFO, "Running sql: " + sqlStr + " against offline feature store");
+      return sparkSession.sql(sqlStr);
+    } else {
+      LOG.log(Level.INFO, "Running sql: " + sqlStr + " against online feature store");
+      FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO = doGetOnlineFeaturestoreJdbcConnector(featurestore,
+        new FeaturestoreReadMetadata().setFeaturestore(featurestore).read());
+      return readJdbcDataFrame(sparkSession, featurestoreJdbcConnectorDTO, "(" + sqlStr + ") tmp");
+    }
   }
 
   /**
@@ -1012,6 +1114,30 @@ public class FeaturestoreHelper {
     return featuregroupsMetadata.stream().filter(fgm -> featuregroupsAndVersions.get(fgm.getName()) != null
             && fgm.getVersion().equals(featuregroupsAndVersions.get(fgm.getName()))).collect(Collectors.toList());
   }
+  
+  /**
+   * Makes a REST call to Hopsworks to get the online featurestore connector for a particular featurestore and user
+   * (unless the connector is in the metadata cache)
+   *
+   * @param featurestore the name of the featurestore
+   * @param featurestoreMetadataDTO featurestore metadata
+   * @return the JDBC connector
+   * @throws JAXBException
+   * @throws FeaturestoreNotFound
+   */
+  public static FeaturestoreJdbcConnectorDTO doGetOnlineFeaturestoreJdbcConnector(String featurestore,
+    FeaturestoreMetadataDTO featurestoreMetadataDTO)
+    throws JAXBException, FeaturestoreNotFound {
+    featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
+    if(Strings.isNullOrEmpty(featurestore)){
+      throw new IllegalArgumentException("Featurestore Parameter Cannot be Null.");
+    }
+    if(featurestoreMetadataDTO != null && featurestoreMetadataDTO.getOnlineFeaturestoreConnector() != null) {
+      return featurestoreMetadataDTO.getOnlineFeaturestoreConnector();
+    } else {
+      return FeaturestoreRestClient.getOnlineFeaturestoreJdbcConnectorRest(featurestore);
+    }
+  }
 
   /**
    * Converts a spark schema field into a FeatureDTO
@@ -1019,12 +1145,18 @@ public class FeaturestoreHelper {
    * @param field       the field to convert
    * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
    * @param partitionBy the features to partition a feature group on
+   * @param online      boolean flag whether to also infer the online type
+   * @param onlineTypes map of (featureName --> type). By default, spark datatypes will be used to infer MySQL
+   *                    datatypes when creating MySQL tables in the Online Feature Store, but this behaviour can be
+   *                    overridden by providing explicit feature types through this map.
    * @return the converted featureDTO
    */
-  private static FeatureDTO convertFieldToFeature(StructField field, String primaryKey, List<String> partitionBy) {
+  private static FeatureDTO convertFieldToFeature(StructField field, String primaryKey, List<String> partitionBy,
+    Boolean online, Map<String, String> onlineTypes) {
     String featureName = field.name();
     String featureType = field.dataType().catalogString();
     String featureDesc = "";
+    String onlineType = "";
     Boolean primary = false;
     if (primaryKey != null && featureName.equalsIgnoreCase(primaryKey)) {
       primary = true;
@@ -1043,7 +1175,52 @@ public class FeaturestoreHelper {
     if(partitionBy != null && partitionBy.contains(featureName)){
       partition = true;
     }
-    return new FeatureDTO(featureName, featureType, featureDesc, primary, partition);
+    if(online) {
+      if(onlineTypes != null && onlineTypes.containsKey(featureName)) {
+        onlineType = onlineTypes.get(featureName);
+      } else {
+        onlineType = convertHiveTypeToMySQL(field.dataType().catalogString());
+      }
+    }
+    return new FeatureDTO(featureName, featureType, featureDesc, primary, partition, onlineType);
+  }
+  
+  /**
+   * Converts a HIVE data type to a MYSQL data type (helper method, not guaranteed to work always)
+   *
+   * @param hiveDataType the hive datatype to convert
+   * @return the MYSQL data type
+   */
+  private static String convertHiveTypeToMySQL(String hiveDataType) {
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_SMALLINT_TYPE)){
+      return Constants.MYSQL_SMALLINT_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_INT_TYPE)){
+      return Constants.MYSQL_INTEGER_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_BIGINT_TYPE)) {
+      return Constants.MYSQL_BIGINT_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_INTERVAL_TYPE)) {
+      return Constants.MYSQL_DATE_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_STRING_TYPE)) {
+      return Constants.MYSQL_VARCHAR_1000_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_VARCHAR_TYPE)){
+      return Constants.MYSQL_VARCHAR_1000_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_BOOLEAN_TYPE)) {
+      return Constants.MYSQL_TINYINT_TYPE;
+    }
+    if(hiveDataType.equalsIgnoreCase(Constants.HIVE_BINARY_TYPE)) {
+      return Constants.MYSQL_BLOB_TYPE;
+    }
+    if(Constants.MYSQL_DATA_TYPES.contains(hiveDataType.toUpperCase())) {
+      return hiveDataType;
+    }
+    throw new IllegalArgumentException("Conversion of data type: " + hiveDataType + " to a valid MySQL datatype " +
+      "failed. Please explicitly provide the type through the argument 'onlineTypes'");
   }
 
   /**
@@ -1052,14 +1229,18 @@ public class FeaturestoreHelper {
    * @param sparkSchema the spark schema to parse
    * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
    * @param partitionBy the features to partition a feature group on
+   * @param online      boolean flag whether to also infer the online type
+   * @param onlineTypes map of (featureName --> type). By default, spark datatypes will be used to infer MySQL
+   *                    datatypes when creating MySQL tables in the Online Feature Store, but this behaviour can be
+   *                    overridden by providing explicit feature types through this map.
    * @return a list of feature DTOs
    */
   public static List<FeatureDTO> parseSparkFeaturesSchema(StructType sparkSchema, String primaryKey,
-    List<String> partitionBy) {
+    List<String> partitionBy, Boolean online, Map<String, String> onlineTypes) {
     StructField[] fieldsList = sparkSchema.fields();
     List<FeatureDTO> features = new ArrayList<>();
     for (int i = 0; i < fieldsList.length; i++) {
-      features.add(convertFieldToFeature(fieldsList[i], primaryKey, partitionBy));
+      features.add(convertFieldToFeature(fieldsList[i], primaryKey, partitionBy, online, onlineTypes));
     }
     return features;
   }
@@ -1245,6 +1426,20 @@ public class FeaturestoreHelper {
   public static JSONObject convertClusterAnalysisDTOToJsonObject(
       ClusterAnalysisDTO clusterAnalysisDTO) throws JAXBException {
     return dtoToJson(clusteranalysisMarshaller, clusterAnalysisDTO);
+  }
+  
+  /**
+   * Parses JDBC Connector JSON into a DTO
+   *
+   * @param jdbcConnectorJson the JSON to parse
+   * @return the DTO
+   * @throws JAXBException JAXBException
+   */
+  public static FeaturestoreJdbcConnectorDTO parseJdbcConnectorJson(JSONObject jdbcConnectorJson)
+    throws JAXBException {
+    Unmarshaller unmarshaller = getUnmarshaller(jdbcConnectorJAXBContext);
+    StreamSource json = new StreamSource(new StringReader(jdbcConnectorJson.toString()));
+    return unmarshaller.unmarshal(json, FeaturestoreJdbcConnectorDTO.class).getValue();
   }
 
   /**
@@ -1590,17 +1785,22 @@ public class FeaturestoreHelper {
    * @param correlationMethod     the method to compute feature correlation with (pearson or spearman)
    * @return the computed statistics in a DTO
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static StatisticsDTO computeDataFrameStats(
       String name, SparkSession sparkSession, Dataset<Row> sparkDf, String featurestore,
       int version, Boolean descriptiveStatistics, Boolean featureCorrelation,
       Boolean featureHistograms, Boolean clusterAnalysis,
       List<String> statColumns, int numBins, int numClusters,
-      String correlationMethod) throws DataframeIsEmpty, SparkDataTypeNotRecognizedError, FeaturestoreNotFound {
+      String correlationMethod)
+    throws DataframeIsEmpty, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
+    JAXBException, OnlineFeaturestorePasswordNotFound {
     if (sparkDf == null) {
-      sparkDf = getCachedFeaturegroup(sparkSession, name, featurestore, version);
+      sparkDf = getCachedFeaturegroup(sparkSession, name, featurestore, version, false);
     }
     if (statColumns != null && !statColumns.isEmpty()) {
       List<Column> statSparkColumns = statColumns.stream().map(sc -> col(sc)).collect(Collectors.toList());
@@ -2384,10 +2584,14 @@ public class FeaturestoreHelper {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws JAXBException JAXBException
    */
   public static void registerOnDemandFeaturegroupsAsTempTables(
       List<FeaturegroupDTO> onDemandFeaturegroups, String featurestore, Map<String, Map<String, String>> jdbcArguments)
-      throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError {
+    throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
     for (FeaturegroupDTO onDemandFeaturegroup : onDemandFeaturegroups) {
       FeaturestoreReadFeaturegroup readFeaturegroupOp = new FeaturestoreReadFeaturegroup(onDemandFeaturegroup.getName())
           .setVersion(onDemandFeaturegroup.getVersion())
@@ -2460,6 +2664,89 @@ public class FeaturestoreHelper {
     }
     path = path + bucket + Constants.SLASH_DELIMITER + datasetPath;
     return path;
+  }
+  
+  /**
+   * Extracts the password from a online-featurestore storage connector
+   *
+   * @param featurestoreJdbcConnectorDTO
+   * @return the password (string)
+   * @throws OnlineFeaturestorePasswordNotFound
+   */
+  public static String getOnlineFeaturestorePassword(FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO)
+    throws OnlineFeaturestorePasswordNotFound {
+    String[] args = featurestoreJdbcConnectorDTO.getArguments().split(Constants.COMMA_DELIMITER);
+    for (int i = 0; i < args.length; i++) {
+      if(args[i].contains("password=")){
+        return args[i].replace("password=", "");
+      }
+    }
+    throw new OnlineFeaturestorePasswordNotFound("Could not find any password in the storage connector");
+  }
+  
+  /**
+   * Extracts the username from a online-featurestore storage connector
+   *
+   * @param featurestoreJdbcConnectorDTO
+   * @return the username (string)
+   * @throws OnlineFeaturestoreUserNotFound
+   */
+  public static String getOnlineFeaturestoreUser(FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO)
+    throws OnlineFeaturestoreUserNotFound {
+    String[] args = featurestoreJdbcConnectorDTO.getArguments().split(Constants.COMMA_DELIMITER);
+    for (int i = 0; i < args.length; i++) {
+      if(args[i].contains("user=")){
+        return args[i].replace("user=", "");
+      }
+    }
+    throw new OnlineFeaturestoreUserNotFound("Could not find any username in the storage connector");
+  }
+  
+  /**
+   * Writes a Spark  dataframe to the online feature store using a JDBC conenctor
+   *
+   * @param sparkDf the dataframe to write
+   * @param featurestoreJdbcConnectorDTO the jdbc connector to the online feature store
+   * @param tableName the name of the table to write the dataframe to
+   * @param mode the spark write mode
+   * @throws OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound
+   */
+  public static void writeJdbcDataframe(Dataset<Row> sparkDf, FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO,
+    String tableName, String mode)
+    throws OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound {
+    String pw = getOnlineFeaturestorePassword(featurestoreJdbcConnectorDTO);
+    String user = getOnlineFeaturestoreUser(featurestoreJdbcConnectorDTO);
+    sparkDf.write().format(Constants.SPARK_JDBC_FORMAT)
+      .option(Constants.SPARK_JDBC_URL, featurestoreJdbcConnectorDTO.getConnectionString())
+      .option(Constants.SPARK_JDBC_DBTABLE, tableName)
+      .option(Constants.SPARK_JDBC_USER, user)
+      .option(Constants.SPARK_JDBC_PW, pw)
+      .mode(mode)
+      .save();
+  }
+  
+  /**
+   * Reads a spark dataframe from the online feature store
+   *
+   * @param sparkSession the spark session
+   * @param featurestoreJdbcConnectorDTO  the storage connector to connect to the online featurestore
+   * @param query the SQL query for querying the online feature store
+   * @return the resulting spark dataframe
+   * @throws OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound
+   */
+  public static Dataset<Row> readJdbcDataFrame(SparkSession sparkSession,
+    FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO, String query)
+    throws OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound {
+    String pw = getOnlineFeaturestorePassword(featurestoreJdbcConnectorDTO);
+    String user = getOnlineFeaturestoreUser(featurestoreJdbcConnectorDTO);
+    return sparkSession.read().format(Constants.SPARK_JDBC_FORMAT)
+      .option(Constants.SPARK_JDBC_URL, featurestoreJdbcConnectorDTO.getConnectionString())
+      .option(Constants.SPARK_JDBC_DBTABLE, query)
+      .option(Constants.SPARK_JDBC_USER, user)
+      .option(Constants.SPARK_JDBC_PW, pw)
+      .load();
   }
   
 

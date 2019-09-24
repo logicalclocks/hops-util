@@ -8,13 +8,17 @@ import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
 import io.hops.util.exceptions.FeaturegroupDeletionError;
+import io.hops.util.exceptions.FeaturegroupDisableOnlineError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.StorageConnectorNotFound;
@@ -75,6 +79,9 @@ public abstract class FeaturestoreOp {
   protected String hudiBasePath = "";
   protected String storageConnector = null;
   protected String externalPath;
+  protected Boolean online = false;
+  protected Boolean offline = true;
+  protected Map<String, String> onlineTypes;
 
 
   /**
@@ -340,8 +347,6 @@ public abstract class FeaturestoreOp {
     return hudiBasePath;
   }
 
-
-
   /**
    * @return storage connector for importing external feature groups into Hopsworks Feature Store
    */
@@ -356,7 +361,30 @@ public abstract class FeaturestoreOp {
   public String getExternalPath() {
     return externalPath;
   }
-
+  
+  /**
+   * @return whether to apply the operation to the online featurestore
+   */
+  public Boolean getOnline() {
+    return online;
+  }
+  
+  /**
+   * @return whether to apply the operation to the offline featurestore
+   */
+  public Boolean getOffline() {
+    return offline;
+  }
+  
+  /**
+   * @return map of (featureName --> type). By default, spark datatypes will be used to infer MySQL datatypes when
+   * creating MySQL tables in the Online Feature Store, but this behaviour can be overridden by providing explicit
+   * feature types through this map.
+   */
+  public Map<String, String> getOnlineTypes() {
+    return onlineTypes;
+  }
+  
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
    * This method is called by the user after populating parameters of the operation
@@ -374,12 +402,14 @@ public abstract class FeaturestoreOp {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws StorageConnectorNotFound StorageConnectorNotFound
    * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    */
   public abstract Object read()
-      throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
-      TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
-      StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
-      StorageConnectorNotFound;
+    throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
+    TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
+    StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
+    StorageConnectorNotFound, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound;
 
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -405,6 +435,10 @@ public abstract class FeaturestoreOp {
    * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
    * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
    * @throws StorageConnectorTypeNotSupportedForFeatureImport StorageConnectorTypeNotSupportedForFeatureImport
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
+   * @throws FeaturegroupDisableOnlineError FeaturegroupDisableOnlineError
    */
   public abstract void write()
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
@@ -413,5 +447,6 @@ public abstract class FeaturestoreOp {
     TrainingDatasetCreationError, CannotWriteImageDataFrameException, JWTNotFoundException,
     FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
     CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups,
-    StorageConnectorTypeNotSupportedForFeatureImport;
+    StorageConnectorTypeNotSupportedForFeatureImport, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestorePasswordNotFound, FeaturegroupEnableOnlineError, FeaturegroupDisableOnlineError;
 }

@@ -2,7 +2,10 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.exceptions.CannotReadPartitionsOfOnDemandFeaturegroups;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
@@ -11,6 +14,8 @@ import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+
+import javax.xml.bind.JAXBException;
 
 /**
  * Builder class for Read-Featuregroup operation on the Hopsworks Featurestore
@@ -33,9 +38,13 @@ public class FeaturestoreReadFeaturegroupPartitions extends FeaturestoreOp {
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws JAXBException JAXBException
    */
   public Dataset<Row> read() throws HiveNotEnabled, FeaturegroupDoesNotExistError,
-      CannotReadPartitionsOfOnDemandFeaturegroups {
+    CannotReadPartitionsOfOnDemandFeaturegroups, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound,
+    OnlineFeaturestoreUserNotFound, JAXBException {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -43,7 +52,7 @@ public class FeaturestoreReadFeaturegroupPartitions extends FeaturestoreOp {
       throw new CannotReadPartitionsOfOnDemandFeaturegroups(
           "Read partitions operation is only supported for cached feature groups");
     }
-    return FeaturestoreHelper.getFeaturegroupPartitions(getSpark(), name, featurestore, version);
+    return FeaturestoreHelper.getFeaturegroupPartitions(getSpark(), name, featurestore, version, false);
   }
   
   /**
