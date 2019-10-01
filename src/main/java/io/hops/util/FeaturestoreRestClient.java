@@ -407,7 +407,7 @@ public class FeaturestoreRestClient {
    * @param featuregroupDTOType    the DTO type
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
-   * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
+   * @throws FeaturegroupDisableOnlineError FeaturegroupDisableOnlineError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */

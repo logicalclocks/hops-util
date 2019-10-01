@@ -23,8 +23,8 @@ public class FeaturestoreReadOnlineConnector extends FeaturestoreOp {
    * Gets a JDBC Connector feature for online featurestore.
    *
    * @return DTO with information about the JDBC connector
-   * @throws JAXBException
-   * @throws FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public FeaturestoreJdbcConnectorDTO read() throws JAXBException, FeaturestoreNotFound {
     return FeaturestoreHelper.doGetOnlineFeaturestoreJdbcConnector(featurestore,

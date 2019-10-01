@@ -38,11 +38,11 @@ public class FeaturestoreDisableFeaturegroupOnline extends FeaturestoreOp {
   /**
    * Disables online feature serving for a featuregroup
    *
-   * @throws JAXBException
-   * @throws FeaturestoreNotFound
-   * @throws JWTNotFoundException
-   * @throws FeaturegroupDoesNotExistError
-   * @throws FeaturegroupDisableOnlineError
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws FeaturegroupDisableOnlineError FeaturegroupDisableOnlineError
    */
   public void write()
     throws JAXBException, FeaturestoreNotFound, JWTNotFoundException, FeaturegroupDoesNotExistError,

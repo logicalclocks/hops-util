@@ -123,6 +123,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public void writeCachedFeaturegroup()
     throws DataframeIsEmpty,
