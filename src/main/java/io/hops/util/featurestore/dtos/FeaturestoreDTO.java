@@ -35,12 +35,23 @@ public class FeaturestoreDTO {
   private Integer projectId;
   private String featurestoreDescription;
   private Long inodeId;
+  private String onlineFeaturestoreType;
+  private String onlineFeaturestoreName;
+  private Double onlineFeaturestoreSize;
+  private String offlineFeaturestoreType;
+  private String offlineFeaturestoreName;
+  private String hiveEndpoint;
+  private String mysqlServerEndpoint;
+  private Boolean onlineEnabled = false;
 
   public FeaturestoreDTO() {
   }
-
+  
   public FeaturestoreDTO(Integer featurestoreId, String featurestoreName, Date created, String hdfsStorePath,
-                         String projectName, Integer projectId, String featurestoreDescription, Long inodeId) {
+    String projectName, Integer projectId, String featurestoreDescription, Long inodeId,
+    String onlineFeaturestoreType, String onlineFeaturestoreName, Double onlineFeaturestoreSize,
+    String offlineFeaturestoreType, String offlineFeaturestoreName, String hiveEndpoint,
+    String mysqlServerEndpoint, Boolean onlineEnabled) {
     this.featurestoreId = featurestoreId;
     this.featurestoreName = featurestoreName;
     this.created = created;
@@ -49,8 +60,16 @@ public class FeaturestoreDTO {
     this.projectId = projectId;
     this.featurestoreDescription = featurestoreDescription;
     this.inodeId = inodeId;
+    this.onlineFeaturestoreType = onlineFeaturestoreType;
+    this.onlineFeaturestoreName = onlineFeaturestoreName;
+    this.onlineFeaturestoreSize = onlineFeaturestoreSize;
+    this.offlineFeaturestoreType = offlineFeaturestoreType;
+    this.offlineFeaturestoreName = offlineFeaturestoreName;
+    this.hiveEndpoint = hiveEndpoint;
+    this.mysqlServerEndpoint = mysqlServerEndpoint;
+    this.onlineEnabled = onlineEnabled;
   }
-
+  
   @XmlElement
   public String getHdfsStorePath() {
     return hdfsStorePath;
@@ -90,7 +109,47 @@ public class FeaturestoreDTO {
   public Long getInodeId() {
     return inodeId;
   }
-
+  
+  @XmlElement
+  public String getOnlineFeaturestoreType() {
+    return onlineFeaturestoreType;
+  }
+  
+  @XmlElement
+  public String getOnlineFeaturestoreName() {
+    return onlineFeaturestoreName;
+  }
+  
+  @XmlElement
+  public Double getOnlineFeaturestoreSize() {
+    return onlineFeaturestoreSize;
+  }
+  
+  @XmlElement
+  public String getOfflineFeaturestoreType() {
+    return offlineFeaturestoreType;
+  }
+  
+  @XmlElement
+  public String getOfflineFeaturestoreName() {
+    return offlineFeaturestoreName;
+  }
+  
+  @XmlElement
+  public String getHiveEndpoint() {
+    return hiveEndpoint;
+  }
+  
+  @XmlElement
+  public String getMysqlServerEndpoint() {
+    return mysqlServerEndpoint;
+  }
+  
+  @XmlElement
+  public Boolean getOnlineEnabled() {
+    return onlineEnabled;
+  }
+  
   public void setFeaturestoreDescription(String featurestoreDescription) {
     this.featurestoreDescription = featurestoreDescription;
   }

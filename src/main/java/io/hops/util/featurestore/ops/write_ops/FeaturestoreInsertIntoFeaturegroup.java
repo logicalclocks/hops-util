@@ -12,6 +12,8 @@ import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
@@ -68,12 +70,15 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws CannotInsertIntoOnDemandFeaturegroups CannotInsertIntoOnDemandFeaturegroups
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
     FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled, CannotInsertIntoOnDemandFeaturegroups,
-    StorageConnectorDoesNotExistError, FeaturegroupCreationError {
+    StorageConnectorDoesNotExistError, FeaturegroupCreationError, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestorePasswordNotFound {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -158,11 +163,14 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   private void doInsertIntoFeaturegroup(FeaturestoreMetadataDTO featurestoreMetadataDTO)
     throws HiveNotEnabled, FeaturestoreNotFound, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     FeaturegroupDoesNotExistError, FeaturegroupUpdateStatsError, JAXBException, JWTNotFoundException,
-    StorageConnectorDoesNotExistError, FeaturegroupCreationError {
+    StorageConnectorDoesNotExistError, FeaturegroupCreationError, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestorePasswordNotFound {
     FeaturegroupDTO featuregroupDTO;
     try {
       featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),name, version);
@@ -184,12 +192,16 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       new FeaturestoreSyncHiveTable(name).setFeaturestore(featurestore).setDescription(featuregroupDTO.getDescription())
         .setVersion(featuregroupDTO.getVersion()).setStatisticsDTO(statisticsDTO).setJobs(jobs).write();
     } else {
-      FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
-        featurestore, version);
+      if(offline) {
+        FeaturestoreHelper.insertIntoOfflineFeaturegroup(dataframe, getSpark(), name,
+          featurestore, version);
+      }
+      if (online) {
+        FeaturestoreHelper.insertIntoOnlineFeaturegroup(dataframe, name, featurestore, version, mode);
+      }
       StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
-        featurestore, version,
-        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
-        corrMethod);
+        featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
+        statColumns, numBins, numClusters, corrMethod);
       Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
       FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(statisticsDTO),
         FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadataDTO.getSettings(), onDemand));
@@ -317,6 +329,16 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreInsertIntoFeaturegroup setPrimaryKey(String primaryKey) {
     this.primaryKey = primaryKey;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setOnline(Boolean online) {
+    this.online = online;
+    return this;
+  }
+  
+  public FeaturestoreInsertIntoFeaturegroup setOffline(Boolean offline) {
+    this.offline = offline;
     return this;
   }
   

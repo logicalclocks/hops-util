@@ -19,6 +19,7 @@ package io.hops.util.featurestore.dtos.app;
 import io.hops.util.featurestore.dtos.FeaturestoreDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.settings.FeaturestoreClientSettingsDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 
@@ -33,7 +34,8 @@ import java.util.stream.Collectors;
  * Can be converted to JSON or XML representation using jaxb.
  */
 @XmlRootElement
-@XmlType(propOrder = {"featurestore", "featuregroups", "trainingDatasets", "settings", "storageConnectors"})
+@XmlType(propOrder = {"featurestore", "featuregroups", "trainingDatasets", "settings", "storageConnectors",
+  "onlineFeaturestoreConnector"})
 public class FeaturestoreMetadataDTO {
   
   private FeaturestoreDTO featurestore;
@@ -41,6 +43,7 @@ public class FeaturestoreMetadataDTO {
   private List<TrainingDatasetDTO> trainingDatasets;
   private FeaturestoreClientSettingsDTO settings;
   private List<FeaturestoreStorageConnectorDTO> storageConnectors;
+  private FeaturestoreJdbcConnectorDTO onlineFeaturestoreConnector;
   
   public FeaturestoreMetadataDTO() {
   }
@@ -48,7 +51,8 @@ public class FeaturestoreMetadataDTO {
   public FeaturestoreMetadataDTO(FeaturestoreDTO featurestore,
                                  List<FeaturegroupDTO> featuregroups, List<TrainingDatasetDTO> trainingDatasets,
                                  FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO,
-                                 List<FeaturestoreStorageConnectorDTO> storageConnectors) {
+                                 List<FeaturestoreStorageConnectorDTO> storageConnectors,
+                                 FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO) {
     this.featurestore = featurestore;
     // We do not need to send all of the statistics information over the wire for the Python/Scala clients
     this.featuregroups = featuregroups.stream().map(fg -> {
@@ -96,6 +100,11 @@ public class FeaturestoreMetadataDTO {
     return storageConnectors;
   }
   
+  @XmlElement
+  public FeaturestoreJdbcConnectorDTO getOnlineFeaturestoreConnector() {
+    return onlineFeaturestoreConnector;
+  }
+  
   public void setFeaturegroups(List<FeaturegroupDTO> featuregroups) {
     this.featuregroups = featuregroups;
   }
@@ -117,6 +126,11 @@ public class FeaturestoreMetadataDTO {
     this.storageConnectors = storageConnectors;
   }
   
+  public void setOnlineFeaturestoreConnector(
+    FeaturestoreJdbcConnectorDTO onlineFeaturestoreConnector) {
+    this.onlineFeaturestoreConnector = onlineFeaturestoreConnector;
+  }
+  
   @Override
   public String toString() {
     return "FeaturestoreMetadataDTO{" +
@@ -125,6 +139,7 @@ public class FeaturestoreMetadataDTO {
       ", trainingDatasets=" + trainingDatasets +
       ", settings=" + settings +
       ", storageConnectors=" + storageConnectors +
+      ", onlineFeaturestoreConnector=" + onlineFeaturestoreConnector +
       '}';
   }
 }

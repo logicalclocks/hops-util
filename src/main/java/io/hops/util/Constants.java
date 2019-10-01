@@ -27,11 +27,14 @@ import java.util.concurrent.TimeUnit;
 public class Constants {
   
   public static final String HOPSWORKS_REST_FEATURESTORES_RESOURCE = "featurestores";
+  public static final String HOPSWORKS_REST_PROJECT_RESOURCE = "project";
   public static final String HOPSWORKS_REST_FEATURESTORE_METADATA_RESOURCE = "metadata";
   public static final String HOPSWORKS_REST_FEATUREGROUPS_RESOURCE = "featuregroups";
   public static final String HOPSWORKS_REST_TRAININGDATASETS_RESOURCE = "trainingdatasets";
   public static final String HOPSWORKS_REST_FEATUREGROUP_CLEAR_RESOURCE = "clear";
   public static final String HOPSWORKS_REST_FEATUREGROUPS_SYNC_RESOURCE = "sync";
+  public static final String HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE = "storageconnectors";
+  public static final String HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE = "onlinefeaturestore";
   
   public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
@@ -73,6 +76,8 @@ public class Constants {
 
   public static final String JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM = "updateStats";
   public static final String JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM = "updateMetadata";
+  public static final String JSON_FEATURESTORE_ENABLE_ONLINE_QUERY_PARAM = "enableOnline";
+  public static final String JSON_FEATURESTORE_DISABLE_ONLINE_QUERY_PARAM = "disableOnline";
   public static final String JSON_FEATUREGROUP_NAME = "name";
   public static final String JSON_FEATUREGROUP_VERSION = "version";
   public static final String JSON_FEATUREGROUP_JOBNAME = "jobName";
@@ -167,7 +172,9 @@ public class Constants {
   public static final String SPARK_JDBC_FORMAT = "jdbc";
   public static final String SPARK_JDBC_URL = "url";
   public static final String SPARK_JDBC_DBTABLE = "dbtable";
-
+  public static final String SPARK_JDBC_USER = "user";
+  public static final String SPARK_JDBC_PW = "password";
+  
   public static final String JDBC_CONNECTION_STRING_DELIMITER = ";";
   public static final String JDBC_CONNECTION_STRING_VALUE_DELIMITER = "=";
   public static final String SLASH_DELIMITER = "/";
@@ -202,6 +209,30 @@ public class Constants {
     }
   };
   public static final String HUDI_INPUT_FORMAT = "org.apache.hudi.hadoop.HoodieInputFormat";
-
+  
+  
+  public static final List<String> MYSQL_DATA_TYPES = Arrays.asList(new String[]{
+    "None", "INT(11)", "TINYINT(1)", "SMALLINT(5)", "MEDIUMINT(7)", "BIGINT(20)", "FLOAT", "DOUBLE", "DECIMAL",
+    "DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR", "CHAR", "VARCHAR(25)", "VARCHAR(125)", "VARCHAR(225)",
+    "VARCHAR(500)", "VARCHAR(1000)", "VARCHAR(2000)", "VARCHAR(5000)", "VARCHAR(10000)", "BLOB", "TEXT",
+    "TINYBLOB", "TINYTEXT", "MEDIUMBLOB", "MEDIUMTEXT", "LONGBLOB", "LONGTEXT", "JSON"
+  });
+  public static final String MYSQL_BIGINT_TYPE = "BIGINT(20)";
+  public static final String MYSQL_SMALLINT_TYPE = "SMALLINT(5)";
+  public static final String MYSQL_CHAR_TYPE = "CHAR";
+  public static final String MYSQL_INTEGER_TYPE = "INT(11)";
+  public static final String MYSQL_VARCHAR_1000_TYPE = "VARCHAR(1000)";
+  public static final String MYSQL_BLOB_TYPE = "BLOB";
+  public static final String MYSQL_DATE_TYPE = "DATE";
+  public static final String MYSQL_TINYINT_TYPE = "TINYINT(1)";
+  
+  public static final String HIVE_SMALLINT_TYPE = "SMALLINT";
+  public static final String HIVE_INT_TYPE = "INT";
+  public static final String HIVE_BIGINT_TYPE = "BIGINT";
+  public static final String HIVE_INTERVAL_TYPE = "INTERVAL";
+  public static final String HIVE_STRING_TYPE = "STRING";
+  public static final String HIVE_VARCHAR_TYPE = "VARCHAR";
+  public static final String HIVE_BOOLEAN_TYPE = "BOOLEAN";
+  public static final String HIVE_BINARY_TYPE = "BINARY";
 
 }

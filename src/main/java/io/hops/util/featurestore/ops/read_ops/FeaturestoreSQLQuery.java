@@ -1,11 +1,16 @@
 package io.hops.util.featurestore.ops.read_ops;
 
+import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+
+import javax.xml.bind.JAXBException;
 
 /**
  * Builder class for SQL query on feature store
@@ -26,9 +31,15 @@ public class FeaturestoreSQLQuery extends FeaturestoreOp {
    *
    * @return a spark dataframe with the results
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
-  public Dataset<Row> read() throws HiveNotEnabled {
-    return FeaturestoreHelper.queryFeaturestore(getSpark(), name, featurestore);
+  public Dataset<Row> read()
+    throws HiveNotEnabled, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
+    JAXBException {
+    return FeaturestoreHelper.queryFeaturestore(getSpark(), name, featurestore, online);
   }
   
   /**
@@ -45,6 +56,11 @@ public class FeaturestoreSQLQuery extends FeaturestoreOp {
   
   public FeaturestoreSQLQuery setSpark(SparkSession spark) {
     this.spark = spark;
+    return this;
+  }
+  
+  public FeaturestoreSQLQuery setOnline(Boolean online) {
+    this.online = online;
     return this;
   }
 }

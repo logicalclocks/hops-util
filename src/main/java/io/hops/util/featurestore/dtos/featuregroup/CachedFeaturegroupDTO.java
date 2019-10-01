@@ -42,7 +42,8 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
   private String inputFormat;
   private HiveTableType hiveTableType;
   private Long inodeId;
-
+  private OnlineFeaturegroupDTO onlineFeaturegroupDTO;
+  private Boolean onlineFeaturegroupEnabled = false;
 
   public CachedFeaturegroupDTO() {
     super();
@@ -57,7 +58,8 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
     Integer id, List<FeatureDTO> features, String location,
     List<FeaturestoreJobDTO> jobs,
     FeaturegroupType featuregroupType, Long hiveTableId, List<String> hdfsStorePaths, String inputFormat,
-    HiveTableType hiveTableType, Long inodeId) {
+    HiveTableType hiveTableType, Long inodeId, OnlineFeaturegroupDTO onlineFeaturegroupDTO,
+    Boolean onlineFeaturegroupEnabled) {
     super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
       featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs,
       featuregroupType);
@@ -66,6 +68,8 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
     this.inputFormat = inputFormat;
     this.hiveTableType = hiveTableType;
     this.inodeId = inodeId;
+    this.onlineFeaturegroupDTO = onlineFeaturegroupDTO;
+    this.onlineFeaturegroupEnabled = onlineFeaturegroupEnabled;
   }
   
   @XmlElement
@@ -113,6 +117,24 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
     this.inodeId = inodeId;
   }
   
+  @XmlElement
+  public OnlineFeaturegroupDTO getOnlineFeaturegroupDTO() {
+    return onlineFeaturegroupDTO;
+  }
+  
+  public void setOnlineFeaturegroupDTO(OnlineFeaturegroupDTO onlineFeaturegroupDTO) {
+    this.onlineFeaturegroupDTO = onlineFeaturegroupDTO;
+  }
+  
+  @XmlElement
+  public Boolean getOnlineFeaturegroupEnabled() {
+    return onlineFeaturegroupEnabled;
+  }
+  
+  public void setOnlineFeaturegroupEnabled(Boolean onlineFeaturegroupEnabled) {
+    this.onlineFeaturegroupEnabled = onlineFeaturegroupEnabled;
+  }
+  
   @Override
   public String toString() {
     return "CachedFeaturegroupDTO{" +
@@ -121,6 +143,8 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
       ", inputFormat='" + inputFormat + '\'' +
       ", hiveTableType=" + hiveTableType +
       ", inodeId=" + inodeId +
+      ", onlineFeaturegroupDTO=" + onlineFeaturegroupDTO +
+      ", onlineFeaturegroupEnabled=" + onlineFeaturegroupEnabled +
       '}';
   }
 }

@@ -8,6 +8,8 @@ import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
@@ -56,11 +58,14 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws CannotUpdateStatsOfOnDemandFeaturegroups CannotUpdateStatsOfOnDemandFeaturegroups
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    */
   public void write()
-      throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-      JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
-      FeaturegroupDoesNotExistError, HiveNotEnabled, CannotUpdateStatsOfOnDemandFeaturegroups {
+    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
+    FeaturegroupDoesNotExistError, HiveNotEnabled, CannotUpdateStatsOfOnDemandFeaturegroups,
+    OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);

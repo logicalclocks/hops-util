@@ -9,11 +9,13 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
-import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
+import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
+import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
@@ -58,7 +60,6 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * Creates a new feature group in the featurestore
    *
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws JAXBException JAXBException
    * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
    * @throws FeaturegroupCreationError FeaturegroupCreationError
@@ -66,11 +67,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFounfdException
    * @throws HiveNotEnabled HiveNotEnabled
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
-  public void write() throws JWTNotFoundException, FeaturegroupCreationError, SparkDataTypeNotRecognizedError,
-      FeaturestoreNotFound, JAXBException, InvalidPrimaryKeyForFeaturegroup, HiveNotEnabled, DataframeIsEmpty,
-      StorageConnectorDoesNotExistError {
-    if(onDemand){
+  public void write() throws JWTNotFoundException, FeaturegroupCreationError,
+    FeaturestoreNotFound, JAXBException, InvalidPrimaryKeyForFeaturegroup, HiveNotEnabled, DataframeIsEmpty,
+    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
+    if(onDemand) {
       writeOnDemandFeaturegroup();
     } else {
       writeCachedFeaturegroup();
@@ -112,18 +115,20 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * Creates a new cached feature group in the featurestore
    *
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws JAXBException JAXBException
    * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
    * @throws FeaturegroupCreationError FeaturegroupCreationError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JWTNotFoundException JWTNotFounfdException
    * @throws HiveNotEnabled HiveNotEnabled
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public void writeCachedFeaturegroup()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    throws DataframeIsEmpty,
     JAXBException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError, FeaturestoreNotFound,
-    JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError {
+    JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestorePasswordNotFound {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with " +
@@ -136,13 +141,19 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
-      partitionBy);
+      partitionBy, online, onlineTypes);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     if(!hudi) {
       FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
         FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
-      FeaturestoreHelper.insertIntoFeaturegroup(dataframe, getSpark(), name,
-        featurestore, version);
+      if(offline){
+        FeaturestoreHelper.insertIntoOfflineFeaturegroup(dataframe, getSpark(), name,
+          featurestore, version);
+      }
+      if(online) {
+        FeaturestoreHelper.insertIntoOnlineFeaturegroup(dataframe, name, featurestore, version,
+          Constants.SPARK_OVERWRITE_MODE);
+      }
     } else {
       Map<String, String> hudiWriteArgs = setupHudiArgs();
       FeaturestoreHelper.writeHudiDataset(dataframe, getSpark(), name, featurestore, version,
@@ -214,19 +225,20 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
       featurestoreJobDTO.setJobName(jobName);
       return featurestoreJobDTO;
     }).collect(Collectors.toList());
-    FeaturegroupDTO featuregroupDTO = new FeaturegroupDTO();
-    featuregroupDTO.setFeaturestoreName(featurestore);
-    featuregroupDTO.setName(name);
-    featuregroupDTO.setVersion(version);
-    featuregroupDTO.setDescription(description);
-    featuregroupDTO.setJobs(jobsDTOs);
-    featuregroupDTO.setFeatures(features);
-    featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
-    featuregroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
-    featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
-    featuregroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
-    featuregroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
-    return featuregroupDTO;
+    CachedFeaturegroupDTO cachedFeaturegroupDTO = new CachedFeaturegroupDTO();
+    cachedFeaturegroupDTO.setFeaturestoreName(featurestore);
+    cachedFeaturegroupDTO.setName(name);
+    cachedFeaturegroupDTO.setVersion(version);
+    cachedFeaturegroupDTO.setDescription(description);
+    cachedFeaturegroupDTO.setJobs(jobsDTOs);
+    cachedFeaturegroupDTO.setFeatures(features);
+    cachedFeaturegroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
+    cachedFeaturegroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
+    cachedFeaturegroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
+    cachedFeaturegroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
+    cachedFeaturegroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
+    cachedFeaturegroupDTO.setOnlineFeaturegroupEnabled(online);
+    return cachedFeaturegroupDTO;
   }
   
   public FeaturestoreCreateFeaturegroup setName(String name) {
@@ -346,6 +358,21 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreCreateFeaturegroup setHudiBasePath(String hudiBasePath) {
     this.hudiBasePath = hudiBasePath;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setOnline(Boolean online) {
+    this.online = online;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setOffline(Boolean offline) {
+    this.offline = offline;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setOnlineTypes(Map<String, String> onlineTypes) {
+    this.onlineTypes = onlineTypes;
     return this;
   }
   
