@@ -377,7 +377,7 @@ public abstract class FeaturestoreOp {
   }
   
   /**
-   * @return map of (featureName --> type). By default, spark datatypes will be used to infer MySQL datatypes when
+   * @return map of (featureName to type). By default, spark datatypes will be used to infer MySQL datatypes when
    * creating MySQL tables in the Online Feature Store, but this behaviour can be overridden by providing explicit
    * feature types through this map.
    */

@@ -323,6 +323,7 @@ public class FeaturestoreHelper {
    * @param featuregroupVersion the version of the featuregroup
    * @param hudiArgs hudiWriteArguments
    * @param hudiBasePath path for the external table
+   * @param mode write mode
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
@@ -364,7 +365,7 @@ public class FeaturestoreHelper {
    * @param hudiArgs the hudi arguments
    * @param tableName name of the table to sync in Hive
    * @return the updated hudi arguments
-   * @throws StorageConnectorDoesNotExistError
+   * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   public static Map<String, String> setupHudiHiveArgs(Map<String, String> hudiArgs, String tableName)
     throws StorageConnectorDoesNotExistError {
@@ -963,6 +964,7 @@ public class FeaturestoreHelper {
    * @param joinKey                  the key to join on
    * @param jdbcArguments jdbc arguments for fetching the on-demand featuregroups
    * @param featuregroupsMetadata    metadata of the feature groups
+   * @param online                   boolean flag whether the features should be fetched from the online featurestore
    * @return the resulting spark dataframe with the features
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
@@ -1122,8 +1124,8 @@ public class FeaturestoreHelper {
    * @param featurestore the name of the featurestore
    * @param featurestoreMetadataDTO featurestore metadata
    * @return the JDBC connector
-   * @throws JAXBException
-   * @throws FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static FeaturestoreJdbcConnectorDTO doGetOnlineFeaturestoreJdbcConnector(String featurestore,
     FeaturestoreMetadataDTO featurestoreMetadataDTO)
@@ -1230,7 +1232,7 @@ public class FeaturestoreHelper {
    * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
    * @param partitionBy the features to partition a feature group on
    * @param online      boolean flag whether to also infer the online type
-   * @param onlineTypes map of (featureName --> type). By default, spark datatypes will be used to infer MySQL
+   * @param onlineTypes map of (featureName to type). By default, spark datatypes will be used to infer MySQL
    *                    datatypes when creating MySQL tables in the Online Feature Store, but this behaviour can be
    *                    overridden by providing explicit feature types through this map.
    * @return a list of feature DTOs
@@ -2587,6 +2589,7 @@ public class FeaturestoreHelper {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static void registerOnDemandFeaturegroupsAsTempTables(
       List<FeaturegroupDTO> onDemandFeaturegroups, String featurestore, Map<String, Map<String, String>> jdbcArguments)
@@ -2669,9 +2672,9 @@ public class FeaturestoreHelper {
   /**
    * Extracts the password from a online-featurestore storage connector
    *
-   * @param featurestoreJdbcConnectorDTO
+   * @param featurestoreJdbcConnectorDTO the connector dto to extract the password from
    * @return the password (string)
-   * @throws OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    */
   public static String getOnlineFeaturestorePassword(FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO)
     throws OnlineFeaturestorePasswordNotFound {
@@ -2687,9 +2690,9 @@ public class FeaturestoreHelper {
   /**
    * Extracts the username from a online-featurestore storage connector
    *
-   * @param featurestoreJdbcConnectorDTO
+   * @param featurestoreJdbcConnectorDTO the connector dto to extract the user from
    * @return the username (string)
-   * @throws OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    */
   public static String getOnlineFeaturestoreUser(FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO)
     throws OnlineFeaturestoreUserNotFound {
@@ -2709,8 +2712,8 @@ public class FeaturestoreHelper {
    * @param featurestoreJdbcConnectorDTO the jdbc connector to the online feature store
    * @param tableName the name of the table to write the dataframe to
    * @param mode the spark write mode
-   * @throws OnlineFeaturestorePasswordNotFound
-   * @throws OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    */
   public static void writeJdbcDataframe(Dataset<Row> sparkDf, FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO,
     String tableName, String mode)
@@ -2733,8 +2736,8 @@ public class FeaturestoreHelper {
    * @param featurestoreJdbcConnectorDTO  the storage connector to connect to the online featurestore
    * @param query the SQL query for querying the online feature store
    * @return the resulting spark dataframe
-   * @throws OnlineFeaturestorePasswordNotFound
-   * @throws OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    */
   public static Dataset<Row> readJdbcDataFrame(SparkSession sparkSession,
     FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO, String query)
