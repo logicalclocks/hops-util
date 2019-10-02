@@ -7,6 +7,7 @@ import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -66,12 +67,14 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, IOException, FeaturestoreNotFound,
     TrainingDatasetDoesNotExistError, TrainingDatasetFormatNotSupportedError, JWTNotFoundException, HiveNotEnabled,
-    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
+    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound,
+    OnlineFeaturestoreNotEnabled {
     Dataset<Row> sparkDf = new FeaturestoreReadTrainingDataset(name).setSpark(getSpark())
       .setFeaturestore(featurestore).setVersion(version).read();
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), sparkDf,

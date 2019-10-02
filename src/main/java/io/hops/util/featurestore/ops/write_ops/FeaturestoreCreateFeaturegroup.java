@@ -9,6 +9,7 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
@@ -69,10 +70,12 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public void write() throws JWTNotFoundException, FeaturegroupCreationError,
     FeaturestoreNotFound, JAXBException, InvalidPrimaryKeyForFeaturegroup, HiveNotEnabled, DataframeIsEmpty,
-    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
+    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound,
+    OnlineFeaturestoreNotEnabled {
     if(onDemand) {
       writeOnDemandFeaturegroup();
     } else {
@@ -124,12 +127,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public void writeCachedFeaturegroup()
     throws DataframeIsEmpty,
     JAXBException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError, FeaturestoreNotFound,
     JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with " +

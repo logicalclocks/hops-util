@@ -7,6 +7,7 @@ import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
@@ -60,11 +61,12 @@ public class FeaturestoreEnableFeaturegroupOnline extends FeaturestoreOp {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public void write()
     throws JAXBException, FeaturestoreNotFound, JWTNotFoundException, FeaturegroupDoesNotExistError,
     FeaturegroupEnableOnlineError, HiveNotEnabled, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound,
-    StorageConnectorDoesNotExistError {
+    StorageConnectorDoesNotExistError, OnlineFeaturestoreNotEnabled {
     featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
@@ -95,11 +97,12 @@ public class FeaturestoreEnableFeaturegroupOnline extends FeaturestoreOp {
    * @throws OnlineFeaturestoreUserNotFound
    * @throws FeaturegroupDoesNotExistError
    * @throws HiveNotEnabled
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   private CachedFeaturegroupDTO setupMySQLDataTypes(CachedFeaturegroupDTO cachedFeaturegroupDTO, String featurestore,
     SparkSession sparkSession)
     throws JAXBException, FeaturestoreNotFound, OnlineFeaturestorePasswordNotFound, StorageConnectorDoesNotExistError,
-    OnlineFeaturestoreUserNotFound, FeaturegroupDoesNotExistError, HiveNotEnabled {
+    OnlineFeaturestoreUserNotFound, FeaturegroupDoesNotExistError, HiveNotEnabled, OnlineFeaturestoreNotEnabled {
     Dataset<Row> sparkDf =
       new FeaturestoreReadFeaturegroup(cachedFeaturegroupDTO.getName())
          .setVersion(cachedFeaturegroupDTO.getVersion())

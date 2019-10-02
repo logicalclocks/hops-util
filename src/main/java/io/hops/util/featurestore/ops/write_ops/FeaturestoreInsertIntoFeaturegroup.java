@@ -12,6 +12,7 @@ import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -72,13 +73,14 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, JWTNotFoundException,
     FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled, CannotInsertIntoOnDemandFeaturegroups,
     StorageConnectorDoesNotExistError, FeaturegroupCreationError, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -165,12 +167,13 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   private void doInsertIntoFeaturegroup(FeaturestoreMetadataDTO featurestoreMetadataDTO)
     throws HiveNotEnabled, FeaturestoreNotFound, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     FeaturegroupDoesNotExistError, FeaturegroupUpdateStatsError, JAXBException, JWTNotFoundException,
     StorageConnectorDoesNotExistError, FeaturegroupCreationError, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
     FeaturegroupDTO featuregroupDTO;
     try {
       featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),name, version);

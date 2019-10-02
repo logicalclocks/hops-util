@@ -5,6 +5,7 @@ import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
@@ -45,9 +46,11 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public Dataset<Row> read() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled, FeaturegroupDoesNotExistError,
-    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound {
+    StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound,
+    OnlineFeaturestoreNotEnabled {
     if(features.isEmpty()){
       throw new IllegalArgumentException("Feature List Cannot be Empty");
     }
@@ -70,10 +73,11 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   private Dataset<Row> doGetFeatures() throws FeaturestoreNotFound, JAXBException, HiveNotEnabled,
     FeaturegroupDoesNotExistError, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
     if(!Strings.isNullOrEmpty(joinKey) && featuregroupsAndVersions != null){
       return FeaturestoreHelper.getFeatures(getSpark(), features, featurestore, featuregroupsAndVersions, joinKey,
           Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read().getFeaturegroups(),
@@ -113,13 +117,14 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features, String featurestore,
     FeaturestoreMetadataDTO featurestoreMetadata,
     Map<String, Integer> featuregroupsAndVersions) throws FeaturegroupDoesNotExistError, HiveNotEnabled,
     StorageConnectorDoesNotExistError, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound,
-    OnlineFeaturestoreUserNotFound, JAXBException {
+    OnlineFeaturestoreUserNotFound, JAXBException, OnlineFeaturestoreNotEnabled {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     List<FeaturegroupDTO> filteredFeaturegroupsMetadata =
       FeaturestoreHelper.filterFeaturegroupsBasedOnMap(featuregroupsAndVersions, featuregroupsMetadata);
@@ -142,12 +147,14 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features,
     String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, String joinKey)
     throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
-    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException,
+    OnlineFeaturestoreNotEnabled {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     return FeaturestoreHelper.getFeatures(sparkSession, features, featurestore, featuregroupsMetadata, joinKey,
         onDemandFeaturegroupsjdbcArguments, online);
@@ -167,12 +174,14 @@ public class FeaturestoreReadFeatures extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   private Dataset<Row> doGetFeatures(
     SparkSession sparkSession, List<String> features,
     String featurestore, FeaturestoreMetadataDTO featurestoreMetadata)
     throws FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
-    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException {
+    OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException,
+    OnlineFeaturestoreNotEnabled {
     List<FeaturegroupDTO> featuregroupsMetadata = featurestoreMetadata.getFeaturegroups();
     List<FeaturegroupDTO> featuregroupsMatching =
       FeaturestoreHelper.findFeaturegroupsThatContainsFeatures(featuregroupsMetadata, features, featurestore);
