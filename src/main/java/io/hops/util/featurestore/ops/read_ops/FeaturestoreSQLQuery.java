@@ -2,6 +2,7 @@ package io.hops.util.featurestore.ops.read_ops;
 
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.featurestore.FeaturestoreHelper;
@@ -35,10 +36,11 @@ public class FeaturestoreSQLQuery extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public Dataset<Row> read()
     throws HiveNotEnabled, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
-    JAXBException {
+    JAXBException, OnlineFeaturestoreNotEnabled {
     return FeaturestoreHelper.queryFeaturestore(getSpark(), name, featurestore, online);
   }
   

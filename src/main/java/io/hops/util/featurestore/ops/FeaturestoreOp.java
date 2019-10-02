@@ -17,6 +17,7 @@ import io.hops.util.exceptions.FeaturestoresNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
@@ -404,12 +405,14 @@ public abstract class FeaturestoreOp {
    * @throws CannotReadPartitionsOfOnDemandFeaturegroups CannotReadPartitionsOfOnDemandFeaturegroups
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public abstract Object read()
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
     TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
     StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
-    StorageConnectorNotFound, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound;
+    StorageConnectorNotFound, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound,
+    OnlineFeaturestoreNotEnabled;
 
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -439,6 +442,7 @@ public abstract class FeaturestoreOp {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
    * @throws FeaturegroupDisableOnlineError FeaturegroupDisableOnlineError
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public abstract void write()
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
@@ -448,5 +452,6 @@ public abstract class FeaturestoreOp {
     FeaturegroupDoesNotExistError, HiveNotEnabled, StorageConnectorDoesNotExistError,
     CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups,
     StorageConnectorTypeNotSupportedForFeatureImport, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound, FeaturegroupEnableOnlineError, FeaturegroupDisableOnlineError;
+    OnlineFeaturestorePasswordNotFound, FeaturegroupEnableOnlineError, FeaturegroupDisableOnlineError,
+    OnlineFeaturestoreNotEnabled;
 }

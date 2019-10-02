@@ -7,6 +7,7 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
@@ -66,12 +67,13 @@ public class FeaturestoreImportFeaturegroup extends FeaturestoreOp {
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public void write() throws FeaturestoreNotFound, JAXBException, StorageConnectorDoesNotExistError,
     StorageConnectorTypeNotSupportedForFeatureImport, TrainingDatasetFormatNotSupportedError, HiveNotEnabled,
     TrainingDatasetDoesNotExistError, IOException, InvalidPrimaryKeyForFeaturegroup, DataframeIsEmpty,
     FeaturegroupCreationError, JWTNotFoundException, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
     // Get metadata cache
     FeaturestoreMetadataDTO featurestoreMetadataDTO =
       Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read();

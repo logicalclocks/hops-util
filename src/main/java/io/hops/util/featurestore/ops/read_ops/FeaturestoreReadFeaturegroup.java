@@ -3,6 +3,7 @@ package io.hops.util.featurestore.ops.read_ops;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
@@ -44,10 +45,11 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws JAXBException JAXBException
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public Dataset<Row> read() throws HiveNotEnabled, FeaturegroupDoesNotExistError,
     StorageConnectorDoesNotExistError, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound,
-    OnlineFeaturestoreUserNotFound, JAXBException {
+    OnlineFeaturestoreUserNotFound, JAXBException, OnlineFeaturestoreNotEnabled {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -94,10 +96,11 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws JAXBException JAXBException
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public Dataset<Row> readCachedFeaturegroup()
     throws HiveNotEnabled, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
-    JAXBException {
+    JAXBException, OnlineFeaturestoreNotEnabled {
     return FeaturestoreHelper.getCachedFeaturegroup(getSpark(), name, featurestore, version, online);
   }
   

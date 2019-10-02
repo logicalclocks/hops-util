@@ -4,6 +4,7 @@ import io.hops.util.exceptions.CannotReadPartitionsOfOnDemandFeaturegroups;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
+import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
 import io.hops.util.featurestore.FeaturestoreHelper;
@@ -41,10 +42,11 @@ public class FeaturestoreReadFeaturegroupPartitions extends FeaturestoreOp {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws JAXBException JAXBException
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
    */
   public Dataset<Row> read() throws HiveNotEnabled, FeaturegroupDoesNotExistError,
     CannotReadPartitionsOfOnDemandFeaturegroups, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound,
-    OnlineFeaturestoreUserNotFound, JAXBException {
+    OnlineFeaturestoreUserNotFound, JAXBException, OnlineFeaturestoreNotEnabled {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
