@@ -108,6 +108,7 @@ public class Hops {
   private static String keystorePwd;
   private static String truststorePwd;
   private static String elasticEndPoint;
+  private static String domainCaTruststore;
 
   private static WorkflowManager workflowManager;
 
@@ -144,6 +145,7 @@ public class Hops {
       jobType = sysProps.getProperty(Constants.JOBTYPE_ENV_VAR);
 
       elasticEndPoint = sysProps.getProperty(Constants.ELASTIC_ENDPOINT_ENV_VAR);
+      domainCaTruststore = sysProps.getProperty(Constants.DOMAIN_CA_TRUSTSTORE);
       //Spark Kafka topics
       if (sysProps.containsKey(Constants.KAFKA_BROKERADDR_ENV_VAR)) {
         parseBrokerEndpoints(sysProps.getProperty(Constants.KAFKA_BROKERADDR_ENV_VAR));
@@ -469,7 +471,7 @@ public class Hops {
       CertificateException {
     KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
 
-    try (FileInputStream trustStoreIS = new FileInputStream(Constants.DOMAIN_CA_TRUSTSTORE)) {
+    try (FileInputStream trustStoreIS = new FileInputStream(domainCaTruststore)) {
       truststore.load(trustStoreIS, null);
     }
     return ClientBuilder.newBuilder().trustStore(truststore).

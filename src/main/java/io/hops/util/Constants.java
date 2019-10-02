@@ -39,7 +39,6 @@ public class Constants {
   public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
   public static final String K_CERTIFICATE_ENV_VAR = "k_certificate";
-  public static final String DOMAIN_CA_TRUSTSTORE = "domain_ca_truststore";
   public static final String JWT_FILENAME = "token.jwt";
   //System properties set by Hopsworks
   public static final String KAFKA_FLINK_PARAMS = "kafka_params";//used by hops-examples-flink
@@ -62,7 +61,8 @@ public class Constants {
   public static final String KAFKA_CONSUMER_GROUPS = "hopsworks.kafka.consumergroups";
   public static final String KAFKA_BROKERADDR_ENV_VAR = "hopsworks.kafka.brokeraddress";
   public static final String SERVER_TRUSTSTORE_PROPERTY = "server.truststore";
-
+  public static final String DOMAIN_CA_TRUSTSTORE = "hopsworks.domain.truststore";
+  
   //JSON properties sent to Hopsworks REST API
   public static final String JSON_JOBSTATE = "running";
   public static final String JSON_KEYSTOREPWD = "keyStorePwd";
