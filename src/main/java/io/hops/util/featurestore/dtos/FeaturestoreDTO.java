@@ -26,7 +26,7 @@ import java.util.Date;
  */
 @XmlRootElement
 public class FeaturestoreDTO {
-
+  
   private Integer featurestoreId;
   private String featurestoreName;
   private Date created;
@@ -150,6 +150,7 @@ public class FeaturestoreDTO {
     return onlineEnabled;
   }
   
+  
   public void setFeaturestoreDescription(String featurestoreDescription) {
     this.featurestoreDescription = featurestoreDescription;
   }
@@ -181,7 +182,39 @@ public class FeaturestoreDTO {
   public void setProjectId(Integer projectId) {
     this.projectId = projectId;
   }
-
+  
+  public void setOnlineFeaturestoreType(String onlineFeaturestoreType) {
+    this.onlineFeaturestoreType = onlineFeaturestoreType;
+  }
+  
+  public void setOnlineFeaturestoreName(String onlineFeaturestoreName) {
+    this.onlineFeaturestoreName = onlineFeaturestoreName;
+  }
+  
+  public void setOnlineFeaturestoreSize(Double onlineFeaturestoreSize) {
+    this.onlineFeaturestoreSize = onlineFeaturestoreSize;
+  }
+  
+  public void setOfflineFeaturestoreType(String offlineFeaturestoreType) {
+    this.offlineFeaturestoreType = offlineFeaturestoreType;
+  }
+  
+  public void setOfflineFeaturestoreName(String offlineFeaturestoreName) {
+    this.offlineFeaturestoreName = offlineFeaturestoreName;
+  }
+  
+  public void setHiveEndpoint(String hiveEndpoint) {
+    this.hiveEndpoint = hiveEndpoint;
+  }
+  
+  public void setMysqlServerEndpoint(String mysqlServerEndpoint) {
+    this.mysqlServerEndpoint = mysqlServerEndpoint;
+  }
+  
+  public void setOnlineEnabled(Boolean onlineEnabled) {
+    this.onlineEnabled = onlineEnabled;
+  }
+  
   @Override
   public String toString() {
     return "FeaturestoreDTO{" +
