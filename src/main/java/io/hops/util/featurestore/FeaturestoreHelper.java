@@ -2499,7 +2499,7 @@ public class FeaturestoreHelper {
    */
   public static String getProjectTrainingDatasetsSink() {
     String projectName = Hops.getProjectName();
-    return projectName.toLowerCase() + Constants.TRAINING_DATASETS_SUFFIX;
+    return projectName + Constants.TRAINING_DATASETS_SUFFIX;
   }
 
   /**
