@@ -5,6 +5,7 @@ import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.JWTNotFoundException;
@@ -81,13 +82,14 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void write()
     throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
     JAXBException, FeaturestoreNotFound,
     TrainingDatasetCreationError, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException,
     JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with .setDataframe(df)");

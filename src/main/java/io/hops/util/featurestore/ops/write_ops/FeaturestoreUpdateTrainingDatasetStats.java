@@ -3,6 +3,7 @@ package io.hops.util.featurestore.ops.write_ops;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
@@ -10,7 +11,6 @@ import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
-import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -55,7 +55,6 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
    * Updates the stats of a training dataset
    *
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws JAXBException JAXBException
    * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
    * @throws IOException IOException
@@ -68,13 +67,13 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void write()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
-    JAXBException, FeaturegroupUpdateStatsError, IOException, FeaturestoreNotFound,
+    throws DataframeIsEmpty, JAXBException, FeaturegroupUpdateStatsError, IOException, FeaturestoreNotFound,
     TrainingDatasetDoesNotExistError, TrainingDatasetFormatNotSupportedError, JWTNotFoundException, HiveNotEnabled,
     StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound,
-    OnlineFeaturestoreNotEnabled {
+    OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     Dataset<Row> sparkDf = new FeaturestoreReadTrainingDataset(name).setSpark(getSpark())
       .setFeaturestore(featurestore).setVersion(version).read();
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), sparkDf,
