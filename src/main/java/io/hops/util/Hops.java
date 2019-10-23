@@ -222,6 +222,7 @@ public class Hops {
     properties.setProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, Hops.getKeyStore());
     properties.setProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, Hops.getKeystorePwd());
     properties.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, Hops.getKeystorePwd());
+    properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
     return properties;
   }
 
