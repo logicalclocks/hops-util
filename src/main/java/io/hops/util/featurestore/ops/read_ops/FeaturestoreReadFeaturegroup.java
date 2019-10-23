@@ -83,8 +83,8 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
     FeaturestoreHelper.registerCustomJdbcDialects();
 
     // Read the onDemandFeaturegroup using Spark
-    return FeaturestoreHelper.getOnDemandFeaturegroup(getSpark(), onDemandFeaturegroupDTO.getQuery(),
-        jdbcConnectionString);
+    return FeaturestoreHelper.getOnDemandFeaturegroup(getSpark(), onDemandFeaturegroupDTO,
+        jdbcConnectionString, featurestoreMetadataDTO.getFeaturestore().getFeaturestoreName());
   }
 
   /**
@@ -97,10 +97,11 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws JAXBException JAXBException
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public Dataset<Row> readCachedFeaturegroup()
     throws HiveNotEnabled, OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
-    JAXBException, OnlineFeaturestoreNotEnabled {
+    JAXBException, OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     return FeaturestoreHelper.getCachedFeaturegroup(getSpark(), name, featurestore, version, online);
   }
   

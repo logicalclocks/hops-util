@@ -178,6 +178,8 @@ public class Constants {
   public static final String JDBC_CONNECTION_STRING_DELIMITER = ";";
   public static final String JDBC_CONNECTION_STRING_VALUE_DELIMITER = "=";
   public static final String SLASH_DELIMITER = "/";
+  public static final String DOT_DELIMITER = ".";
+  public static final String UNDERSCORE_DELIMITER = "_";
   public static final String COMMA_DELIMITER = ",";
   public static final String TAB_DELIMITER = "\t";
   public static final String AMPERSAND_DELIMITER = "&";
@@ -234,5 +236,9 @@ public class Constants {
   public static final String HIVE_VARCHAR_TYPE = "VARCHAR";
   public static final String HIVE_BOOLEAN_TYPE = "BOOLEAN";
   public static final String HIVE_BINARY_TYPE = "BINARY";
+  
+  public static final String TRAINING_DATASET_PROVENANCE_FEATUREGROUP = "featuregroup";
+  public static final String TRAINING_DATASET_PROVENANCE_VERSION = "version";
+  public static final String TRAINING_DATASET_PROVENANCE_COMMENT = "comment";
 
 }

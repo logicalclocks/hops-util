@@ -5,6 +5,7 @@ import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupCreationError;
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
 import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
@@ -70,12 +71,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
-   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled\
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void write() throws JWTNotFoundException, FeaturegroupCreationError,
     FeaturestoreNotFound, JAXBException, InvalidPrimaryKeyForFeaturegroup, HiveNotEnabled, DataframeIsEmpty,
     StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound,
-    OnlineFeaturestoreNotEnabled {
+    OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     if(onDemand) {
       writeOnDemandFeaturegroup();
     } else {
@@ -133,7 +135,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     throws DataframeIsEmpty,
     JAXBException, InvalidPrimaryKeyForFeaturegroup, FeaturegroupCreationError, FeaturestoreNotFound,
     JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
+    OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     if(dataframe == null) {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with " +

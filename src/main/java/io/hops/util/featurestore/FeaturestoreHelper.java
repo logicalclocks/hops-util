@@ -38,6 +38,7 @@ import io.hops.util.featurestore.dtos.app.SQLJoinDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.settings.FeaturestoreClientSettingsDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
@@ -88,6 +89,8 @@ import org.apache.spark.sql.types.DoubleType;
 import org.apache.spark.sql.types.FloatType;
 import org.apache.spark.sql.types.IntegerType;
 import org.apache.spark.sql.types.LongType;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.NumericType;
 import org.apache.spark.sql.types.ShortType;
 import org.apache.spark.sql.types.StringType;
@@ -98,6 +101,7 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import scala.Tuple2;
+import scala.annotation.meta.field;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
@@ -495,39 +499,55 @@ public class FeaturestoreHelper {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public static Dataset<Row> getCachedFeaturegroup(SparkSession sparkSession, String featuregroup,
                                                    String featurestore, int featuregroupVersion, Boolean online)
     throws OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException,
-    OnlineFeaturestoreNotEnabled {
+    OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT * FROM " + getTableName(featuregroup, featuregroupVersion);
     Dataset<Row> sparkDf = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+    List<FeaturegroupDTO> featuregroups = new ArrayList<>();
+    FeaturestoreMetadataDTO featurestoreMetadataDTO = getFeaturestoreMetadataCache();
+    FeaturegroupDTO featuregroupDTO =
+      findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(), featuregroup, featuregroupVersion);
+    featuregroups.add(featuregroupDTO);
+    List<String> features = featuregroupDTO.getFeatures().stream().map(f -> f.getName()).collect(Collectors.toList());
+    Map<String, String> featureToFeaturegroupMapping =
+      getFeatureToFeaturegroupMapping(featuregroups, features, featurestore);
     sparkSession.sparkContext().setJobGroup("", "", true);
-    return sparkDf;
+    return addProvenanceMetadataToDataFrame(sparkDf, featureToFeaturegroupMapping);
   }
 
   /**
    * Gets a on-demand feature group as a Spark dataframe
    *
    * @param sparkSession the spark session
-   * @param sqlQuery the sqlQuery to fetch the on-demand featuregroup
+   * @param featurestore the featurestore
+   * @param onDemandFeaturegroupDTO DTO of the feature group
    * @param connectionString the JDBC connection string
    * @return on demand feature group spark dataframe
    */
-  public static Dataset<Row> getOnDemandFeaturegroup(SparkSession sparkSession, String sqlQuery,
-                                                     String connectionString) {
+  public static Dataset<Row> getOnDemandFeaturegroup(SparkSession sparkSession,
+    OnDemandFeaturegroupDTO onDemandFeaturegroupDTO, String connectionString, String featurestore) {
     //Read on-demand feature group using JDBC
     Dataset<Row> sparkDf = sparkSession.read().format(Constants.SPARK_JDBC_FORMAT)
         .option(Constants.SPARK_JDBC_URL, connectionString)
-        .option(Constants.SPARK_JDBC_DBTABLE, "(" + sqlQuery + ") fs_q")
+        .option(Constants.SPARK_JDBC_DBTABLE, "(" + onDemandFeaturegroupDTO.getQuery() + ") fs_q")
         .load();
     //Remove Column Prefixes
     List<String> schemaNames = Arrays.asList(sparkDf.schema().fieldNames())
         .stream().map(name -> name.replace("fs_q.", "")).collect(Collectors.toList());
     Dataset<Row> renamedSparkDf = sparkDf.toDF(convertListToSeq(schemaNames));
     sparkSession.sparkContext().setJobGroup("", "", true);
-    return renamedSparkDf;
+    List<FeaturegroupDTO> featuregroups = new ArrayList<>();
+    featuregroups.add(onDemandFeaturegroupDTO);
+    List<String> features =
+      onDemandFeaturegroupDTO.getFeatures().stream().map(f -> f.getName()).collect(Collectors.toList());
+    Map<String, String> featureToFeaturegroupMapping =
+      getFeatureToFeaturegroupMapping(featuregroups, features, featurestore);
+    return addProvenanceMetadataToDataFrame(renamedSparkDf, featureToFeaturegroupMapping);
   }
 
 
@@ -800,7 +820,14 @@ public class FeaturestoreHelper {
     }
     String sqlStr = "SELECT " + feature + " FROM " +
         getTableName(matchedFeaturegroup.getName(), matchedFeaturegroup.getVersion());
-    return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+    List<FeaturegroupDTO> featuregroups = new ArrayList<>();
+    featuregroups.add(matchedFeaturegroup);
+    List<String> features = new ArrayList<>();
+    features.add(feature);
+    Map<String, String> featureToFeaturegroupMapping =
+      getFeatureToFeaturegroupMapping(featuregroups, features, featurestore);
+    Dataset<Row> result = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+    return addProvenanceMetadataToDataFrame(result, featureToFeaturegroupMapping);
   }
 
   /**
@@ -843,7 +870,14 @@ public class FeaturestoreHelper {
     }
     useFeaturestore(sparkSession, featurestore);
     String sqlStr = "SELECT " + feature + " FROM " + getTableName(featuregroup, featuregroupVersion);
-    return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+    List<FeaturegroupDTO> featuregroups = new ArrayList<>();
+    featuregroups.add(featuregroupDTO);
+    List<String> features = new ArrayList<>();
+    features.add(feature);
+    Map<String, String> featureToFeaturegroupMapping =
+      getFeatureToFeaturegroupMapping(featuregroups, features, featurestore);
+    Dataset<Row> result = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+    return addProvenanceMetadataToDataFrame(result, featureToFeaturegroupMapping);
   }
 
   /**
@@ -998,7 +1032,6 @@ public class FeaturestoreHelper {
     OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException,
     OnlineFeaturestoreNotEnabled {
     useFeaturestore(sparkSession, featurestore);
-    List<FeaturegroupDTO> featuregroupDTOs = convertFeaturegroupAndVersionToDTOs(featuregroupsAndVersions);
     useFeaturestore(sparkSession, featurestore);
     String featuresStr = StringUtils.join(features, ", ");
     List<String> featuregroupStrings = new ArrayList<>();
@@ -1014,18 +1047,100 @@ public class FeaturestoreHelper {
                 FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
     registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     if (featuregroupsAndVersions.size() == 1) {
+      Map<String, String> featureToFeaturegroupMapping =
+        getFeatureToFeaturegroupMapping(featuregroupDTOS, features, featurestore);
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
-      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      Dataset<Row> result = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      return addProvenanceMetadataToDataFrame(result, featureToFeaturegroupMapping);
     } else {
-      SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupDTOs, joinKey);
+      SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupDTOS, joinKey);
       String sqlStr = "SELECT " + featuresStr + " FROM " +
           getTableName(sqlJoinDTO.getFeaturegroupDTOS().get(0).getName(),
               sqlJoinDTO.getFeaturegroupDTOS().get(0).getVersion())
           + " " + sqlJoinDTO.getJoinStr();
-      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      Map<String, String> featureToFeaturegroupMapping =
+        getFeatureToFeaturegroupMapping(sqlJoinDTO.getFeaturegroupDTOS(), features, featurestore);
+      Dataset<Row> result = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      return addProvenanceMetadataToDataFrame(result, featureToFeaturegroupMapping);
     }
   }
-
+  
+  /**
+   * Adds provenance information to spark dataframe to track from which feature groups the features in the
+   * dataframe originate.
+   *
+   * @param sparkDf the spark dataframe to add the provenance information to
+   * @param featureToFeaturegroupMapping a mapping from feature to feature group
+   * @return a spark dataframe with the provenance metadata
+   */
+  private static Dataset<Row> addProvenanceMetadataToDataFrame(Dataset<Row> sparkDf,
+    Map<String, String> featureToFeaturegroupMapping) {
+    for (Map.Entry<String, String> entry : featureToFeaturegroupMapping.entrySet()) {
+      Metadata metadata = getColumnMetadata(sparkDf.schema(), entry.getKey());
+      int lastIndexOf = entry.getValue().lastIndexOf(Constants.UNDERSCORE_DELIMITER);
+      String featuregroupName = entry.getValue().substring(0, lastIndexOf);
+      String featuregroupVersion = entry.getValue().substring(lastIndexOf+1);
+      MetadataBuilder metadataBuilder =
+        new MetadataBuilder().putString(Constants.TRAINING_DATASET_PROVENANCE_FEATUREGROUP, featuregroupName)
+          .putString(Constants.TRAINING_DATASET_PROVENANCE_VERSION, featuregroupVersion);
+      if(metadata.contains(Constants.TRAINING_DATASET_PROVENANCE_COMMENT)) {
+        metadataBuilder = metadataBuilder.putString(Constants.TRAINING_DATASET_PROVENANCE_COMMENT,
+          metadata.getString(Constants.TRAINING_DATASET_PROVENANCE_COMMENT));
+      }
+      sparkDf = sparkDf.withColumn(entry.getKey(), col(entry.getKey()).as("", metadataBuilder.build()));
+    }
+    return sparkDf;
+  }
+  
+  /**
+   * Get metadata of a specific column in a spark dataframe
+   *
+   * @param sparkSchema the schema of the spark dataframe
+   * @param columnName name of the column (feature) in the spark dataframe to get the metadata of
+   * @return metadata of the column
+   */
+  private static Metadata getColumnMetadata(StructType sparkSchema, String columnName) {
+    for (int i = 0; i < sparkSchema.fields().length; i++) {
+      StructField field = sparkSchema.fields()[i];
+      if(field.name().equalsIgnoreCase(columnName)){
+        return field.metadata();
+      }
+    }
+    throw new IllegalArgumentException("Feature not found: " + columnName);
+  }
+  
+  /**
+   * Constructs a map to convert a feature into the corresponding featuregroup. Used for training dataset provenance
+   *
+   * @param featuregroups list of featuregroups
+   * @param features list of features
+   * @param featurestore featurestore
+   * @return map to convert from feature to featuregroup that the feature belongs to
+   */
+  private static Map<String, String> getFeatureToFeaturegroupMapping(List<FeaturegroupDTO> featuregroups,
+    List<String> features, String featurestore) {
+    Map<String, String> mapping = new HashMap<>();
+    for (String feature : features) {
+      FeaturegroupDTO featuregroupDTO = findFeature(feature, featurestore, featuregroups);
+      mapping.put(getFeatureShortName(feature), getTableName(featuregroupDTO.getName(), featuregroupDTO.getVersion()));
+    }
+    return mapping;
+  }
+  
+  /**
+   * Converts a feature name into a short name. If the feature name is featuregroup.feature then it will return
+   * simply the feature name. If the feature name does not include the featuregroup, this method does nothing.
+   *
+   * @param featureName the original feature name
+   * @return the short version of the feature name
+   */
+  private static String getFeatureShortName(String featureName) {
+    if (featureName.contains(Constants.DOT_DELIMITER)) {
+      return featureName.split("\\.")[1];
+    }
+    return featureName;
+  }
+  
   /**
    * Gets a set of features from a featurestore and returns them as a Spark dataframe. This method will infer
    * in which featuregroups the features belong using metadata from the metastore
@@ -1066,14 +1181,20 @@ public class FeaturestoreHelper {
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
     if (featuregroupsMetadata.size() == 1) {
       String sqlStr = "SELECT " + featuresStr + " FROM " + featuregroupStr;
-      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      Map<String, String> featureToFeaturegroupMapping =
+        getFeatureToFeaturegroupMapping(featuregroupsMetadata, features, featurestore);
+      Dataset<Row> result = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      return addProvenanceMetadataToDataFrame(result, featureToFeaturegroupMapping);
     } else {
       SQLJoinDTO sqlJoinDTO = getJoinStr(featuregroupsMetadata, joinKey);
       String sqlStr = "SELECT " + featuresStr + " FROM " +
           getTableName(sqlJoinDTO.getFeaturegroupDTOS().get(0).getName(),
               sqlJoinDTO.getFeaturegroupDTOS().get(0).getVersion())
           + " " + sqlJoinDTO.getJoinStr();
-      return logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      Map<String, String> featureToFeaturegroupMapping =
+        getFeatureToFeaturegroupMapping(sqlJoinDTO.getFeaturegroupDTOS(), features, featurestore);
+      Dataset<Row> result = logAndRunSQL(sparkSession, sqlStr, online, featurestore);
+      return addProvenanceMetadataToDataFrame(result, featureToFeaturegroupMapping);
     }
   }
 
@@ -1822,6 +1943,7 @@ public class FeaturestoreHelper {
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public static StatisticsDTO computeDataFrameStats(
       String name, SparkSession sparkSession, Dataset<Row> sparkDf, String featurestore,
@@ -1830,7 +1952,7 @@ public class FeaturestoreHelper {
       List<String> statColumns, int numBins, int numClusters,
       String correlationMethod)
     throws DataframeIsEmpty, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
-    JAXBException, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
+    JAXBException, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
     if (sparkDf == null) {
       sparkDf = getCachedFeaturegroup(sparkSession, name, featurestore, version, false);
     }
@@ -1974,7 +2096,7 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Finds a given training dataset from the featurestore metadata by looking for name and version
+   * Finds a given feature group from the featurestore metadata by looking for name and version
    *
    * @param trainingDatasetDTOList a list of training datasets for the featurestore
    * @param trainingDatasetName    name of the training dataset to search for
