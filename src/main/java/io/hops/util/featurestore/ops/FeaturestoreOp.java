@@ -64,7 +64,7 @@ public abstract class FeaturestoreOp {
   protected Boolean clusterAnalysis = true;
   protected List<String> statColumns = null;
   protected List<String> jobs = new ArrayList<>();
-  protected String primaryKey;
+  protected List<String> primaryKeys = new ArrayList<>();
   protected String description = "";
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
   protected List<String> partitionBy = new ArrayList<>();
@@ -249,11 +249,11 @@ public abstract class FeaturestoreOp {
   }
 
   /**
-   * @return the primary key of the new featuregroup, if not specified, the first column in the
+   * @return the primary keys of the new featuregroup, if not specified, the first column in the
    * dataframe will be used as primary
    */
-  public String getPrimaryKey() {
-    return primaryKey;
+  public List<String> getPrimaryKeys() {
+    return primaryKeys;
   }
 
   /**

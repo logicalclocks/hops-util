@@ -141,13 +141,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
         "with " +
         ".setDataframe(df)");
     }
-    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
-    FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
+    primaryKeys = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKeys, dataframe);
+    FeaturestoreHelper.validatePrimaryKeys(dataframe, primaryKeys);
     FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKeys,
       partitionBy, online, onlineTypes);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     if(!hudi) {
@@ -177,12 +177,12 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError
    */
   private Map<String, String> setupHudiArgs() throws StorageConnectorDoesNotExistError {
-    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
+    primaryKeys = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKeys, dataframe);
     //Add default args
     Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
     hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_BULK_INSERT);
     hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
-    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey);
+    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKeys.get(0));
     if(!partitionBy.isEmpty()) {
       hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
       hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
@@ -323,8 +323,8 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateFeaturegroup setPrimaryKey(String primaryKey) {
-    this.primaryKey = primaryKey;
+  public FeaturestoreCreateFeaturegroup setPrimaryKeys(List<String> primaryKeys) {
+    this.primaryKeys = primaryKeys;
     return this;
   }
   

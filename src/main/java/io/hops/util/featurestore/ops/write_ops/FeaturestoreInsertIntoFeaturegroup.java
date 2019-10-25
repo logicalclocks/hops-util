@@ -219,12 +219,12 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError
    */
   private Map<String, String> setupHudiArgs() throws StorageConnectorDoesNotExistError {
-    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
+    List<String> primaryKeys = FeaturestoreHelper.primaryKeyGetOrDefault(getPrimaryKeys(), dataframe);
     //Add default args
     Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
     hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_UPSERT);
     hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
-    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey);
+    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKeys.get(0));
     if(!partitionBy.isEmpty()) {
       hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
       hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
@@ -330,8 +330,8 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreInsertIntoFeaturegroup setPrimaryKey(String primaryKey) {
-    this.primaryKey = primaryKey;
+  public FeaturestoreInsertIntoFeaturegroup setPrimaryKeys(List<String> primaryKeys) {
+    this.primaryKeys = primaryKeys;
     return this;
   }
   
