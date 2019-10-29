@@ -130,6 +130,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void writeCachedFeaturegroup()
     throws DataframeIsEmpty,
@@ -141,13 +142,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
         "with " +
         ".setDataframe(df)");
     }
-    primaryKeys = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKeys, dataframe);
-    FeaturestoreHelper.validatePrimaryKeys(dataframe, primaryKeys);
+    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
+    FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
     FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKeys,
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy, online, onlineTypes);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     if(!hudi) {
@@ -177,12 +178,12 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError
    */
   private Map<String, String> setupHudiArgs() throws StorageConnectorDoesNotExistError {
-    primaryKeys = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKeys, dataframe);
+    primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
     //Add default args
     Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
     hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_BULK_INSERT);
     hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
-    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKeys.get(0));
+    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey.get(0));
     if(!partitionBy.isEmpty()) {
       hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
       hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
@@ -323,8 +324,8 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateFeaturegroup setPrimaryKeys(List<String> primaryKeys) {
-    this.primaryKeys = primaryKeys;
+  public FeaturestoreCreateFeaturegroup setPrimaryKey(List<String> primaryKey) {
+    this.primaryKey = primaryKey;
     return this;
   }
   

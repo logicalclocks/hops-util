@@ -108,13 +108,13 @@ public class FeaturestoreEnableFeaturegroupOnline extends FeaturestoreOp {
          .setVersion(cachedFeaturegroupDTO.getVersion())
          .setFeaturestore(featurestore)
          .setSpark(sparkSession).read();
-    List<String> primaryKeys = new ArrayList<>();
+    List<String> primaryKey = new ArrayList<>();
     for (FeatureDTO feature: cachedFeaturegroupDTO.getFeatures()) {
       if(feature.getPrimary()){
-        primaryKeys.add(feature.getName());
+        primaryKey.add(feature.getName());
       }
     }
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(sparkDf.schema(), primaryKeys,
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(sparkDf.schema(), primaryKey,
       new ArrayList<>(), true, onlineTypes);
     cachedFeaturegroupDTO.setFeatures(featuresSchema);
     return cachedFeaturegroupDTO;
