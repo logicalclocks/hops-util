@@ -130,6 +130,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void writeCachedFeaturegroup()
     throws DataframeIsEmpty,
@@ -182,7 +183,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
     hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_BULK_INSERT);
     hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
-    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey);
+    hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey.get(0));
     if(!partitionBy.isEmpty()) {
       hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
       hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
@@ -323,7 +324,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateFeaturegroup setPrimaryKey(String primaryKey) {
+  public FeaturestoreCreateFeaturegroup setPrimaryKey(List<String> primaryKey) {
     this.primaryKey = primaryKey;
     return this;
   }

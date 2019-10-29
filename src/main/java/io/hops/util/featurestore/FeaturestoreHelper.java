@@ -101,7 +101,6 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import scala.Tuple2;
-import scala.annotation.meta.field;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
@@ -1295,7 +1294,7 @@ public class FeaturestoreHelper {
    * Converts a spark schema field into a FeatureDTO
    *
    * @param field       the field to convert
-   * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
+   * @param primaryKey  list of column names of the primary key for the featuregroup where the feature belongs
    * @param partitionBy the features to partition a feature group on
    * @param online      boolean flag whether to also infer the online type
    * @param onlineTypes map of (featureName --> type). By default, spark datatypes will be used to infer MySQL
@@ -1303,14 +1302,14 @@ public class FeaturestoreHelper {
    *                    overridden by providing explicit feature types through this map.
    * @return the converted featureDTO
    */
-  private static FeatureDTO convertFieldToFeature(StructField field, String primaryKey, List<String> partitionBy,
+  private static FeatureDTO convertFieldToFeature(StructField field, List<String> primaryKey, List<String> partitionBy,
     Boolean online, Map<String, String> onlineTypes) {
     String featureName = field.name();
     String featureType = field.dataType().catalogString();
     String featureDesc = "";
     String onlineType = "";
     Boolean primary = false;
-    if (primaryKey != null && featureName.equalsIgnoreCase(primaryKey)) {
+    if (primaryKey != null && primaryKey.contains(featureName)) {
       primary = true;
     }
     if (field.metadata() != null && field.metadata().contains(Constants.JSON_FEATURE_DESCRIPTION)) {
@@ -1379,7 +1378,7 @@ public class FeaturestoreHelper {
    * Parses a spark schema into a list of FeatureDTOs
    *
    * @param sparkSchema the spark schema to parse
-   * @param primaryKey  the name of the primary key for the featuregroup where the feature belongs
+   * @param primaryKey  list of column names of the primary key for the featuregroup where the feature belongs
    * @param partitionBy the features to partition a feature group on
    * @param online      boolean flag whether to also infer the online type
    * @param onlineTypes map of (featureName to type). By default, spark datatypes will be used to infer MySQL
@@ -1387,7 +1386,7 @@ public class FeaturestoreHelper {
    *                    overridden by providing explicit feature types through this map.
    * @return a list of feature DTOs
    */
-  public static List<FeatureDTO> parseSparkFeaturesSchema(StructType sparkSchema, String primaryKey,
+  public static List<FeatureDTO> parseSparkFeaturesSchema(StructType sparkSchema, List<String> primaryKey,
     List<String> partitionBy, Boolean online, Map<String, String> onlineTypes) {
     StructField[] fieldsList = sparkSchema.fields();
     List<FeatureDTO> features = new ArrayList<>();
@@ -1398,37 +1397,40 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Utility method for getting the default primary key of a featuregroup that is to be created if no other primary
+   * Utility method for getting the default primary keys of a featuregroup that is to be created if no other primary
    * key have been provided by the user
    *
    * @param featuregroupDf the spark dataframe to create the featuregroup from
    * @return the name of the column that is the primary key
    */
-  public static String getDefaultPrimaryKey(Dataset<Row> featuregroupDf) {
-    return featuregroupDf.dtypes()[0]._1;
+  public static List<String> getDefaultPrimaryKey(Dataset<Row> featuregroupDf) {
+    List<String> primaryKey = new ArrayList<>();
+    primaryKey.add(featuregroupDf.dtypes()[0]._1);
+    return primaryKey;
   }
 
   /**
    * Utility method for validating a primary key provided by a user for a new featuregroup
    *
    * @param featuregroupDf the spark dataframe to create the featuregroup from
-   * @param primaryKey     the provided primary key
+   * @param primaryKey     the list with the provided primary key
    * @return true or false depending on if primary key is valid or not
    * @throws InvalidPrimaryKeyForFeaturegroup InvalidPrimaryKeyForFeaturegroup
    */
-  public static Boolean validatePrimaryKey(Dataset<Row> featuregroupDf, String primaryKey)
+  public static Boolean validatePrimaryKey(Dataset<Row> featuregroupDf, List<String> primaryKey)
       throws InvalidPrimaryKeyForFeaturegroup {
     List<String> columns = new ArrayList<>();
     for (int i = 0; i < featuregroupDf.dtypes().length; i++) {
       columns.add(featuregroupDf.dtypes()[i]._1.toLowerCase());
     }
-    if (columns.contains(primaryKey.toLowerCase())) {
-      return true;
-    } else {
-      throw new InvalidPrimaryKeyForFeaturegroup("Invalid primary Key: " + primaryKey
+    for (String pk: primaryKey) {
+      if (!columns.contains(pk.toLowerCase())) {
+        throw new InvalidPrimaryKeyForFeaturegroup("Invalid primary Key: " + pk
           + ", the specified primary key does not exist among the available columns: " +
           StringUtils.join(",", columns));
+      }
     }
+    return true;
   }
 
   /**
@@ -2407,12 +2409,13 @@ public class FeaturestoreHelper {
 
   /**
    * If primaryKey is specififed return it, otherwise return default value
-   * @param primaryKey primaryKey
+   *
+   * @param primaryKey the primary key
    * @param df dataframe
    * @return primaryKey or default value
    */
-  public static String primaryKeyGetOrDefault(String primaryKey, Dataset<Row> df){
-    if (primaryKey == null) {
+  public static List<String> primaryKeyGetOrDefault(List<String> primaryKey, Dataset<Row> df){
+    if (primaryKey.isEmpty()) {
       return FeaturestoreHelper.getDefaultPrimaryKey(df);
     }
     return primaryKey;

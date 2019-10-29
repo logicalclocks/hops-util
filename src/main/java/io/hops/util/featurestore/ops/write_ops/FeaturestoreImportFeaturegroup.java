@@ -223,7 +223,7 @@ public class FeaturestoreImportFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreImportFeaturegroup setPrimaryKey(String primaryKey) {
+  public FeaturestoreImportFeaturegroup setPrimaryKey(List<String> primaryKey) {
     this.primaryKey = primaryKey;
     return this;
   }

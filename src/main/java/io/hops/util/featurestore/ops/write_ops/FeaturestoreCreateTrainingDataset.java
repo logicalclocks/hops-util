@@ -339,11 +339,6 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateTrainingDataset setPrimaryKey(String primaryKey) {
-    this.primaryKey = primaryKey;
-    return this;
-  }
-  
   public FeaturestoreCreateTrainingDataset setDescription(String description) {
     this.description = description;
     return this;
