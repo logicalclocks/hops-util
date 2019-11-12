@@ -14,6 +14,7 @@
 
 package io.hops.util;
 
+import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
@@ -595,7 +596,8 @@ public class Hops {
    * @return a lazy java object for the operation of updating the stats of a featuregroup.
    * The operation can be started with write() on the object and parameters can be updated with setters
    */
-  public static FeaturestoreUpdateFeaturegroupStats updateFeaturegroupStats(String featuregroup) {
+  public static FeaturestoreUpdateFeaturegroupStats updateFeaturegroupStats(String featuregroup)
+    throws FeaturegroupDoesNotExistError, JAXBException, FeaturestoreNotFound {
     return new FeaturestoreUpdateFeaturegroupStats(featuregroup);
   }
 

@@ -81,6 +81,8 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     FeaturegroupDeletionError, FeaturegroupDoesNotExistError, HiveNotEnabled, CannotInsertIntoOnDemandFeaturegroups,
     StorageConnectorDoesNotExistError, FeaturegroupCreationError, OnlineFeaturestoreUserNotFound,
     OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled {
+    // Update metadata cache
+    Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
@@ -88,6 +90,16 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       throw new CannotInsertIntoOnDemandFeaturegroups(
           "The insert operation is only supported for cached feature groups");
     }
+    // Get and set statistics settings
+    this.corrMethod = featuregroupDTO.getCorrMethod();
+    this.numBins = featuregroupDTO.getNumBins();
+    this.numClusters = featuregroupDTO.getNumClusters();
+    this.statColumns = featuregroupDTO.getStatisticColumns();
+    this.descriptiveStats = featuregroupDTO.isDescStatsEnabled();
+    this.clusterAnalysis = featuregroupDTO.isClusterAnalysisEnabled();
+    this.featureCorr = featuregroupDTO.isFeatCorrEnabled();
+    this.featureHistograms = featuregroupDTO.isFeatHistEnabled();
+    
     FeaturestoreHelper.validateDataframe(dataframe);
     getSpark().sparkContext().setJobGroup(
       "Inserting dataframe into featuregroup",
@@ -260,20 +272,20 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreInsertIntoFeaturegroup setCorrMethod(String corrMethod) {
-    this.corrMethod = corrMethod;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setCorrMethod(String corrMethod) {
+  //  this.corrMethod = corrMethod;
+  //  return this;
+  //}
   
-  public FeaturestoreInsertIntoFeaturegroup setNumBins(int numBins) {
-    this.numBins = numBins;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setNumBins(int numBins) {
+  //  this.numBins = numBins;
+  //  return this;
+  //}
   
-  public FeaturestoreInsertIntoFeaturegroup setNumClusters(int numClusters) {
-    this.numClusters = numClusters;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setNumClusters(int numClusters) {
+  //  this.numClusters = numClusters;
+  //  return this;
+  //}
   
   public FeaturestoreInsertIntoFeaturegroup setMode(String mode) {
     this.mode = mode;
@@ -285,30 +297,30 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreInsertIntoFeaturegroup setDescriptiveStats(Boolean descriptiveStats) {
-    this.descriptiveStats = descriptiveStats;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setDescriptiveStats(Boolean descriptiveStats) {
+  //  this.descriptiveStats = descriptiveStats;
+  //  return this;
+  //}
   
-  public FeaturestoreInsertIntoFeaturegroup setFeatureCorr(Boolean featureCorr) {
-    this.featureCorr = featureCorr;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setFeatureCorr(Boolean featureCorr) {
+  //  this.featureCorr = featureCorr;
+  //  return this;
+  //}
   
-  public FeaturestoreInsertIntoFeaturegroup setFeatureHistograms(Boolean featureHistograms) {
-    this.featureHistograms = featureHistograms;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setFeatureHistograms(Boolean featureHistograms) {
+  //  this.featureHistograms = featureHistograms;
+  //  return this;
+  //}
   
-  public FeaturestoreInsertIntoFeaturegroup setClusterAnalysis(Boolean clusterAnalysis) {
-    this.clusterAnalysis = clusterAnalysis;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setClusterAnalysis(Boolean clusterAnalysis) {
+  //  this.clusterAnalysis = clusterAnalysis;
+  //  return this;
+  //}
   
-  public FeaturestoreInsertIntoFeaturegroup setStatColumns(List<String> statColumns) {
-    this.statColumns = statColumns;
-    return this;
-  }
+  //public FeaturestoreInsertIntoFeaturegroup setStatColumns(List<String> statColumns) {
+  //  this.statColumns = statColumns;
+  //  return this;
+  //}
   
   public FeaturestoreInsertIntoFeaturegroup setHudi(Boolean hudi) {
     this.hudi = hudi;

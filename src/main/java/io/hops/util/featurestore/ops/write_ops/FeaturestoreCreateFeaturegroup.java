@@ -246,6 +246,14 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     cachedFeaturegroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
     cachedFeaturegroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
     cachedFeaturegroupDTO.setOnlineFeaturegroupEnabled(online);
+    cachedFeaturegroupDTO.setClusterAnalysisEnabled(clusterAnalysis);
+    cachedFeaturegroupDTO.setFeatCorrEnabled(featureCorr);
+    cachedFeaturegroupDTO.setFeatHistEnabled(featureHistograms);
+    cachedFeaturegroupDTO.setDescStatsEnabled(descriptiveStats);
+    cachedFeaturegroupDTO.setNumBins(numBins);
+    cachedFeaturegroupDTO.setNumClusters(numClusters);
+    cachedFeaturegroupDTO.setCorrMethod(corrMethod);
+    cachedFeaturegroupDTO.setStatisticColumns(statColumns);
     return cachedFeaturegroupDTO;
   }
   

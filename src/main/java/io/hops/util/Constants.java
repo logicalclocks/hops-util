@@ -78,6 +78,7 @@ public class Constants {
   public static final String JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM = "updateMetadata";
   public static final String JSON_FEATURESTORE_ENABLE_ONLINE_QUERY_PARAM = "enableOnline";
   public static final String JSON_FEATURESTORE_DISABLE_ONLINE_QUERY_PARAM = "disableOnline";
+  public static final String JSON_FEATURESTORE_UPDATE_STATS_SETTINGS_QUERY_PARAM = "updateStatsSettings";
   public static final String JSON_FEATUREGROUP_NAME = "name";
   public static final String JSON_FEATUREGROUP_VERSION = "version";
   public static final String JSON_FEATUREGROUP_JOBNAME = "jobName";
