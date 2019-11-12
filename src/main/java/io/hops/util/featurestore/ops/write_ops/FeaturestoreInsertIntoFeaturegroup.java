@@ -272,21 +272,6 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  //public FeaturestoreInsertIntoFeaturegroup setCorrMethod(String corrMethod) {
-  //  this.corrMethod = corrMethod;
-  //  return this;
-  //}
-  
-  //public FeaturestoreInsertIntoFeaturegroup setNumBins(int numBins) {
-  //  this.numBins = numBins;
-  //  return this;
-  //}
-  
-  //public FeaturestoreInsertIntoFeaturegroup setNumClusters(int numClusters) {
-  //  this.numClusters = numClusters;
-  //  return this;
-  //}
-  
   public FeaturestoreInsertIntoFeaturegroup setMode(String mode) {
     this.mode = mode;
     return this;
@@ -296,31 +281,6 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     this.dataframe = dataframe;
     return this;
   }
-  
-  //public FeaturestoreInsertIntoFeaturegroup setDescriptiveStats(Boolean descriptiveStats) {
-  //  this.descriptiveStats = descriptiveStats;
-  //  return this;
-  //}
-  
-  //public FeaturestoreInsertIntoFeaturegroup setFeatureCorr(Boolean featureCorr) {
-  //  this.featureCorr = featureCorr;
-  //  return this;
-  //}
-  
-  //public FeaturestoreInsertIntoFeaturegroup setFeatureHistograms(Boolean featureHistograms) {
-  //  this.featureHistograms = featureHistograms;
-  //  return this;
-  //}
-  
-  //public FeaturestoreInsertIntoFeaturegroup setClusterAnalysis(Boolean clusterAnalysis) {
-  //  this.clusterAnalysis = clusterAnalysis;
-  //  return this;
-  //}
-  
-  //public FeaturestoreInsertIntoFeaturegroup setStatColumns(List<String> statColumns) {
-  //  this.statColumns = statColumns;
-  //  return this;
-  //}
   
   public FeaturestoreInsertIntoFeaturegroup setHudi(Boolean hudi) {
     this.hudi = hudi;
