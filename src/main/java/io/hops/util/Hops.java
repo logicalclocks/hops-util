@@ -111,8 +111,6 @@ public class Hops {
   private static String elasticEndPoint;
   private static String domainCaTruststore;
 
-  private static WorkflowManager workflowManager;
-
   static {
     setup();
   }
@@ -448,15 +446,6 @@ public class Hops {
    */
   public static String getJobType() {
     return jobType;
-  }
-
-  /**
-   * Get WorkflowManager.
-   *
-   * @return WorkflowManager.
-   */
-  public static WorkflowManager getWorkflowManager() {
-    return workflowManager;
   }
 
   /**
