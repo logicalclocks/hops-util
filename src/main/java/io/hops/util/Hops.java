@@ -18,6 +18,7 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SchemaNotFoundException;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetMetadataForFeaturegroup;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeature;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroupLatestVersion;
@@ -36,6 +37,7 @@ import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasetLat
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasetPath;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasets;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreSQLQuery;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreAddMetadataToFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateTrainingDataset;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreDisableFeaturegroupOnline;
@@ -43,6 +45,7 @@ import io.hops.util.featurestore.ops.write_ops.FeaturestoreEnableFeaturegroupOnl
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreImportFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoTrainingDataset;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreRemoveMetadataFromFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreSyncHiveTable;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateFeaturegroupStats;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
@@ -268,6 +271,8 @@ public class Hops {
         return invocationBuilder.post(Entity.entity(json.toString(), MediaType.APPLICATION_JSON));
       case HttpMethod.GET:
         return invocationBuilder.get();
+      case HttpMethod.DELETE:
+        return invocationBuilder.delete();
       default:
         break;
     }
@@ -853,5 +858,43 @@ public class Hops {
       return insecure || string.equals(restEndpoint.split(":")[0]);
     }
   }
-
+  
+  /**
+   * Attach extended metadata to a feature group.
+   *
+   * @param featuregroupName name of the feature group
+   * @return a lazy java object for the operation to add metadata to feature
+   * group. The operation can be started with write() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreAddMetadataToFeaturegroup addMetadata(
+      String featuregroupName) {
+    return new FeaturestoreAddMetadataToFeaturegroup(featuregroupName);
+  }
+  
+  /**
+   * Get extended metadata attached to a feature group.
+   *
+   * @param featuregroupName name of the feature group
+   * @return a lazy java object for the operation to get metadata attached to
+   * feature group. The operation can be started with read() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreGetMetadataForFeaturegroup getMetadata(
+      String featuregroupName) {
+    return new FeaturestoreGetMetadataForFeaturegroup(featuregroupName);
+  }
+  
+  /**
+   * Remove extended metadata attached to a feature group.
+   *
+   * @param featuregroupName name of the feature group
+   * @return a lazy java object for the operation to get metadata attached to
+   * feature group. The operation can be started with write() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreRemoveMetadataFromFeaturegroup removeMetadata(
+      String featuregroupName) {
+    return new FeaturestoreRemoveMetadataFromFeaturegroup(featuregroupName);
+  }
 }

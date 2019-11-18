@@ -11,6 +11,7 @@ import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDisableOnlineError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
+import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
@@ -406,13 +407,14 @@ public abstract class FeaturestoreOp {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
    */
   public abstract Object read()
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
     TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
     StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
     StorageConnectorNotFound, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestoreNotEnabled;
+    OnlineFeaturestoreNotEnabled, FeaturegroupMetadataError;
 
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -443,6 +445,7 @@ public abstract class FeaturestoreOp {
    * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
    * @throws FeaturegroupDisableOnlineError FeaturegroupDisableOnlineError
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
+   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
    */
   public abstract void write()
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
@@ -453,5 +456,5 @@ public abstract class FeaturestoreOp {
     CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups,
     StorageConnectorTypeNotSupportedForFeatureImport, OnlineFeaturestoreUserNotFound,
     OnlineFeaturestorePasswordNotFound, FeaturegroupEnableOnlineError, FeaturegroupDisableOnlineError,
-    OnlineFeaturestoreNotEnabled;
+    OnlineFeaturestoreNotEnabled, FeaturegroupMetadataError;
 }

@@ -35,6 +35,7 @@ public class Constants {
   public static final String HOPSWORKS_REST_FEATUREGROUPS_SYNC_RESOURCE = "sync";
   public static final String HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE = "storageconnectors";
   public static final String HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE = "onlinefeaturestore";
+  public static final String HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE = "xattrs";
   
   public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
