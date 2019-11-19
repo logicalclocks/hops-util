@@ -184,7 +184,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     }
     getSpark().sparkContext().setJobGroup("", "", true);
     if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.CACHED_FEATURE_GROUP &&
-      ((CachedFeaturegroupDTO) featuregroupDTO).getInputFormat().equalsIgnoreCase(Constants.HUDI_INPUT_FORMAT)) {
+      ((CachedFeaturegroupDTO) featuregroupDTO).getInputFormat().startsWith(Constants.HUDI_INPUT_FORMAT_PACKAGE)) {
       Map<String, String> hudiWriteArgs = setupHudiArgs();
       FeaturestoreHelper.writeHudiDataset(dataframe, getSpark(), name, featurestore, version,
         hudiWriteArgs, ((CachedFeaturegroupDTO) featuregroupDTO).getHdfsStorePaths().get(0), mode);
