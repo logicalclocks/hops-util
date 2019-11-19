@@ -212,7 +212,7 @@ public class Constants {
       
     }
   };
-  public static final String HUDI_INPUT_FORMAT = "org.apache.hudi.hadoop.HoodieInputFormat";
+  public static final String HUDI_INPUT_FORMAT_PACKAGE = "org.apache.hudi";
   
   
   public static final List<String> MYSQL_DATA_TYPES = Arrays.asList(new String[]{
