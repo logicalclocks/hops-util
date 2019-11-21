@@ -214,7 +214,7 @@ public class FeaturestoreRestClient {
   }
   
   /**
-   * Makes a REST call to Hopsworks for updating the statistics of a featuregroup
+   * Makes a REST call to Hopsworks for updating the statistics and the settings of a featuregroup
    *
    * @param featuregroupDTO        DTO of the feature group
    * @param featuregroupDTOType    the DTO type
@@ -240,6 +240,7 @@ public class FeaturestoreRestClient {
         featuregroupDTO.getName(), featuregroupDTO.getVersion());
       Map<String, Object> queryParams = new HashMap<>();
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, true);
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_SETTINGS_QUERY_PARAM, true);
       if(!featuregroupDTO.getJobs().isEmpty()) {
         queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
       } else {
@@ -255,10 +256,10 @@ public class FeaturestoreRestClient {
     LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
     if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
       HopsworksErrorResponseDTO hopsworksErrorResponseDTO = Hops.parseHopsworksErrorResponse(response);
-      LOG.severe("Could not update statistics for featuregroup:" + featuregroupDTO.getName() +
+      LOG.severe("Could not update statistics and the settings for featuregroup:" + featuregroupDTO.getName() +
           " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
           + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
-      throw new FeaturegroupUpdateStatsError("Could not update statistics for featuregroup:" +
+      throw new FeaturegroupUpdateStatsError("Could not update statistics and the settings for featuregroup:" +
         featuregroupDTO.getName() + " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
         + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
     }

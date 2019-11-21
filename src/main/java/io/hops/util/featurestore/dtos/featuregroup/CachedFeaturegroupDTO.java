@@ -59,10 +59,13 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
     List<FeaturestoreJobDTO> jobs,
     FeaturegroupType featuregroupType, Long hiveTableId, List<String> hdfsStorePaths, String inputFormat,
     HiveTableType hiveTableType, Long inodeId, OnlineFeaturegroupDTO onlineFeaturegroupDTO,
-    Boolean onlineFeaturegroupEnabled) {
+    Boolean onlineFeaturegroupEnabled, Boolean clusterAnalysisEnabled, Boolean descStatsEnabled,
+    Boolean featCorrEnabled, Boolean featHistEnabled, List<String> statColumns, Integer numClusters, Integer numBins,
+    String corrMethod) {
     super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
       featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs,
-      featuregroupType);
+      featuregroupType, clusterAnalysisEnabled, descStatsEnabled, featCorrEnabled, featHistEnabled, statColumns,
+      numClusters, numBins, corrMethod);
     this.hiveTableId = hiveTableId;
     this.hdfsStorePaths = hdfsStorePaths;
     this.inputFormat = inputFormat;

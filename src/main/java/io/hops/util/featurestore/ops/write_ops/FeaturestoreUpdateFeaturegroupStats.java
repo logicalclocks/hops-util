@@ -1,6 +1,7 @@
 package io.hops.util.featurestore.ops.write_ops;
 
 import io.hops.util.FeaturestoreRestClient;
+import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotUpdateStatsOfOnDemandFeaturegroups;
 import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
@@ -37,8 +38,23 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
    *
    * @param name name of the featuregroup to update stats of
    */
-  public FeaturestoreUpdateFeaturegroupStats(String name) {
+  public FeaturestoreUpdateFeaturegroupStats(String name)
+    throws FeaturegroupDoesNotExistError, JAXBException, FeaturestoreNotFound {
     super(name);
+    // Update metadata cache
+    Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
+      name, version);
+    // Get and set previous statistics settings as default
+    this.corrMethod = featuregroupDTO.getCorrMethod();
+    this.numBins = featuregroupDTO.getNumBins();
+    this.numClusters = featuregroupDTO.getNumClusters();
+    this.statColumns = featuregroupDTO.getStatisticColumns();
+    this.descriptiveStats = featuregroupDTO.isDescStatsEnabled();
+    this.clusterAnalysis = featuregroupDTO.isClusterAnalysisEnabled();
+    this.featureCorr = featuregroupDTO.isFeatCorrEnabled();
+    this.featureHistograms = featuregroupDTO.isFeatHistEnabled();
   }
   
   /**
@@ -72,15 +88,14 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
     if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
-      throw new CannotUpdateStatsOfOnDemandFeaturegroups("The update-statistics operation is only supported for " +
-          "cached feature groups");
+      throw new CannotUpdateStatsOfOnDemandFeaturegroups("The update-statistics operation is not supported for " +
+          "on-demand feature groups");
     }
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
-    Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
     FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(featuregroupDTO, statisticsDTO),
-      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
+      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), false));
   }
   
   /**
@@ -103,6 +118,14 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
     featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
     featuregroupDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
     featuregroupDTO.setJobs(jobsDTOs);
+    featuregroupDTO.setClusterAnalysisEnabled(clusterAnalysis);
+    featuregroupDTO.setFeatCorrEnabled(featureCorr);
+    featuregroupDTO.setFeatHistEnabled(featureHistograms);
+    featuregroupDTO.setDescStatsEnabled(descriptiveStats);
+    featuregroupDTO.setNumBins(numBins);
+    featuregroupDTO.setNumClusters(numClusters);
+    featuregroupDTO.setCorrMethod(corrMethod);
+    featuregroupDTO.setStatisticColumns(statColumns);
     return featuregroupDTO;
   }
   
