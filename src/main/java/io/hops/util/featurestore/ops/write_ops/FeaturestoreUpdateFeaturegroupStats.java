@@ -88,15 +88,14 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
     if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
-      throw new CannotUpdateStatsOfOnDemandFeaturegroups("The update-statistics operation is only supported for " +
-          "cached feature groups");
+      throw new CannotUpdateStatsOfOnDemandFeaturegroups("The update-statistics operation is not supported for " +
+          "on-demand feature groups");
     }
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
       statColumns, numBins, numClusters, corrMethod);
-    Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
     FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(featuregroupDTO, statisticsDTO),
-      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
+      FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), false));
   }
   
   /**
