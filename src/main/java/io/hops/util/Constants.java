@@ -199,6 +199,10 @@ public class Constants {
   public static final String HUDI_HIVE_SYNC_DB = "hoodie.datasource.hive_sync.database";
   public static final String HUDI_HIVE_SYNC_JDBC_URL = "hoodie.datasource.hive_sync.jdbcurl";
   public static final String HUDI_HIVE_SYNC_PARTITION_FIELDS = "hoodie.datasource.hive_sync.partition_fields";
+  public static final String HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY =
+    "hoodie.datasource.hive_sync.partition_extractor_class";
+  public static final String DEFAULT_HIVE_PARTITION_EXTRACTOR_CLASS_OPT_VAL =
+    "org.apache.hudi.hive.MultiPartKeysValueExtractor";
   public static final String HUDI_COPY_ON_WRITE = "COPY_ON_WRITE";
   public static final String HUDI_BULK_INSERT = "bulk_insert";
   public static final String HUDI_UPSERT = "upsert";

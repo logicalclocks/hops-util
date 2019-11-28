@@ -1855,6 +1855,7 @@ public class FeaturestoreHelper {
         LOG.log(Level.INFO, "computing descriptive statistics for: " + name);
         sparkSession.sparkContext().setJobGroup("Descriptive Statistics Computation",
             "Analyzing Dataframe Statistics for : " + name, true);
+        Dataset<Row> numericSparkDf = filterSparkDfNumeric(sparkDf);
         descriptiveStatsDTO = computeDescriptiveStatistics(sparkDf);
         sparkSession.sparkContext().setJobGroup("", "", true);
       } catch (Exception e) {
