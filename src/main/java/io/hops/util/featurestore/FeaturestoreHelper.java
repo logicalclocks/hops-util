@@ -113,6 +113,7 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2776,18 +2777,20 @@ public class FeaturestoreHelper {
    * @param trainingDatasetName the name of the training dataset
    * @param trainingDatasetVersion the version of the training dataset
    * @param bucket the S3 bucket
+   * @param bucketPath the path within the s3 bucket on which to save the file
    * @return the path to the training dataset
    */
-  public static String getExternalTrainingDatasetPath(String trainingDatasetName, int trainingDatasetVersion,
-    String bucket) {
-    String path = "";
-    if(!path.contains(Constants.S3_FILE_PREFIX)) {
-      path = path + Constants.S3_FILE_PREFIX;
+  public static String getExternalTrainingDatasetPath(String trainingDatasetName,
+                                                      int trainingDatasetVersion, String bucket, String bucketPath) {
+
+    String path = Constants.S3_FILE_PREFIX + bucket;
+    if (bucketPath == null || bucketPath.equals("")) {
+      path = Paths.get(path, Constants.S3_TRAINING_DATASETS_FOLDER).toString();
+    } else {
+      path = Paths.get(path, bucketPath).toString();
     }
-    path =
-      path + bucket + Constants.SLASH_DELIMITER +  Constants.S3_TRAINING_DATASETS_FOLDER
-        + Constants.SLASH_DELIMITER + FeaturestoreHelper.getTableName(trainingDatasetName, trainingDatasetVersion);
-    return path;
+
+    return Paths.get(path, FeaturestoreHelper.getTableName(trainingDatasetName, trainingDatasetVersion)).toString();
   }
   
   /**

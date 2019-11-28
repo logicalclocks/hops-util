@@ -137,7 +137,7 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
       featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
     
     String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
-      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket());
+      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket(), externalPath);
     
     FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
       sparkSession);
