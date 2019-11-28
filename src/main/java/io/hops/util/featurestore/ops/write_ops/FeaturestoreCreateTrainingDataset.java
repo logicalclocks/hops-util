@@ -94,12 +94,13 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       throw new IllegalArgumentException("Dataframe to create featuregroup from cannot be null, specify dataframe " +
         "with .setDataframe(df)");
     }
+    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
+    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description, featurestoreMetadata.getSettings());
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(),
       dataframe, featurestore, version, descriptiveStats, featureCorr, featureHistograms,
       clusterAnalysis, statColumns, numBins, numClusters, corrMethod);
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
       null, false, null);
-    FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
     if(sink != null){
       storageConnectorDTO =
