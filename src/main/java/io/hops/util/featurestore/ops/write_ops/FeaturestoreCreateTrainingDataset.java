@@ -101,10 +101,10 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       null, false, null);
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
-    if(sink != null){
+    if(storageConnector != null && !storageConnector.isEmpty()){
       storageConnectorDTO =
         FeaturestoreHelper.findStorageConnector(featurestoreMetadata.getStorageConnectors(),
-          sink);
+          storageConnector);
     } else {
       storageConnectorDTO = FeaturestoreHelper.findStorageConnector(featurestoreMetadata.getStorageConnectors(),
         FeaturestoreHelper.getProjectTrainingDatasetsSink());
@@ -350,8 +350,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateTrainingDataset setSink(String sink) {
-    this.sink = sink;
+  public FeaturestoreCreateTrainingDataset setSink(String storageConnector) {
+    this.storageConnector = storageConnector;
     return this;
   }
 
