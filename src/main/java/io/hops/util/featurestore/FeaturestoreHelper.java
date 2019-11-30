@@ -2784,7 +2784,7 @@ public class FeaturestoreHelper {
                                                       int trainingDatasetVersion, String bucket, String bucketPath) {
 
     String path = Constants.S3_FILE_PREFIX + bucket;
-    if (bucketPath == null || bucketPath.equals("")) {
+    if (bucketPath == null || bucketPath.isEmpty()) {
       path = Paths.get(path, Constants.S3_TRAINING_DATASETS_FOLDER).toString();
     } else {
       path = Paths.get(path, bucketPath).toString();
