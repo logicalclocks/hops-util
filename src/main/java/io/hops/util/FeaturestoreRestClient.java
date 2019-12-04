@@ -5,6 +5,7 @@ import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDisableOnlineError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
+import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
@@ -20,6 +21,7 @@ import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO
 import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.ws.rs.HttpMethod;
@@ -488,6 +490,180 @@ public class FeaturestoreRestClient {
     
     JSONObject onlineFeaturestoreConnector = new JSONObject(responseEntity);
     return FeaturestoreHelper.parseJdbcConnectorJson(onlineFeaturestoreConnector);
+  }
+  
+  /**
+   * Makes a REST call to Hopsworks to attach extended metadata to a
+   * featuregroup
+   *
+   * @param featuregroupName    the feature group name
+   * @param featurestore        the feature store
+   * @param featuregroupVersion the feature group version
+   * @param name                the extended attribute name
+   * @param value               the extended attribute value
+   * @throws FeaturestoreNotFound
+   * @throws JAXBException
+   * @throws FeaturegroupDoesNotExistError
+   * @throws FeaturegroupMetadataError
+   */
+  public static void addMetadata(String featuregroupName, String featurestore,
+      Integer featuregroupVersion, String name, String value)
+      throws FeaturestoreNotFound, JAXBException,
+      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
+    LOG.log(Level.FINE,
+        "Adding metadata to featuregroup: " + featuregroupName);
+    
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(name, value);
+    
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore,
+          featuregroupName, featuregroupVersion);
+      response =
+          Hops.clientWrapper(jsonObject,
+              Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_REST_PROJECT_RESOURCE
+                  + Constants.SLASH_DELIMITER + Hops.getProjectId()
+                  + Constants.SLASH_DELIMITER
+                  + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE +
+                  Constants.SLASH_DELIMITER +
+                  featurestoreId + Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE +
+                  Constants.SLASH_DELIMITER + featuregroupId +
+                  Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE +
+                  Constants.SLASH_DELIMITER + name,
+              HttpMethod.PUT, null);
+    } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
+      throw new FeaturestoreNotFound(e.getMessage());
+    }
+    LOG.log(Level.INFO,
+        "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() !=
+        Response.Status.OK.getStatusCode()
+        && response.getStatusInfo().getStatusCode() !=
+        Response.Status.CREATED.getStatusCode()) {
+      throw new FeaturegroupMetadataError("Error while attaching metadata to " +
+          "featuregroup " + featuregroupName + ", Http Code: " +
+          response.getStatus());
+    }
+  }
+  
+  /**
+   * Makes a REST call to Hopsworks to get extended metadata attached to a
+   * featuregroup
+   *
+   * @param featuregroupName    the feature group name
+   * @param featurestore        the feature store
+   * @param featuregroupVersion the feature group version
+   * @param name                the extended attribute name
+   * @throws FeaturestoreNotFound
+   * @throws JAXBException
+   * @throws FeaturegroupDoesNotExistError
+   * @throws FeaturegroupMetadataError
+   */
+  public static Map<String, String> getMetadata(String featuregroupName,
+      String featurestore, Integer featuregroupVersion, String name)
+      throws FeaturestoreNotFound, JAXBException,
+      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
+    LOG.log(Level.FINE,
+        "getting metadata for featuregroup: " + featuregroupName);
+    
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore,
+          featuregroupName, featuregroupVersion);
+      String path =
+          Constants.SLASH_DELIMITER + Constants.HOPSWORKS_REST_PROJECT_RESOURCE
+              + Constants.SLASH_DELIMITER + Hops.getProjectId()
+              + Constants.SLASH_DELIMITER
+              + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE +
+              Constants.SLASH_DELIMITER +
+              featurestoreId + Constants.SLASH_DELIMITER +
+              Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE +
+              Constants.SLASH_DELIMITER + featuregroupId +
+              Constants.SLASH_DELIMITER +
+              Constants.HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE;
+      if (name != null) {
+        path += Constants.SLASH_DELIMITER + name;
+      }
+      response = Hops.clientWrapper(path, HttpMethod.GET, null);
+    } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
+      throw new FeaturestoreNotFound(e.getMessage());
+    }
+    LOG.log(Level.INFO,
+        "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() !=
+        Response.Status.ACCEPTED.getStatusCode()) {
+      throw new FeaturegroupMetadataError("Error while getting metadata for " +
+          "featuregroup " + featuregroupName + ", Http Code: " +
+          response.getStatus());
+    }
+    final String responseEntity = response.readEntity(String.class);
+    JSONObject metadata = new JSONObject(responseEntity);
+    JSONArray items = metadata.getJSONArray("items");
+    Map<String, String> result = new HashMap<>();
+    for (int i = 0; i < items.length(); i++) {
+      JSONObject jsonObject = items.getJSONObject(i);
+      result.put(jsonObject.getString("name"), jsonObject.getString("value"));
+    }
+    return result;
+  }
+  
+  /**
+   * Makes a REST call to Hopsworks to attach extended metadata to a
+   * featuregroup
+   *
+   * @param featuregroupName    the feature group name
+   * @param featurestore        the feature store
+   * @param featuregroupVersion the feature group version
+   * @param name                the extended attribute name
+   * @throws FeaturestoreNotFound
+   * @throws JAXBException
+   * @throws FeaturegroupDoesNotExistError
+   * @throws FeaturegroupMetadataError
+   */
+  public static void removeMetadata(String featuregroupName,
+      String featurestore, Integer featuregroupVersion, String name)
+      throws FeaturestoreNotFound, JAXBException,
+      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
+    LOG.log(Level.FINE,
+        "Removing metadata from featuregroup: " + featuregroupName);
+    
+    Response response;
+    try {
+      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
+      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore,
+          featuregroupName, featuregroupVersion);
+      response =
+          Hops.clientWrapper(
+              Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_REST_PROJECT_RESOURCE
+                  + Constants.SLASH_DELIMITER + Hops.getProjectId()
+                  + Constants.SLASH_DELIMITER
+                  + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE +
+                  Constants.SLASH_DELIMITER +
+                  featurestoreId + Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE +
+                  Constants.SLASH_DELIMITER + featuregroupId +
+                  Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE +
+                  Constants.SLASH_DELIMITER + name,
+              HttpMethod.DELETE, null);
+    } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
+      throw new FeaturestoreNotFound(e.getMessage());
+    }
+    LOG.log(Level.INFO,
+        "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() !=
+        Response.Status.NO_CONTENT.getStatusCode()) {
+      throw new FeaturegroupMetadataError("Error while removing metadata from" +
+          " featuregroup " + featuregroupName + ", Http Code: " +
+          response.getStatus());
+    }
   }
 }
 
