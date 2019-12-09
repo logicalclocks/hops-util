@@ -1443,7 +1443,7 @@ public class FeaturestoreHelper {
    */
   public static void validateMetadata(String name, Tuple2<String, String>[] dtypes, String description,
     FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO) {
-    if (name.length() > 256 || name.equals("") || !featurestoreRegex.matcher(name).matches()) {
+    if (name.length() > 256 || !featurestoreRegex.matcher(name).matches()) {
       throw new IllegalArgumentException("Name of feature group/training dataset cannot be empty, " +
         "cannot contain upper case characters, cannot exceed 256 characters, cannot contain hyphens ('-') " +
         "and must match the regular expression: " + featurestoreClientSettingsDTO.getFeaturestoreRegex() +
@@ -1455,8 +1455,7 @@ public class FeaturestoreHelper {
     }
   
     for (int i = 0; i < dtypes.length; i++) {
-      if (dtypes[i]._1.length() > 767 || dtypes[i]._1.equals("") ||
-        !featurestoreRegex.matcher(dtypes[i]._1).matches()) {
+      if (dtypes[i]._1.length() > 767 || !featurestoreRegex.matcher(dtypes[i]._1).matches()) {
         throw new IllegalArgumentException("Name of feature column cannot be empty, cannot exceed 767 characters, " +
           "cannot contains hyphens ('-'), and must match the regular expression: " +
           featurestoreClientSettingsDTO.getFeaturestoreRegex() +
