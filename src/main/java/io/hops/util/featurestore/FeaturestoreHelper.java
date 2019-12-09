@@ -167,6 +167,7 @@ public class FeaturestoreHelper {
    * Featurestore Metadata Cache
    */
   private static FeaturestoreMetadataDTO featurestoreMetadataCache = null;
+  private static Pattern featurestoreRegex = null;
 
   static {
     try {
@@ -1442,8 +1443,7 @@ public class FeaturestoreHelper {
    */
   public static void validateMetadata(String name, Tuple2<String, String>[] dtypes, String description,
     FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO) {
-    Pattern namePattern = Pattern.compile(featurestoreClientSettingsDTO.getFeaturestoreRegex());
-    if (name.length() > 256 || name.equals("") || !namePattern.matcher(name).matches()) {
+    if (name.length() > 256 || name.equals("") || !featurestoreRegex.matcher(name).matches()) {
       throw new IllegalArgumentException("Name of feature group/training dataset cannot be empty, " +
         "cannot contain upper case characters, cannot exceed 256 characters, cannot contain hyphens ('-') " +
         "and must match the regular expression: " + featurestoreClientSettingsDTO.getFeaturestoreRegex() +
@@ -1453,9 +1453,10 @@ public class FeaturestoreHelper {
     if (dtypes.length == 0) {
       throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
     }
-
+  
     for (int i = 0; i < dtypes.length; i++) {
-      if (dtypes[i]._1.length() > 767 || dtypes[i]._1.equals("") || !namePattern.matcher(dtypes[i]._1).matches()) {
+      if (dtypes[i]._1.length() > 767 || dtypes[i]._1.equals("") ||
+        !featurestoreRegex.matcher(dtypes[i]._1).matches()) {
         throw new IllegalArgumentException("Name of feature column cannot be empty, cannot exceed 767 characters, " +
           "cannot contains hyphens ('-'), and must match the regular expression: " +
           featurestoreClientSettingsDTO.getFeaturestoreRegex() +
@@ -2388,6 +2389,10 @@ public class FeaturestoreHelper {
   public static void setFeaturestoreMetadataCache(
     FeaturestoreMetadataDTO featurestoreMetadataCache) {
     FeaturestoreHelper.featurestoreMetadataCache = featurestoreMetadataCache;
+    // regex is constant so set and compile only once
+    if (featurestoreRegex == null) {
+      featurestoreRegex = Pattern.compile(featurestoreMetadataCache.getSettings().getFeaturestoreRegex());
+    }
   }
 
   /**
