@@ -239,7 +239,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
     FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
       featurestoreMetadata.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
     String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
-      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket());
+      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket(), externalPath);
     FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
       getSpark());
     FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, path,

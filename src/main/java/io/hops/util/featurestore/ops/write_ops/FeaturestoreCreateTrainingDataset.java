@@ -102,10 +102,10 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
       null, false, null);
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
-    if(sink != null){
+    if(storageConnector != null && !storageConnector.isEmpty()){
       storageConnectorDTO =
         FeaturestoreHelper.findStorageConnector(featurestoreMetadata.getStorageConnectors(),
-          sink);
+          storageConnector);
     } else {
       storageConnectorDTO = FeaturestoreHelper.findStorageConnector(featurestoreMetadata.getStorageConnectors(),
         FeaturestoreHelper.getProjectTrainingDatasetsSink());
@@ -256,7 +256,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     FeaturestoreS3ConnectorDTO s3ConnectorDTO)
     throws FeaturestoreNotFound, JWTNotFoundException, TrainingDatasetCreationError,
     JAXBException, HiveNotEnabled, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
-    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(name, version, s3ConnectorDTO.getBucket());
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(name, version, s3ConnectorDTO.getBucket(),
+        externalPath);
     FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
       getSpark());
     FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoExternalDTO(statisticsDTO, featuresSchema,
@@ -350,11 +351,13 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreCreateTrainingDataset setSink(String sink) {
-    this.sink = sink;
+  public FeaturestoreCreateTrainingDataset setSink(String storageConnector) {
+    this.storageConnector = storageConnector;
     return this;
   }
 
-  
-  
+  public FeaturestoreCreateTrainingDataset setPath(String path) {
+    this.externalPath = path;
+    return this;
+  }
 }

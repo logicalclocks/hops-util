@@ -115,9 +115,10 @@ public class FeaturestoreReadTrainingDatasetPath extends FeaturestoreOp {
     ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
     FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
       featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
-    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
-      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket());
-    return path;
+    // TODO(Fabio): this is actually wrong, but I can't do anything right now. We need to store the path in the database
+    // SEE https://logicalclocks.atlassian.net/projects/HOPSWORKS/issues/HOPSWORKS-1454
+    return FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
+      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket(), "");
   }
   
 }

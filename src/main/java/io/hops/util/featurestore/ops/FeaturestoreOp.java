@@ -70,7 +70,6 @@ public abstract class FeaturestoreOp {
   protected String dataFormat = FeaturestoreHelper.dataFormatGetOrDefault(null);
   protected List<String> partitionBy = new ArrayList<>();
   protected Boolean onDemand = false;
-  protected String sink = null;
   protected String jdbcConnector = null;
   protected String sqlQuery = "";
   protected Map<String, String> jdbcArguments;
@@ -304,7 +303,7 @@ public abstract class FeaturestoreOp {
    *         HopsFS but you can also specify an S3 bucket
    */
   public String getSink() {
-    return sink;
+    return storageConnector;
   }
 
   /**
