@@ -167,6 +167,7 @@ public class FeaturestoreHelper {
    * Featurestore Metadata Cache
    */
   private static FeaturestoreMetadataDTO featurestoreMetadataCache = null;
+  private static Pattern featurestoreRegex = null;
 
   static {
     try {
@@ -1440,29 +1441,33 @@ public class FeaturestoreHelper {
    * @param dtypes the schema of the provided spark dataframe
    * @param description the description about the feature group/training dataset
    */
-  public static void validateMetadata(String name, Tuple2<String, String>[] dtypes, String description) {
-    Pattern namePattern = Pattern.compile("^[a-zA-Z0-9_]+$");
-    if (name.length() > 256 || name.equals("") || !namePattern.matcher(name).matches())
+  public static void validateMetadata(String name, Tuple2<String, String>[] dtypes, String description,
+    FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO) {
+    if (name.length() > 256 || !featurestoreRegex.matcher(name).matches()) {
       throw new IllegalArgumentException("Name of feature group/training dataset cannot be empty, " +
-          "cannot exceed 256 characters, cannot contain hyphens ('-') " +
-          "and must match the regular expression: ^[a-zA-Z0-9_]+$" +
-          " the provided name: " + name + " is not valid");
-
-    if (dtypes.length == 0)
-      throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
-
-    for (int i = 0; i < dtypes.length; i++) {
-      if (dtypes[i]._1.length() > 767 || dtypes[i]._1.equals("") || !namePattern.matcher(dtypes[i]._1).matches())
-        throw new IllegalArgumentException("Name of feature column cannot be empty, cannot exceed 767 characters," +
-            ", cannot contains hyphens ('-'), and must match the regular expression: ^[a-zA-Z0-9_]+$, " +
-            "the provided feature name: " + dtypes[i]._1 +
-            " is not valid");
+        "cannot contain upper case characters, cannot exceed 256 characters, cannot contain hyphens ('-') " +
+        "and must match the regular expression: " + featurestoreClientSettingsDTO.getFeaturestoreRegex() +
+        ", the provided name: " + name + " is not valid");
     }
 
-    if(description.length() > 2000)
+    if (dtypes.length == 0) {
+      throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
+    }
+  
+    for (int i = 0; i < dtypes.length; i++) {
+      if (dtypes[i]._1.length() > 767 || !featurestoreRegex.matcher(dtypes[i]._1).matches()) {
+        throw new IllegalArgumentException("Name of feature column cannot be empty, cannot exceed 767 characters, " +
+          "cannot contains hyphens ('-'), and must match the regular expression: " +
+          featurestoreClientSettingsDTO.getFeaturestoreRegex() +
+          ", the provided feature name: " + dtypes[i]._1 + " is not valid");
+      }
+    }
+
+    if (description.length() > 2000) {
       throw new IllegalArgumentException("Feature group/Training dataset description should not exceed " +
-          "the maximum length of 2000 characters, " +
-          "the provided description has length:" + description.length());
+        "the maximum length of 2000 characters, " +
+        "the provided description has length:" + description.length());
+    }
   }
 
   /**
@@ -2383,6 +2388,10 @@ public class FeaturestoreHelper {
   public static void setFeaturestoreMetadataCache(
     FeaturestoreMetadataDTO featurestoreMetadataCache) {
     FeaturestoreHelper.featurestoreMetadataCache = featurestoreMetadataCache;
+    // regex is constant so set and compile only once
+    if (featurestoreRegex == null) {
+      featurestoreRegex = Pattern.compile(featurestoreMetadataCache.getSettings().getFeaturestoreRegex());
+    }
   }
 
   /**
