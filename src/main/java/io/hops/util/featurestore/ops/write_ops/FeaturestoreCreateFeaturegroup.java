@@ -144,13 +144,13 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     }
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     primaryKey = FeaturestoreHelper.primaryKeyGetOrDefault(primaryKey, dataframe);
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
+      partitionBy, online, onlineTypes);
     FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
-    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description, featurestoreMetadata.getSettings());
+    FeaturestoreHelper.validateMetadata(name, featuresSchema, description);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
       featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
       numBins, numClusters, corrMethod);
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
-      partitionBy, online, onlineTypes);
     if(!hudi) {
       FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema, statisticsDTO),
         FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));
