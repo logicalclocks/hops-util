@@ -1462,17 +1462,20 @@ public class FeaturestoreHelper {
       throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
     }
   
-    if (schema.stream().anyMatch(f -> !featurestoreRegex.matcher(f.getName()).matches())) {
-      throw new IllegalArgumentException("Illegal feature name, one or more of the provided feature names is invalid." +
-        " Feature names can only contain lower case characters, numbers and underscores and cannot be longer than " +
-        featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength() + " characters or empty.");
-    }
-
-    if (schema.stream().anyMatch(f -> !Strings.isNullOrEmpty(f.getDescription()) && f.getDescription().length() >
-      featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength())) {
-      throw new IllegalArgumentException("Invalid feature description, one or more of the provided feature " +
-        "descriptions is too long. Feature descriptions cannot be longer than "
-        + featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() + " characters.");
+    for (FeatureDTO featureDTO : schema) {
+      if (!featurestoreRegex.matcher(featureDTO.getName()).matches()) {
+        throw new IllegalArgumentException("Illegal feature name, the provided feature name " + featureDTO.getName() +
+          " is invalid. Feature names can only contain lower case characters, numbers and underscores and cannot be " +
+          "longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength()  + " characters"
+          + " or empty.");
+      }
+      if (!Strings.isNullOrEmpty(featureDTO.getDescription()) && featureDTO.getDescription().length() >
+        featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength()) {
+        throw new IllegalArgumentException("Illegal feature description, the provided feature description of " +
+          featureDTO.getName() + " is too long with " + featureDTO.getDescription().length() + " characters. Feature " +
+          "descriptions cannot be longer than " +
+          featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() + " characters.");
+      }
     }
   }
 
