@@ -246,5 +246,8 @@ public class Constants {
   public static final String TRAINING_DATASET_PROVENANCE_FEATUREGROUP = "featuregroup";
   public static final String TRAINING_DATASET_PROVENANCE_VERSION = "version";
   public static final String TRAINING_DATASET_PROVENANCE_COMMENT = "comment";
-
+  
+  public static final String HOPSWORKS_REST_ELASTIC_RESOURCE = "elastic";
+  public static final String HOPSWORKS_REST_JWT_RESOURCE = "jwt";
+  
 }

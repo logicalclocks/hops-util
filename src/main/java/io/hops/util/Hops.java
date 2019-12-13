@@ -14,6 +14,7 @@
 
 package io.hops.util;
 
+import io.hops.util.exceptions.ElasticAuthorizationTokenException;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
@@ -898,5 +899,78 @@ public class Hops {
   public static FeaturestoreRemoveMetadataFromFeaturegroup removeMetadata(
       String featuregroupName) {
     return new FeaturestoreRemoveMetadataFromFeaturegroup(featuregroupName);
+  }
+  
+  /**
+   * Get a valid elastic index name for the current project.
+   * @param index
+   * @return
+   */
+  public static String getElasticIndex(String index){
+    return getProjectName() + "_" + index;
+  }
+  
+  /**
+   * Generate a new jwt token to be used with Elastic.
+   * @return
+   * @throws JWTNotFoundException
+   * @throws ElasticAuthorizationTokenException
+   */
+  public static String getElasticAuthorizationToken()
+      throws JWTNotFoundException, ElasticAuthorizationTokenException {
+    Response response;
+    try {
+      response =
+          clientWrapper(Constants.SLASH_DELIMITER
+                  + Constants.HOPSWORKS_REST_ELASTIC_RESOURCE
+                  + Constants.SLASH_DELIMITER
+                  + Constants.HOPSWORKS_REST_JWT_RESOURCE
+                  + Constants.SLASH_DELIMITER
+                  + Hops.getProjectId(),
+          HttpMethod.GET, null);
+    } catch (HTTPSClientInitializationException e) {
+      throw new ElasticAuthorizationTokenException(e.getMessage());
+    }
+    final String responseEntity = response.readEntity(String.class);
+    
+    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new ElasticAuthorizationTokenException(responseEntity);
+    }
+    
+  
+    JSONObject jsonResponse = new JSONObject(responseEntity);
+    if(!jsonResponse.has("token"))
+      throw new ElasticAuthorizationTokenException("Couldn't get " +
+          "authorization token for elastic.");
+    
+    String token = jsonResponse.getString("token");
+    if(token.isEmpty())
+      throw new ElasticAuthorizationTokenException("Couldn't get " +
+          "authorization token for elastic.");
+    
+    return "Bearer " + token;
+  }
+  
+  /**
+   * Get Elasticsearch configuration to use with spark connector.
+   * @param index
+   * @return elasticsearch configurations
+   * @throws ElasticAuthorizationTokenException
+   * @throws JWTNotFoundException
+   */
+  public static Map<String, String> getElasticConfiguration(String index)
+      throws ElasticAuthorizationTokenException, JWTNotFoundException {
+    Map<String, String> configs = new HashMap<>();
+    configs.put("es.net.ssl","true");
+    configs.put("es.nodes.wan.only", "true");
+    configs.put("es.nodes", getElasticEndPoint());
+    configs.put("es.net.ssl.keystore.location", getKeyStore());
+    configs.put("es.net.ssl.keystore.pass", getKeystorePwd());
+    configs.put("es.net.ssl.truststore.location", getTrustStore());
+    configs.put("es.net.ssl.truststore.pass", getTruststorePwd());
+    configs.put("es.net.http.header.Authorization", getElasticAuthorizationToken());
+    configs.put("es.resource", getElasticIndex(index));
+    return configs;
   }
 }
