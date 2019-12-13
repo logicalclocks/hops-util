@@ -204,7 +204,7 @@ public class Hops {
     json.append("topicName", topic);
     Response response = null;
     try {
-      response = clientWrapper(json, "/project/" + projectId + "/kafka/" + topic + "/schema",
+      response = clientWrapper(json, "/project/" + projectId + "/kafka/topics/" + topic + "/subjects",
           HttpMethod.GET, null);
     } catch (HTTPSClientInitializationException e) {
       throw new SchemaNotFoundException(e.getMessage());
@@ -216,7 +216,7 @@ public class Hops {
     //Extract fields from json
     LOG.log(Level.FINE, "responseEntity:" + responseEntity);
     json = new JSONObject(responseEntity);
-    return json.getString("contents");
+    return json.getString("schema");
   }
 
   public static Properties getKafkaSSLProperties() {
