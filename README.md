@@ -50,39 +50,11 @@ and the following repository under your repositories list,
 ```
 
 ## API
-HopsUtil provides an API that automatically sets up Apache Kafka producers and consumers for both Apache Spark and
-Apache Flink as well as providing methods for discovering endpoints of various Hopsworks services such as InfluxDB. Moreover the API provides utility methods for interacting with the Hopsworks Feature Store
-
+HopsUtil API provides default security configurations for Kafka clients in Spark and utility methods to retrieve 
+endpoints of various Hopsworks services. Moreover the API provides utility methods for interacting with the Hopsworks
+ Feature Store.
 **Javadoc for HopsUtil is available** [here](http://snurran.sics.se/hops/hops-util-javadoc).
 
-### Job Workflows
-It is also possible to build simple Hopsworks job workflows using HopsUtil. The two methods provided are:
-* **startJobs**: Gets a number of job IDs as input parameter and starts the respective jobs of the project for which
-the user invoking the jobs is also their creator. It can be used like `Hops.startJobs(1);`
-* **waitJobs**: Waits for jobs (supplied as comma-separated job IDs) to transition to a running (default) state or
-not_running, depending whether an optional boolean parameter is true or not. It can be used like `waitJobs(1,5,11);`,
-which means the method will return when all three jobs with IDs 1,5,11 are not running, or `waitJobs(false, 1,5,11);`
- which means the method will return when all jobs have entered the running state.
-
-The ID of a job is displayed in the Hopsworks Job Details page, as shown below.
-![Job ID](./src/main/resources/job_id.png)
-
-## Example
-To create a Kafka Spark StructuredStreaming consumer using HopsUtil is as simple as this,
-```
-DataStreamReader dsr = Hops.getSparkConsumer().getKafkaDataStreamReader();
-```
-
-and to gracefully shut it down you can do
-```
-Hops.shutdownGracefully(queryFile);
-```
-where queryFile is the Spark *StreamingQuery* object.
-
-Management of topics and consumer groups as well as distribution of SSL/TLS certificates is automatically performed
-by the utility. The developer needs only to care about implementing the application's business logic. A complete
-example on how to use HopsUtil for implementing a Kafka Spark-Streaming app is available
-[here](https://github.com/hopshadoop/hops-kafka-examples/blob/master/spark/src/main/java/io/hops/examples/spark/kafka/StructuredStreamingKafka.java).
 
 ### Feature Store API
 
@@ -117,4 +89,4 @@ import io.hops.util.Hops
 Hops.createFeaturegroup("teams_features_spanish").setDataframe(teamsFeaturesDf2).write()      
 ```
 
-A complete example of the Scala/Java API for the Feature Store is available [here](https://github.com/Limmen/hops-examples/blob/HOPSWORKS-721/notebooks/featurestore/FeaturestoreTourScala.ipynb).
+A complete example of the Scala/Java API for the Feature Store is available [here](https://github.com/logicalclocks/hops-examples).
