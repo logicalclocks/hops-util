@@ -95,12 +95,12 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
         "with .setDataframe(df)");
     }
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
-    FeaturestoreHelper.validateMetadata(name, dataframe.dtypes(), description, featurestoreMetadata.getSettings());
+    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
+      null, false, null);
+    FeaturestoreHelper.validateMetadata(name, featuresSchema, description);
     StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(),
       dataframe, featurestore, version, descriptiveStats, featureCorr, featureHistograms,
       clusterAnalysis, statColumns, numBins, numClusters, corrMethod);
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
-      null, false, null);
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
     if(storageConnector != null && !storageConnector.isEmpty()){
       storageConnectorDTO =

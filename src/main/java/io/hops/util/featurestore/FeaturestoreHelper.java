@@ -1439,35 +1439,43 @@ public class FeaturestoreHelper {
    * Validates metadata provided by the user when creating new feature groups and training datasets
    *
    * @param name the name of the feature group/training dataset
-   * @param dtypes the schema of the provided spark dataframe
+   * @param schema the schema of the provided spark dataframe in terms of featureDTOs
    * @param description the description about the feature group/training dataset
    */
-  public static void validateMetadata(String name, Tuple2<String, String>[] dtypes, String description,
-    FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO) {
-    if (name.length() > 256 || !featurestoreRegex.matcher(name).matches()) {
-      throw new IllegalArgumentException("Name of feature group/training dataset cannot be empty, " +
-        "cannot contain upper case characters, cannot exceed 256 characters, cannot contain hyphens ('-') " +
-        "and must match the regular expression: " + featurestoreClientSettingsDTO.getFeaturestoreRegex() +
-        ", the provided name: " + name + " is not valid");
+  public static void validateMetadata(String name, List<FeatureDTO> schema, String description) {
+    if (!featurestoreRegex.matcher(name).matches()) {
+      throw new IllegalArgumentException("Illegal feature store entity name, the provided name " + name + " is " +
+        "invalid. Entity names can only contain lower case characters, numbers and underscores and cannot be longer " +
+        "than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength() +
+        " characters or empty.");
     }
 
-    if (dtypes.length == 0) {
+    if (!Strings.isNullOrEmpty(description) &&
+      description.length() > featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength()) {
+      throw new IllegalArgumentException("Illegal feature store entity description, the provided description for " +
+        "the entity " + name + " is too long with " + description.length() + " characters. Entity descriptions cannot" +
+        " be longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() +
+        " characters.");
+    }
+  
+    if (schema.size() == 0) {
       throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
     }
   
-    for (int i = 0; i < dtypes.length; i++) {
-      if (dtypes[i]._1.length() > 767 || !featurestoreRegex.matcher(dtypes[i]._1).matches()) {
-        throw new IllegalArgumentException("Name of feature column cannot be empty, cannot exceed 767 characters, " +
-          "cannot contains hyphens ('-'), and must match the regular expression: " +
-          featurestoreClientSettingsDTO.getFeaturestoreRegex() +
-          ", the provided feature name: " + dtypes[i]._1 + " is not valid");
+    for (FeatureDTO featureDTO : schema) {
+      if (!featurestoreRegex.matcher(featureDTO.getName()).matches()) {
+        throw new IllegalArgumentException("Illegal feature name, the provided feature name " + featureDTO.getName() +
+          " is invalid. Feature names can only contain lower case characters, numbers and underscores and cannot be " +
+          "longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength()  + " characters"
+          + " or empty.");
       }
-    }
-
-    if (description.length() > 2000) {
-      throw new IllegalArgumentException("Feature group/Training dataset description should not exceed " +
-        "the maximum length of 2000 characters, " +
-        "the provided description has length:" + description.length());
+      if (!Strings.isNullOrEmpty(featureDTO.getDescription()) && featureDTO.getDescription().length() >
+        featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength()) {
+        throw new IllegalArgumentException("Illegal feature description, the provided feature description of " +
+          featureDTO.getName() + " is too long with " + featureDTO.getDescription().length() + " characters. Feature " +
+          "descriptions cannot be longer than " +
+          featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() + " characters.");
+      }
     }
   }
 

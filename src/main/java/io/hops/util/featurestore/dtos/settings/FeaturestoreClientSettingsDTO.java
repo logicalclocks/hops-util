@@ -29,6 +29,8 @@ public class FeaturestoreClientSettingsDTO {
   
   private int featurestoreStatisticsMaxCorrelations;
   private String featurestoreRegex;
+  private int featurestoreEntityNameMaxLength;
+  private int featurestoreEntityDescriptionMaxLength;
   private int storageConnectorNameMaxLength;
   private int storageConnectorDescriptionMaxLength;
   private int jdbcStorageConnectorConnectionstringMaxLength;
@@ -36,20 +38,8 @@ public class FeaturestoreClientSettingsDTO {
   private int s3StorageConnectorBucketMaxLength;
   private int s3StorageConnectorAccesskeyMaxLength;
   private int s3StorageConnectorSecretkeyMaxLength;
-  private int cachedFeaturegroupNameMaxLength;
-  private int cachedFeaturegroupDescriptionMaxLength;
-  private int cachedFeaturegroupFeatureNameMaxLength;
-  private int cachedFeaturegroupFeatureDescriptionMaxLength;
-  private int onDemandFeaturegroupNameMaxLength;
-  private int onDemandFeaturegroupDescriptionMaxLength;
-  private int onDemandFeaturegroupFeatureNameMaxLength;
-  private int onDemandFeaturegroupFeatureDescriptionMaxLength;
   private int onDemandFeaturegroupSqlQueryMaxLength;
   private List<String> trainingDatasetDataFormats;
-  private int externalTrainingDatasetNameMaxLength;
-  private int hopsfsTrainingDatasetNameMaxLength;
-  private int trainingDatasetFeatureNameMaxLength;
-  private int trainingDatasetFeatureDescriptionMaxLength;
   private String onDemandFeaturegroupType;
   private String cachedFeaturegroupType;
   private String jdbcConnectorType;
@@ -61,7 +51,6 @@ public class FeaturestoreClientSettingsDTO {
   private String externalTrainingDatasetType;
   private String hopsfsTrainingDatasetDtoType;
   private String externalTrainingDatasetDtoType;
-  private int trainingDatasetDescriptionMaxLength;
   private String s3ConnectorDtoType;
   private String jdbcConnectorDtoType;
   private String hopsfsConnectorDtoType;
@@ -99,6 +88,24 @@ public class FeaturestoreClientSettingsDTO {
   
   public void setFeaturestoreRegex(String featurestoreRegex) {
     this.featurestoreRegex = featurestoreRegex;
+  }
+  
+  @XmlElement
+  public int getFeaturestoreEntityNameMaxLength() {
+    return featurestoreEntityNameMaxLength;
+  }
+  
+  public void setFeaturestoreEntityNameMaxLength(int featurestoreEntityNameMaxLength) {
+    this.featurestoreEntityNameMaxLength = featurestoreEntityNameMaxLength;
+  }
+  
+  @XmlElement
+  public int getFeaturestoreEntityDescriptionMaxLength() {
+    return featurestoreEntityDescriptionMaxLength;
+  }
+  
+  public void setFeaturestoreEntityDescriptionMaxLength(int featurestoreEntityDescriptionMaxLength) {
+    this.featurestoreEntityDescriptionMaxLength = featurestoreEntityDescriptionMaxLength;
   }
   
   @XmlElement
@@ -165,78 +172,6 @@ public class FeaturestoreClientSettingsDTO {
   }
   
   @XmlElement
-  public int getCachedFeaturegroupNameMaxLength() {
-    return cachedFeaturegroupNameMaxLength;
-  }
-  
-  public void setCachedFeaturegroupNameMaxLength(int cachedFeaturegroupNameMaxLength) {
-    this.cachedFeaturegroupNameMaxLength = cachedFeaturegroupNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getCachedFeaturegroupDescriptionMaxLength() {
-    return cachedFeaturegroupDescriptionMaxLength;
-  }
-  
-  public void setCachedFeaturegroupDescriptionMaxLength(int cachedFeaturegroupDescriptionMaxLength) {
-    this.cachedFeaturegroupDescriptionMaxLength = cachedFeaturegroupDescriptionMaxLength;
-  }
-  
-  @XmlElement
-  public int getCachedFeaturegroupFeatureNameMaxLength() {
-    return cachedFeaturegroupFeatureNameMaxLength;
-  }
-  
-  public void setCachedFeaturegroupFeatureNameMaxLength(int cachedFeaturegroupFeatureNameMaxLength) {
-    this.cachedFeaturegroupFeatureNameMaxLength = cachedFeaturegroupFeatureNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getCachedFeaturegroupFeatureDescriptionMaxLength() {
-    return cachedFeaturegroupFeatureDescriptionMaxLength;
-  }
-  
-  public void setCachedFeaturegroupFeatureDescriptionMaxLength(int cachedFeaturegroupFeatureDescriptionMaxLength) {
-    this.cachedFeaturegroupFeatureDescriptionMaxLength = cachedFeaturegroupFeatureDescriptionMaxLength;
-  }
-  
-  @XmlElement
-  public int getOnDemandFeaturegroupNameMaxLength() {
-    return onDemandFeaturegroupNameMaxLength;
-  }
-  
-  public void setOnDemandFeaturegroupNameMaxLength(int onDemandFeaturegroupNameMaxLength) {
-    this.onDemandFeaturegroupNameMaxLength = onDemandFeaturegroupNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getOnDemandFeaturegroupDescriptionMaxLength() {
-    return onDemandFeaturegroupDescriptionMaxLength;
-  }
-  
-  public void setOnDemandFeaturegroupDescriptionMaxLength(int onDemandFeaturegroupDescriptionMaxLength) {
-    this.onDemandFeaturegroupDescriptionMaxLength = onDemandFeaturegroupDescriptionMaxLength;
-  }
-  
-  @XmlElement
-  public int getOnDemandFeaturegroupFeatureNameMaxLength() {
-    return onDemandFeaturegroupFeatureNameMaxLength;
-  }
-  
-  public void setOnDemandFeaturegroupFeatureNameMaxLength(int onDemandFeaturegroupFeatureNameMaxLength) {
-    this.onDemandFeaturegroupFeatureNameMaxLength = onDemandFeaturegroupFeatureNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getOnDemandFeaturegroupFeatureDescriptionMaxLength() {
-    return onDemandFeaturegroupFeatureDescriptionMaxLength;
-  }
-  
-  public void setOnDemandFeaturegroupFeatureDescriptionMaxLength(int onDemandFeaturegroupFeatureDescriptionMaxLength) {
-    this.onDemandFeaturegroupFeatureDescriptionMaxLength = onDemandFeaturegroupFeatureDescriptionMaxLength;
-  }
-  
-  @XmlElement
   public int getOnDemandFeaturegroupSqlQueryMaxLength() {
     return onDemandFeaturegroupSqlQueryMaxLength;
   }
@@ -252,42 +187,6 @@ public class FeaturestoreClientSettingsDTO {
   
   public void setTrainingDatasetDataFormats(List<String> trainingDatasetDataFormats) {
     this.trainingDatasetDataFormats = trainingDatasetDataFormats;
-  }
-  
-  @XmlElement
-  public int getExternalTrainingDatasetNameMaxLength() {
-    return externalTrainingDatasetNameMaxLength;
-  }
-  
-  public void setExternalTrainingDatasetNameMaxLength(int externalTrainingDatasetNameMaxLength) {
-    this.externalTrainingDatasetNameMaxLength = externalTrainingDatasetNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getHopsfsTrainingDatasetNameMaxLength() {
-    return hopsfsTrainingDatasetNameMaxLength;
-  }
-  
-  public void setHopsfsTrainingDatasetNameMaxLength(int hopsfsTrainingDatasetNameMaxLength) {
-    this.hopsfsTrainingDatasetNameMaxLength = hopsfsTrainingDatasetNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getTrainingDatasetFeatureNameMaxLength() {
-    return trainingDatasetFeatureNameMaxLength;
-  }
-  
-  public void setTrainingDatasetFeatureNameMaxLength(int trainingDatasetFeatureNameMaxLength) {
-    this.trainingDatasetFeatureNameMaxLength = trainingDatasetFeatureNameMaxLength;
-  }
-  
-  @XmlElement
-  public int getTrainingDatasetFeatureDescriptionMaxLength() {
-    return trainingDatasetFeatureDescriptionMaxLength;
-  }
-  
-  public void setTrainingDatasetFeatureDescriptionMaxLength(int trainingDatasetFeatureDescriptionMaxLength) {
-    this.trainingDatasetFeatureDescriptionMaxLength = trainingDatasetFeatureDescriptionMaxLength;
   }
   
   @XmlElement
@@ -387,15 +286,6 @@ public class FeaturestoreClientSettingsDTO {
   
   public void setExternalTrainingDatasetDtoType(String externalTrainingDatasetDtoType) {
     this.externalTrainingDatasetDtoType = externalTrainingDatasetDtoType;
-  }
-  
-  @XmlElement
-  public int getTrainingDatasetDescriptionMaxLength() {
-    return trainingDatasetDescriptionMaxLength;
-  }
-  
-  public void setTrainingDatasetDescriptionMaxLength(int trainingDatasetDescriptionMaxLength) {
-    this.trainingDatasetDescriptionMaxLength = trainingDatasetDescriptionMaxLength;
   }
   
   @XmlElement
