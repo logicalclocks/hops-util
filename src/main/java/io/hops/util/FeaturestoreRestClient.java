@@ -243,11 +243,7 @@ public class FeaturestoreRestClient {
       Map<String, Object> queryParams = new HashMap<>();
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, true);
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_SETTINGS_QUERY_PARAM, true);
-      if(!featuregroupDTO.getJobs().isEmpty()) {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
-      } else {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, false);
-      }
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM, !featuregroupDTO.getJobs().isEmpty());
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
           featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
@@ -292,11 +288,8 @@ public class FeaturestoreRestClient {
         trainingDatasetDTO.getName(), trainingDatasetDTO.getVersion());
       Map<String, Object> queryParams = new HashMap<>();
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, true);
-      if(!trainingDatasetDTO.getJobs().isEmpty()){
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
-      } else {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, false);
-      }
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM,
+          !trainingDatasetDTO.getJobs().isEmpty());
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
           featurestoreId + "/" + Constants.HOPSWORKS_REST_TRAININGDATASETS_RESOURCE + "/" + trainingDatasetId,
@@ -379,11 +372,7 @@ public class FeaturestoreRestClient {
       queryParams.put(Constants.JSON_FEATURESTORE_ENABLE_ONLINE_QUERY_PARAM, true);
       queryParams.put(Constants.JSON_FEATURESTORE_DISABLE_ONLINE_QUERY_PARAM, false);
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, false);
-      if(!featuregroupDTO.getJobs().isEmpty()) {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
-      } else {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, false);
-      }
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM, !featuregroupDTO.getJobs().isEmpty());
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
           featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
@@ -431,11 +420,7 @@ public class FeaturestoreRestClient {
       queryParams.put(Constants.JSON_FEATURESTORE_DISABLE_ONLINE_QUERY_PARAM, true);
       queryParams.put(Constants.JSON_FEATURESTORE_ENABLE_ONLINE_QUERY_PARAM, false);
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, false);
-      if(!featuregroupDTO.getJobs().isEmpty()) {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, true);
-      } else {
-        queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_METADATA_QUERY_PARAM, false);
-      }
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM, !featuregroupDTO.getJobs().isEmpty());
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
           featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
