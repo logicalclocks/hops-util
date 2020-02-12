@@ -123,6 +123,7 @@ public class Constants {
   public static final String SPARK_OVERWRITE_MODE = "overwrite";
   public static final String SPARK_WRITE_DELIMITER = "delimiter";
   public static final String SPARK_WRITE_HEADER = "header";
+  public static final String SPARK_INFER_SCHEMA = "inferSchema";
   public static final String SPARK_TF_CONNECTOR_RECORD_TYPE = "recordType";
   public static final String SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE = "Example";
   public static final String SPARK_SQL_CATALOG_IMPLEMENTATION = "spark.sql.catalogImplementation";
