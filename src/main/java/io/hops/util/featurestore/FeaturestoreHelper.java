@@ -601,46 +601,62 @@ public class FeaturestoreHelper {
           filePath = new org.apache.hadoop.fs.Path(path);
           hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
-            return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-              .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path);
+            return sparkSession.read().format(dataFormat)
+                .option(Constants.SPARK_WRITE_HEADER, "true")
+                .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER)
+                .option(Constants.SPARK_INFER_SCHEMA, "true")
+                .load(path);
           } else {
             filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_CSV_SUFFIX);
             hdfs = filePath.getFileSystem(hdfsConf);
             if (hdfs.exists(filePath)) {
-              return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-                .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path +
-                  Constants.TRAINING_DATASET_CSV_SUFFIX);
+              return sparkSession.read().format(dataFormat)
+                  .option(Constants.SPARK_WRITE_HEADER, "true")
+                  .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER)
+                  .option(Constants.SPARK_INFER_SCHEMA, "true")
+                  .load(path + Constants.TRAINING_DATASET_CSV_SUFFIX);
             } else {
               throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
                 + path + " or in file: " + path + Constants.TRAINING_DATASET_CSV_SUFFIX);
             }
           }
         } else {
-          return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-            .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER).load(path);
+          return sparkSession.read().format(dataFormat)
+              .option(Constants.SPARK_WRITE_HEADER, "true")
+              .option(Constants.SPARK_WRITE_DELIMITER, Constants.COMMA_DELIMITER)
+              .option(Constants.SPARK_INFER_SCHEMA, "true")
+              .load(path);
         }
       case Constants.TRAINING_DATASET_TSV_FORMAT:
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           filePath = new org.apache.hadoop.fs.Path(path);
           hdfs = filePath.getFileSystem(hdfsConf);
           if (hdfs.exists(filePath)) {
-            return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-              .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path);
+            return sparkSession.read().format(dataFormat)
+                .option(Constants.SPARK_WRITE_HEADER, "true")
+                .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER)
+                .option(Constants.SPARK_INFER_SCHEMA, "true")
+                .load(path);
           } else {
             filePath = new org.apache.hadoop.fs.Path(path + Constants.TRAINING_DATASET_TSV_SUFFIX);
             hdfs = filePath.getFileSystem(hdfsConf);
             if (hdfs.exists(filePath)) {
-              return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-                .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path +
-                  Constants.TRAINING_DATASET_TSV_SUFFIX);
+              return sparkSession.read().format(dataFormat)
+                  .option(Constants.SPARK_WRITE_HEADER, "true")
+                  .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER)
+                  .option(Constants.SPARK_INFER_SCHEMA, "true")
+                  .load(path + Constants.TRAINING_DATASET_TSV_SUFFIX);
             } else {
               throw new TrainingDatasetDoesNotExistError("Could not find any training dataset in folder : "
                 + path + " or in file: " + path + Constants.TRAINING_DATASET_TSV_SUFFIX);
             }
           }
         } else {
-          return sparkSession.read().format(dataFormat).option(Constants.SPARK_WRITE_HEADER, "true")
-            .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER).load(path);
+          return sparkSession.read().format(dataFormat)
+              .option(Constants.SPARK_WRITE_HEADER, "true")
+              .option(Constants.SPARK_INFER_SCHEMA, "true")
+              .option(Constants.SPARK_WRITE_DELIMITER, Constants.TAB_DELIMITER)
+              .load(path);
         }
       case Constants.TRAINING_DATASET_PARQUET_FORMAT:
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
