@@ -17,29 +17,29 @@
 package io.hops.util.featurestore.dtos.trainingdataset;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.hops.util.featurestore.dtos.FeaturestoreEntityDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSeeAlso;
 
 /**
  * DTO containing the human-readable information of a trainingDataset, can be converted to JSON or XML representation
  * using jaxb.
  */
 @XmlRootElement
-@XmlSeeAlso({HopsfsTrainingDatasetDTO.class, ExternalTrainingDatasetDTO.class})
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY)
-@JsonSubTypes({
-  @JsonSubTypes.Type(value = HopsfsTrainingDatasetDTO.class, name = "HopsfsTrainingDatasetDTO"),
-  @JsonSubTypes.Type(value = ExternalTrainingDatasetDTO.class, name = "ExternalTrainingDatasetDTO")})
 public class TrainingDatasetDTO extends FeaturestoreEntityDTO {
   
   private String dataFormat;
   private TrainingDatasetType trainingDatasetType;
+
+  private Integer storageConnectorId;
+  private String storageConnectorName;
+  private FeaturestoreStorageConnectorType storageConnectorType;
+  private Long inodeId;
 
   public TrainingDatasetDTO() {
   }
@@ -67,7 +67,39 @@ public class TrainingDatasetDTO extends FeaturestoreEntityDTO {
     TrainingDatasetType trainingDatasetType) {
     this.trainingDatasetType = trainingDatasetType;
   }
-  
+
+  public Integer getStorageConnectorId() {
+    return storageConnectorId;
+  }
+
+  public void setStorageConnectorId(Integer storageConnectorId) {
+    this.storageConnectorId = storageConnectorId;
+  }
+
+  public String getStorageConnectorName() {
+    return storageConnectorName;
+  }
+
+  public void setStorageConnectorName(String storageConnectorName) {
+    this.storageConnectorName = storageConnectorName;
+  }
+
+  public FeaturestoreStorageConnectorType getStorageConnectorType() {
+    return storageConnectorType;
+  }
+
+  public void setStorageConnectorType(FeaturestoreStorageConnectorType storageConnectorType) {
+    this.storageConnectorType = storageConnectorType;
+  }
+
+  public Long getInodeId() {
+    return inodeId;
+  }
+
+  public void setInodeId(Long inodeId) {
+    this.inodeId = inodeId;
+  }
+
   @Override
   public String toString() {
     return "TrainingDatasetDTO{" +

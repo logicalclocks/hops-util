@@ -83,8 +83,7 @@ public class FeaturestoreUpdateTrainingDatasetStats extends FeaturestoreOp {
         Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(
         featurestoreMetadataDTO.getTrainingDatasets(), name, version);
-    FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO),
-      FeaturestoreHelper.getTrainingDatasetDTOTypeStr(trainingDatasetDTO, featurestoreMetadataDTO.getSettings()));
+    FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO));
   }
   
   /**

@@ -25,8 +25,6 @@ import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreHopsfsConnect
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
-import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -114,8 +112,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       doCreateExternalTrainingDataset(featurestoreMetadata, statisticsDTO, featuresSchema,
         (FeaturestoreS3ConnectorDTO) storageConnectorDTO);
     } else {
-      doCreateHopsfsTrainingDataset(featurestoreMetadata, statisticsDTO, featuresSchema,
-        (FeaturestoreHopsfsConnectorDTO) storageConnectorDTO);
+      doCreateHopsfsTrainingDataset(statisticsDTO, featuresSchema,
+          (FeaturestoreHopsfsConnectorDTO) storageConnectorDTO);
     }
     //Update metadata cache since we created a new training dataset
     Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
@@ -129,7 +127,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @param hopsfsStorageConnectorId id of the hopsfs storage connector linked to the training dataset
    * @return HopsfsTrainingDatasetDTO
    */
-  private HopsfsTrainingDatasetDTO groupInputParamsIntoHopsfsDTO(StatisticsDTO statisticsDTO,
+  private TrainingDatasetDTO groupInputParamsIntoHopsfsDTO(StatisticsDTO statisticsDTO,
     List<FeatureDTO> features, Integer hopsfsStorageConnectorId) {
     if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
       jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
@@ -139,7 +137,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       featurestoreJobDTO.setJobName(jobName);
       return featurestoreJobDTO;
     }).collect(Collectors.toList());
-    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = new HopsfsTrainingDatasetDTO();
+    TrainingDatasetDTO hopsfsTrainingDatasetDTO = new TrainingDatasetDTO();
     hopsfsTrainingDatasetDTO.setFeaturestoreName(featurestore);
     hopsfsTrainingDatasetDTO.setName(name);
     hopsfsTrainingDatasetDTO.setVersion(version);
@@ -151,7 +149,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     hopsfsTrainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
     hopsfsTrainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
     hopsfsTrainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
-    hopsfsTrainingDatasetDTO.setHopsfsConnectorId(hopsfsStorageConnectorId);
+    hopsfsTrainingDatasetDTO.setStorageConnectorId(hopsfsStorageConnectorId);
     hopsfsTrainingDatasetDTO.setTrainingDatasetType(TrainingDatasetType.HOPSFS_TRAINING_DATASET);
     return hopsfsTrainingDatasetDTO;
   }
@@ -164,7 +162,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @param s3ConnectorId id of the s3 connector linked to the training dataset
    * @return ExternalTrainingDatasetDTO
    */
-  private ExternalTrainingDatasetDTO groupInputParamsIntoExternalDTO(StatisticsDTO statisticsDTO,
+  private TrainingDatasetDTO groupInputParamsIntoExternalDTO(StatisticsDTO statisticsDTO,
     List<FeatureDTO> features, Integer s3ConnectorId){
     if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
       jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
@@ -174,7 +172,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
       featurestoreJobDTO.setJobName(jobName);
       return featurestoreJobDTO;
     }).collect(Collectors.toList());
-    ExternalTrainingDatasetDTO externalTrainingDatasetDTO = new ExternalTrainingDatasetDTO();
+    TrainingDatasetDTO externalTrainingDatasetDTO = new TrainingDatasetDTO();
     externalTrainingDatasetDTO.setFeaturestoreName(featurestore);
     externalTrainingDatasetDTO.setName(name);
     externalTrainingDatasetDTO.setVersion(version);
@@ -186,7 +184,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     externalTrainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
     externalTrainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
     externalTrainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
-    externalTrainingDatasetDTO.setS3ConnectorId(s3ConnectorId);
+    externalTrainingDatasetDTO.setStorageConnectorId(s3ConnectorId);
     externalTrainingDatasetDTO.setTrainingDatasetType(TrainingDatasetType.EXTERNAL_TRAINING_DATASET);
     return externalTrainingDatasetDTO;
   }
@@ -195,7 +193,6 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * Creates a new HopsFS training dataset (synchronizes it with Hopsworks using the REST API and writes it to HopsFS
    * using Spark)
    *
-   * @param featurestoreMetadataDTO metadata about the feature store
    * @param statisticsDTO statistics about the training dataset
    * @param featuresSchema schema of the training dataset
    * @param featurestoreHopsfsConnectorDTO the HopsFS storage connector
@@ -208,25 +205,23 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
-  private void doCreateHopsfsTrainingDataset(FeaturestoreMetadataDTO featurestoreMetadataDTO,
-    StatisticsDTO statisticsDTO, List<FeatureDTO> featuresSchema,
+  private void doCreateHopsfsTrainingDataset(StatisticsDTO statisticsDTO, List<FeatureDTO> featuresSchema,
     FeaturestoreHopsfsConnectorDTO featurestoreHopsfsConnectorDTO)
     throws JAXBException, FeaturestoreNotFound, TrainingDatasetCreationError,
     JWTNotFoundException, HiveNotEnabled, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
+
     Response response = FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoHopsfsDTO(statisticsDTO,
-      featuresSchema, featurestoreHopsfsConnectorDTO.getId()),
-      featurestoreMetadataDTO.getSettings().getHopsfsTrainingDatasetDtoType());
+      featuresSchema, featurestoreHopsfsConnectorDTO.getId()));
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
-    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
-    String hdfsPath = hopsfsTrainingDatasetDTO.getHdfsStorePath() + Constants.SLASH_DELIMITER + name;
+    String hdfsPath = FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     FeaturestoreHelper.writeTrainingDataset(getSpark(), dataframe, hdfsPath, dataFormat,
       Constants.SPARK_OVERWRITE_MODE);
     if (dataFormat.equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
       try {
         JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(dataframe);
-        FeaturestoreHelper.writeTfRecordSchemaJson(hopsfsTrainingDatasetDTO.getHdfsStorePath()
+        FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getLocation()
             + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
           tfRecordSchemaJson.toString());
       } catch (Exception e) {
@@ -261,7 +256,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
       getSpark());
     FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoExternalDTO(statisticsDTO, featuresSchema,
-        s3ConnectorDTO.getId()), featurestoreMetadataDTO.getSettings().getExternalTrainingDatasetDtoType());
+        s3ConnectorDTO.getId()));
     FeaturestoreHelper.writeTrainingDataset(getSpark(), dataframe, path, dataFormat,
       Constants.SPARK_OVERWRITE_MODE);
   }

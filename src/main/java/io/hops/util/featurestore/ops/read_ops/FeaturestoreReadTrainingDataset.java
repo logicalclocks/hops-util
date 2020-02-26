@@ -9,8 +9,6 @@ import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -109,8 +107,7 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
    */
   private Dataset<Row> doGetHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO, SparkSession sparkSession)
     throws TrainingDatasetFormatNotSupportedError, TrainingDatasetDoesNotExistError, IOException {
-    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
-    String path = FeaturestoreHelper.getHopsfsTrainingDatasetPath(hopsfsTrainingDatasetDTO);
+    String path = FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     return FeaturestoreHelper.getTrainingDataset(sparkSession, trainingDatasetDTO.getDataFormat(),
       path, TrainingDatasetType.HOPSFS_TRAINING_DATASET);
   }
@@ -131,13 +128,11 @@ public class FeaturestoreReadTrainingDataset extends FeaturestoreOp {
     TrainingDatasetDTO trainingDatasetDTO, SparkSession sparkSession, FeaturestoreMetadataDTO featurestoreMetadataDTO)
     throws StorageConnectorDoesNotExistError, TrainingDatasetFormatNotSupportedError,
     TrainingDatasetDoesNotExistError, IOException {
-    ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
-    
+
     FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
-      featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
+      featurestoreMetadataDTO.getStorageConnectors(), trainingDatasetDTO.getStorageConnectorName());
     
-    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
-      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket(), externalPath);
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(trainingDatasetDTO);
     
     FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
       sparkSession);

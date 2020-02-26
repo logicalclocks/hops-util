@@ -6,9 +6,6 @@ import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
-import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -78,47 +75,17 @@ public class FeaturestoreReadTrainingDatasetPath extends FeaturestoreOp {
    * @throws StorageConnectorDoesNotExistError StorageConnectorDoesNotExistError
    */
   private static String doGetTrainingDatasetPath(String trainingDataset,
-    int trainingDatasetVersion,
-    FeaturestoreMetadataDTO featurestoreMetadata) throws
-      TrainingDatasetDoesNotExistError, StorageConnectorDoesNotExistError {
+    int trainingDatasetVersion, FeaturestoreMetadataDTO featurestoreMetadata) throws TrainingDatasetDoesNotExistError {
+
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
       trainingDataset, trainingDatasetVersion);
+
     if(trainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
-      return doGetHopsfsTrainingDatasetPath(trainingDatasetDTO);
+      return FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     } else {
-      return doGetExternalTrainingDatasetPath(trainingDatasetDTO, featurestoreMetadata);
+      return FeaturestoreHelper.getExternalTrainingDatasetPath(trainingDatasetDTO);
     }
   }
-  
-  /**
-   * Gets the path of a hopsfs training dataset
-   *
-   * @param trainingDatasetDTO DTO information about the training dataset
-   * @return the HopsFS path
-   */
-  private static String doGetHopsfsTrainingDatasetPath(TrainingDatasetDTO trainingDatasetDTO) {
-    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
-    return FeaturestoreHelper.getHopsfsTrainingDatasetPath(hopsfsTrainingDatasetDTO);
-  }
-  
-  /**
-   * Gets the path to an external training dataset (e.g S3 path)
-   *
-   * @param trainingDatasetDTO DTO information about the training dataset
-   * @param featurestoreMetadataDTO metadata about the feature store
-   * @return the external training dataset path
-   * @throws StorageConnectorDoesNotExistError
-   */
-  private static String doGetExternalTrainingDatasetPath(TrainingDatasetDTO trainingDatasetDTO,
-    FeaturestoreMetadataDTO featurestoreMetadataDTO) throws StorageConnectorDoesNotExistError {
-    ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
-    FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
-      featurestoreMetadataDTO.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
-    // TODO(Fabio): this is actually wrong, but I can't do anything right now. We need to store the path in the database
-    // SEE https://logicalclocks.atlassian.net/projects/HOPSWORKS/issues/HOPSWORKS-1454
-    return FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
-      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket(), "");
-  }
-  
+
 }

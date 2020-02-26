@@ -49,8 +49,6 @@ public class FeaturestoreClientSettingsDTO {
   private String onDemandFeaturegroupDtoType;
   private String hopsfsTrainingDatasetType;
   private String externalTrainingDatasetType;
-  private String hopsfsTrainingDatasetDtoType;
-  private String externalTrainingDatasetDtoType;
   private String s3ConnectorDtoType;
   private String jdbcConnectorDtoType;
   private String hopsfsConnectorDtoType;
@@ -269,25 +267,7 @@ public class FeaturestoreClientSettingsDTO {
   public void setExternalTrainingDatasetType(String externalTrainingDatasetType) {
     this.externalTrainingDatasetType = externalTrainingDatasetType;
   }
-  
-  @XmlElement
-  public String getHopsfsTrainingDatasetDtoType() {
-    return hopsfsTrainingDatasetDtoType;
-  }
-  
-  public void setHopsfsTrainingDatasetDtoType(String hopsfsTrainingDatasetDtoType) {
-    this.hopsfsTrainingDatasetDtoType = hopsfsTrainingDatasetDtoType;
-  }
-  
-  @XmlElement
-  public String getExternalTrainingDatasetDtoType() {
-    return externalTrainingDatasetDtoType;
-  }
-  
-  public void setExternalTrainingDatasetDtoType(String externalTrainingDatasetDtoType) {
-    this.externalTrainingDatasetDtoType = externalTrainingDatasetDtoType;
-  }
-  
+
   @XmlElement
   public String getS3ConnectorDtoType() {
     return s3ConnectorDtoType;
