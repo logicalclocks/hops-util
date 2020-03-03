@@ -274,8 +274,7 @@ public class FeaturestoreRestClient {
         trainingDatasetDTO.getName(), trainingDatasetDTO.getVersion());
       Map<String, Object> queryParams = new HashMap<>();
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, true);
-      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM,
-          !trainingDatasetDTO.getJobs().isEmpty());
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM, !trainingDatasetDTO.getJobs().isEmpty());
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
           featurestoreId + "/" + Constants.HOPSWORKS_REST_TRAININGDATASETS_RESOURCE + "/" + trainingDatasetId,

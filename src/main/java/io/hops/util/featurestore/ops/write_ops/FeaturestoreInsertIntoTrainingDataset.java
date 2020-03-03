@@ -191,7 +191,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
   private void insertIntoHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
     SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
     throws TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
-    String hdfsPath = trainingDatasetDTO.getLocation();
+    String hdfsPath = FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, hdfsPath,
       trainingDatasetDTO.getDataFormat(), writeMode);
     if (trainingDatasetDTO.getDataFormat().equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
@@ -203,9 +203,9 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       }
       if(tfRecordSchemaJson != null){
         try {
-          FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getLocation() + "/.."
-              + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
-            tfRecordSchemaJson.toString());
+          FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getLocation() +
+                  Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+              tfRecordSchemaJson.toString());
         } catch (Exception e) {
           LOG.log(Level.WARNING, "Could not save tf record schema json to HDFS for training dataset: "
             + trainingDatasetDTO.getName(), e);
