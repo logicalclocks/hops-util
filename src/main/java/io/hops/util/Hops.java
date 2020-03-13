@@ -590,6 +590,9 @@ public class Hops {
    * @param featuregroup        the name of the featuregroup to update statistics for
    * @return a lazy java object for the operation of updating the stats of a featuregroup.
    * The operation can be started with write() on the object and parameters can be updated with setters
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public static FeaturestoreUpdateFeaturegroupStats updateFeaturegroupStats(String featuregroup)
     throws FeaturegroupDoesNotExistError, JAXBException, FeaturestoreNotFound {
@@ -892,8 +895,8 @@ public class Hops {
   
   /**
    * Get a valid elastic index name for the current project.
-   * @param index
-   * @return
+   * @param index index to get name for
+   * @return index name
    */
   public static String getElasticIndex(String index){
     return getProjectName() + "_" + index;
@@ -901,9 +904,9 @@ public class Hops {
   
   /**
    * Generate a new jwt token to be used with Elastic.
-   * @return
-   * @throws JWTNotFoundException
-   * @throws ElasticAuthorizationTokenException
+   * @return token
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws ElasticAuthorizationTokenException ElasticAuthorizationTokenException
    */
   public static String getElasticAuthorizationToken()
       throws JWTNotFoundException, ElasticAuthorizationTokenException {
@@ -943,10 +946,10 @@ public class Hops {
   
   /**
    * Get Elasticsearch configuration to use with spark connector.
-   * @param index
+   * @param index index
    * @return elasticsearch configurations
-   * @throws ElasticAuthorizationTokenException
-   * @throws JWTNotFoundException
+   * @throws ElasticAuthorizationTokenException ElasticAuthorizationTokenException
+   * @throws JWTNotFoundException JWTNotFoundException
    */
   public static Map<String, String> getElasticConfiguration(String index)
       throws ElasticAuthorizationTokenException, JWTNotFoundException {

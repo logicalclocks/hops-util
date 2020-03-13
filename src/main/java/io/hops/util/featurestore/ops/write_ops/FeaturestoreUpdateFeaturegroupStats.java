@@ -37,6 +37,9 @@ public class FeaturestoreUpdateFeaturegroupStats extends FeaturestoreOp {
    * Constructor
    *
    * @param name name of the featuregroup to update stats of
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws JAXBException JAXBException
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
   public FeaturestoreUpdateFeaturegroupStats(String name)
     throws FeaturegroupDoesNotExistError, JAXBException, FeaturestoreNotFound {

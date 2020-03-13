@@ -2813,6 +2813,9 @@ public class FeaturestoreHelper {
   /**
    * Hopsworks returns the filesystem to be s3:// but Spark expects s3a://
    * this method converts the filesystem into the expected one
+   *
+   * @param trainingDatasetDTO a trainingdataset dto
+   * @return path with replaced filesystem
    */
   public static String getExternalTrainingDatasetPath(TrainingDatasetDTO trainingDatasetDTO) {
     return trainingDatasetDTO.getLocation().replaceFirst("s3://", Constants.S3_FILE_PREFIX);
