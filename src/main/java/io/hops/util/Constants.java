@@ -108,9 +108,8 @@ public class Constants {
   public static final String JSON_TRAINING_DATASET_DESC_STATS = "descriptiveStatistics";
   public static final String JSON_TRAINING_DATASET_JOBNAME = "jobName";
   public static final String JSON_TRAINING_DATASET_UPDATE_METADATA = "updateMetadata";
-  public static final String JSON_TRAINING_DATASET_S3_CONNECTOR_ID = "s3ConnectorId";
-  public static final String JSON_TRAINING_DATASET_HOPSFS_CONNECTOR_ID = "hopsfsConnectorId";
   public static final String JSON_TRAINING_DATASET_TYPE =  "trainingDatasetType";
+  public static final String JSON_TRAINING_DATASET_CONNECTOR_ID = "connectorId";
 
   public static final String JSON_ERROR_CODE = "errorCode";
   public static final String JSON_ERROR_MSG = "errorMsg";

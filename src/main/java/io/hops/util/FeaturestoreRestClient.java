@@ -17,10 +17,7 @@ import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -149,27 +146,18 @@ public class FeaturestoreRestClient {
    * Makes a REST call to Hopsworks for creating a new training dataset from a spark dataframe
    *
    * @param trainingDatasetDTO            DTO of the training dataset
-   * @param trainingDatasetDTOType        the DTO type to send
    * @return the JSON response
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
-  public static Response createTrainingDatasetRest(TrainingDatasetDTO trainingDatasetDTO, String trainingDatasetDTOType)
+  public static Response createTrainingDatasetRest(TrainingDatasetDTO trainingDatasetDTO)
     throws JWTNotFoundException, JAXBException, TrainingDatasetCreationError, FeaturestoreNotFound {
     LOG.log(Level.FINE, "Creating Training Dataset " + trainingDatasetDTO.getName() +
       " in featurestore: " + trainingDatasetDTO.getFeaturestoreName());
     JSONObject json = FeaturestoreHelper.convertTrainingDatasetDTOToJsonObject(trainingDatasetDTO);
-    json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, trainingDatasetDTOType);
     Response response;
-    if(trainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.EXTERNAL_TRAINING_DATASET) {
-      json.put(Constants.JSON_TRAINING_DATASET_S3_CONNECTOR_ID,
-        ((ExternalTrainingDatasetDTO) trainingDatasetDTO).getS3ConnectorId());
-    } else {
-      json.put(Constants.JSON_TRAINING_DATASET_HOPSFS_CONNECTOR_ID,
-        ((HopsfsTrainingDatasetDTO) trainingDatasetDTO).getHopsfsConnectorId());
-    }
     try {
       int featurestoreId = FeaturestoreHelper.getFeaturestoreId(trainingDatasetDTO.getFeaturestoreName());
       response = Hops.clientWrapper(json,
@@ -199,7 +187,6 @@ public class FeaturestoreRestClient {
   public static Response getFeaturestoresForProjectRest()
     throws JWTNotFoundException, FeaturestoresNotFound {
     LOG.log(Level.FINE, "Getting featurestores for current project");
-    
     Response response;
     try {
       response =
@@ -273,14 +260,13 @@ public class FeaturestoreRestClient {
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws TrainingDatasetDoesNotExistError TrainingDatasetDoesNotExistError
    */
-  public static Response updateTrainingDatasetStatsRest(
-    TrainingDatasetDTO trainingDatasetDTO, String trainingDatasetDTOType)
-    throws JWTNotFoundException,
-    JAXBException, FeaturegroupUpdateStatsError, TrainingDatasetDoesNotExistError, FeaturestoreNotFound {
+  public static Response updateTrainingDatasetStatsRest(TrainingDatasetDTO trainingDatasetDTO)
+      throws JWTNotFoundException, JAXBException, FeaturegroupUpdateStatsError,
+      TrainingDatasetDoesNotExistError, FeaturestoreNotFound {
+
     LOG.log(Level.FINE, "Updating training dataset stats for: " + trainingDatasetDTO.getName() +
       " in featurestore: " + trainingDatasetDTO.getFeaturestoreName());
     JSONObject json = FeaturestoreHelper.convertTrainingDatasetDTOToJsonObject(trainingDatasetDTO);
-    json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, trainingDatasetDTOType);
     Response response = null;
     try {
       int featurestoreId = FeaturestoreHelper.getFeaturestoreId(trainingDatasetDTO.getFeaturestoreName());
@@ -288,8 +274,7 @@ public class FeaturestoreRestClient {
         trainingDatasetDTO.getName(), trainingDatasetDTO.getVersion());
       Map<String, Object> queryParams = new HashMap<>();
       queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, true);
-      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM,
-          !trainingDatasetDTO.getJobs().isEmpty());
+      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM, !trainingDatasetDTO.getJobs().isEmpty());
       response = Hops.clientWrapper(json,
         "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
           featurestoreId + "/" + Constants.HOPSWORKS_REST_TRAININGDATASETS_RESOURCE + "/" + trainingDatasetId,

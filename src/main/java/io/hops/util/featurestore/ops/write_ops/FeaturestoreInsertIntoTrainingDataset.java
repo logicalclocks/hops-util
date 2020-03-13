@@ -22,8 +22,6 @@ import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.ExternalTrainingDatasetDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -168,8 +166,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
       corrMethod);
     Response response =
-      FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO),
-        FeaturestoreHelper.getTrainingDatasetDTOTypeStr(trainingDatasetDTO, featurestoreMetadata.getSettings()));
+      FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO));
     String jsonStrResponse = response.readEntity(String.class);
     JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
     TrainingDatasetDTO updatedTrainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
@@ -194,11 +191,10 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
   private void insertIntoHopsfsTrainingDataset(TrainingDatasetDTO trainingDatasetDTO,
     SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
     throws TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
-    HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
-    String hdfsPath = hopsfsTrainingDatasetDTO.getHdfsStorePath() + "/" + trainingDatasetDTO.getName();
+    String hdfsPath = FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, hdfsPath,
-      hopsfsTrainingDatasetDTO.getDataFormat(), writeMode);
-    if (hopsfsTrainingDatasetDTO.getDataFormat() == Constants.TRAINING_DATASET_TFRECORDS_FORMAT) {
+      trainingDatasetDTO.getDataFormat(), writeMode);
+    if (trainingDatasetDTO.getDataFormat().equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
       JSONObject tfRecordSchemaJson = null;
       try{
         tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);
@@ -207,9 +203,9 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       }
       if(tfRecordSchemaJson != null){
         try {
-          FeaturestoreHelper.writeTfRecordSchemaJson(hopsfsTrainingDatasetDTO.getHdfsStorePath()
-              + Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
-            tfRecordSchemaJson.toString());
+          FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getLocation() +
+                  Constants.SLASH_DELIMITER + Constants.TRAINING_DATASET_TF_RECORD_SCHEMA_FILE_NAME,
+              tfRecordSchemaJson.toString());
         } catch (Exception e) {
           LOG.log(Level.WARNING, "Could not save tf record schema json to HDFS for training dataset: "
             + trainingDatasetDTO.getName(), e);
@@ -235,15 +231,13 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
     FeaturestoreMetadataDTO featurestoreMetadata, SparkSession sparkSession, Dataset<Row> sparkDf, String writeMode)
     throws StorageConnectorDoesNotExistError, TrainingDatasetFormatNotSupportedError,
     CannotWriteImageDataFrameException, HiveNotEnabled {
-    ExternalTrainingDatasetDTO externalTrainingDatasetDTO = (ExternalTrainingDatasetDTO) trainingDatasetDTO;
     FeaturestoreS3ConnectorDTO s3ConnectorDTO = (FeaturestoreS3ConnectorDTO) FeaturestoreHelper.findStorageConnector(
-      featurestoreMetadata.getStorageConnectors(), externalTrainingDatasetDTO.getS3ConnectorName());
-    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(externalTrainingDatasetDTO.getName(),
-      externalTrainingDatasetDTO.getVersion(), s3ConnectorDTO.getBucket(), externalPath);
+      featurestoreMetadata.getStorageConnectors(), trainingDatasetDTO.getStorageConnectorName());
+    String path = FeaturestoreHelper.getExternalTrainingDatasetPath(trainingDatasetDTO);
     FeaturestoreHelper.setupS3CredentialsForSpark(s3ConnectorDTO.getAccessKey(), s3ConnectorDTO.getSecretKey(),
       getSpark());
     FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, path,
-      externalTrainingDatasetDTO.getDataFormat(), writeMode);
+      trainingDatasetDTO.getDataFormat(), writeMode);
   }
   
   /**

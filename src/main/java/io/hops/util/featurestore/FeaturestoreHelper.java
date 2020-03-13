@@ -55,7 +55,6 @@ import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistrib
 import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
-import io.hops.util.featurestore.dtos.trainingdataset.HopsfsTrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
@@ -2637,22 +2636,6 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Returns the DTO type for a training dataset
-   *
-   * @param trainingDatasetDTO the training dataset
-   * @param featurestoreClientSettingsDTO the client settings
-   * @return the DTO type of the training dataset
-   */
-  public static String getTrainingDatasetDTOTypeStr(TrainingDatasetDTO trainingDatasetDTO,
-                                                    FeaturestoreClientSettingsDTO featurestoreClientSettingsDTO) {
-    if(trainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
-      return featurestoreClientSettingsDTO.getHopsfsTrainingDatasetDtoType();
-    } else {
-      return featurestoreClientSettingsDTO.getExternalTrainingDatasetDtoType();
-    }
-  }
-
-  /**
    * Gets the project's default location for storing training datasets in HopsFS
    *
    * @return the name of the default storage connector for storing training datasets in HopsFS
@@ -2695,12 +2678,12 @@ public class FeaturestoreHelper {
   /**
    * Gets the path to where a hopsfs training dataset is
    *
-   * @param hopsfsTrainingDatasetDTO information about the training dataset
+   * @param trainingDatasetDTO information about the training dataset
    * @return the HDFS path
    */
-  public static String getHopsfsTrainingDatasetPath(HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO) {
-    return Constants.HDFS_DEFAULT + hopsfsTrainingDatasetDTO.getHdfsStorePath() +
-      Constants.SLASH_DELIMITER + hopsfsTrainingDatasetDTO.getName();
+  public static String getHopsfsTrainingDatasetPath(TrainingDatasetDTO trainingDatasetDTO) {
+    return Constants.HDFS_DEFAULT + trainingDatasetDTO.getLocation() +
+      Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
   }
 
   /**
@@ -2803,7 +2786,7 @@ public class FeaturestoreHelper {
           getTableName(onDemandFeaturegroup.getName(), onDemandFeaturegroup.getVersion()));
     }
   }
-  
+
   /**
    * Utility function for getting the S3 path of an external training dataset in the feature store
    *
@@ -2824,6 +2807,15 @@ public class FeaturestoreHelper {
     }
 
     return Paths.get(path, FeaturestoreHelper.getTableName(trainingDatasetName, trainingDatasetVersion)).toString();
+  }
+
+
+  /**
+   * Hopsworks returns the filesystem to be s3:// but Spark expects s3a://
+   * this method converts the filesystem into the expected one
+   */
+  public static String getExternalTrainingDatasetPath(TrainingDatasetDTO trainingDatasetDTO) {
+    return trainingDatasetDTO.getLocation().replaceFirst("s3://", Constants.S3_FILE_PREFIX);
   }
   
   /**
