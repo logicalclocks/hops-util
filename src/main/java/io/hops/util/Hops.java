@@ -896,7 +896,7 @@ public class Hops {
   /**
    * Get a valid elastic index name for the current project.
    * @param index index to get name for
-   * @return index name
+   * @return Elastic index name
    */
   public static String getElasticIndex(String index){
     return getProjectName() + "_" + index;
@@ -904,7 +904,7 @@ public class Hops {
   
   /**
    * Generate a new jwt token to be used with Elastic.
-   * @return token
+   * @return elastic auth token
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws ElasticAuthorizationTokenException ElasticAuthorizationTokenException
    */
