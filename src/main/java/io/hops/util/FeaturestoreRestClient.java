@@ -252,7 +252,6 @@ public class FeaturestoreRestClient {
   
   /**
    * @param trainingDatasetDTO        DTO of the training dataset
-   * @param trainingDatasetDTOType    type of the DTO (sub-class info)
    * @return the JSON response
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws JAXBException JAXBException
@@ -471,10 +470,10 @@ public class FeaturestoreRestClient {
    * @param featuregroupVersion the feature group version
    * @param name                the extended attribute name
    * @param value               the extended attribute value
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
-   * @throws FeaturegroupDoesNotExistError
-   * @throws FeaturegroupMetadataError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
    */
   public static void addMetadata(String featuregroupName, String featurestore,
       Integer featuregroupVersion, String name, String value)
@@ -529,10 +528,11 @@ public class FeaturestoreRestClient {
    * @param featurestore        the feature store
    * @param featuregroupVersion the feature group version
    * @param name                the extended attribute name
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
-   * @throws FeaturegroupDoesNotExistError
-   * @throws FeaturegroupMetadataError
+   * @return extended metadata as map
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
    */
   public static Map<String, String> getMetadata(String featuregroupName,
       String featurestore, Integer featuregroupVersion, String name)
@@ -591,10 +591,10 @@ public class FeaturestoreRestClient {
    * @param featurestore        the feature store
    * @param featuregroupVersion the feature group version
    * @param name                the extended attribute name
-   * @throws FeaturestoreNotFound
-   * @throws JAXBException
-   * @throws FeaturegroupDoesNotExistError
-   * @throws FeaturegroupMetadataError
+   * @throws FeaturestoreNotFound FeaturestoreNotFound
+   * @throws JAXBException JAXBException
+   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
+   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
    */
   public static void removeMetadata(String featuregroupName,
       String featurestore, Integer featuregroupVersion, String name)
