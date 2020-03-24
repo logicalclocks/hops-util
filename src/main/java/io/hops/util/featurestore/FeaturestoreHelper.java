@@ -1091,6 +1091,7 @@ public class FeaturestoreHelper {
    */
   private static Dataset<Row> addProvenanceMetadataToDataFrame(Dataset<Row> sparkDf,
     Map<String, String> featureToFeaturegroupMapping) {
+    List<Column> metadataList = new ArrayList();
     for (Map.Entry<String, String> entry : featureToFeaturegroupMapping.entrySet()) {
       Metadata metadata = getColumnMetadata(sparkDf.schema(), entry.getKey());
       int lastIndexOf = entry.getValue().lastIndexOf(Constants.UNDERSCORE_DELIMITER);
@@ -1103,9 +1104,9 @@ public class FeaturestoreHelper {
         metadataBuilder = metadataBuilder.putString(Constants.TRAINING_DATASET_PROVENANCE_COMMENT,
           metadata.getString(Constants.TRAINING_DATASET_PROVENANCE_COMMENT));
       }
-      sparkDf = sparkDf.withColumn(entry.getKey(), col(entry.getKey()).as("", metadataBuilder.build()));
+      metadataList.add(col(entry.getKey()).as(entry.getKey(), metadataBuilder.build()));
     }
-    return sparkDf;
+    return sparkDf.select(JavaConverters.asScalaBufferConverter(metadataList).asScala().toSeq());
   }
   
   /**
