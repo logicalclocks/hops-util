@@ -13,20 +13,19 @@
  */
 package io.hops.util.featurestore.ops.write_ops;
 
+import io.hops.util.Constants;
 import io.hops.util.FeaturestoreRestClient;
-import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
-import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.TagError;
+import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
+import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;
-import java.util.Map;
 
-public class FeaturestoreAddMetadataToFeaturegroup extends FeaturestoreOp {
-  
-  private Map<String, String> metadata;
-  
-  public FeaturestoreAddMetadataToFeaturegroup(String name) {
+public class FeaturestoreSetTagForTrainingDataset extends FeaturestoreOp {
+
+  public FeaturestoreSetTagForTrainingDataset(String name) {
     super(name);
   }
   
@@ -38,32 +37,32 @@ public class FeaturestoreAddMetadataToFeaturegroup extends FeaturestoreOp {
   
   @Override
   public void write() throws JAXBException,
-      FeaturestoreNotFound, FeaturegroupDoesNotExistError,
-      FeaturegroupMetadataError {
-    if (metadata == null || metadata.isEmpty()) {
-      throw new IllegalArgumentException("No metadata is provided.");
-    }
-    
-    for (Map.Entry<String, String> e : metadata.entrySet()) {
-      FeaturestoreRestClient.addMetadata(getName(), getFeaturestore(),
-          getVersion(), e.getKey(), e.getValue());
-    }
+      FeaturestoreNotFound, TagError, TrainingDatasetDoesNotExistError {
+
+    int id = FeaturestoreHelper.getTrainingDatasetId(featurestore, name, version);
+
+    FeaturestoreRestClient.addTag(getName(), getFeaturestore(), getTag(), getValue(),
+        Constants.HOPSWORKS_REST_TRAININGDATASETS_RESOURCE, id);
   }
   
-  public FeaturestoreAddMetadataToFeaturegroup setFeaturestore(
+  public FeaturestoreSetTagForTrainingDataset setFeaturestore(
       String featurestore) {
     this.featurestore = featurestore;
     return this;
   }
   
-  public FeaturestoreAddMetadataToFeaturegroup setVersion(int version) {
+  public FeaturestoreSetTagForTrainingDataset setVersion(int version) {
     this.version = version;
     return this;
   }
-  
-  public FeaturestoreAddMetadataToFeaturegroup setMetadata(Map<String,
-      String> metadata) {
-    this.metadata = metadata;
+
+  public FeaturestoreSetTagForTrainingDataset setTag(String tag) {
+    this.tag = tag;
+    return this;
+  }
+
+  public FeaturestoreSetTagForTrainingDataset setValue(String value) {
+    this.value = value;
     return this;
   }
   

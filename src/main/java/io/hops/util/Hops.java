@@ -20,7 +20,9 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SchemaNotFoundException;
-import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetMetadataForFeaturegroup;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetTags;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetTagsForFeaturegroup;
+import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetTagsForTrainingDataset;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeature;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroupLatestVersion;
@@ -39,7 +41,8 @@ import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasetLat
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasetPath;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadTrainingDatasets;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreSQLQuery;
-import io.hops.util.featurestore.ops.write_ops.FeaturestoreAddMetadataToFeaturegroup;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreSetTagForFeaturegroup;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreSetTagForTrainingDataset;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreCreateTrainingDataset;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreDisableFeaturegroupOnline;
@@ -47,7 +50,8 @@ import io.hops.util.featurestore.ops.write_ops.FeaturestoreEnableFeaturegroupOnl
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreImportFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoFeaturegroup;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreInsertIntoTrainingDataset;
-import io.hops.util.featurestore.ops.write_ops.FeaturestoreRemoveMetadataFromFeaturegroup;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreRemoveTagFromFeaturegroup;
+import io.hops.util.featurestore.ops.write_ops.FeaturestoreRemoveTagFromTrainingDataset;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreSyncHiveTable;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateFeaturegroupStats;
 import io.hops.util.featurestore.ops.write_ops.FeaturestoreUpdateMetadataCache;
@@ -855,42 +859,93 @@ public class Hops {
   }
   
   /**
-   * Attach extended metadata to a feature group.
+   * Attach tag to a featuregroup.
    *
-   * @param featuregroupName name of the feature group
-   * @return a lazy java object for the operation to add metadata to feature
-   * group. The operation can be started with write() on the object and
+   * @param name name of the featuregroup
+   * @return a lazy java object for the operation to add tags to a featuregroup.
+   * The operation can be started with write() on the object and
    * parameters can be updated with setters.
    */
-  public static FeaturestoreAddMetadataToFeaturegroup addMetadata(
-      String featuregroupName) {
-    return new FeaturestoreAddMetadataToFeaturegroup(featuregroupName);
+  public static FeaturestoreSetTagForFeaturegroup setTagForFeaturegroup(
+      String name) {
+    return new FeaturestoreSetTagForFeaturegroup(name);
   }
   
   /**
-   * Get extended metadata attached to a feature group.
+   * Get tags of a featuregroup.
    *
-   * @param featuregroupName name of the feature group
-   * @return a lazy java object for the operation to get metadata attached to
-   * feature group. The operation can be started with read() on the object and
+   * @param name name of the featuregroup
+   * @return a lazy java object for the operation to get tags attached to a featuregroup.
+   * The operation can be started with read() on the object and
    * parameters can be updated with setters.
    */
-  public static FeaturestoreGetMetadataForFeaturegroup getMetadata(
-      String featuregroupName) {
-    return new FeaturestoreGetMetadataForFeaturegroup(featuregroupName);
+  public static FeaturestoreGetTagsForFeaturegroup getTagsForFeaturegroup(
+      String name) {
+    return new FeaturestoreGetTagsForFeaturegroup(name);
   }
   
   /**
-   * Remove extended metadata attached to a feature group.
+   * Remove tag attached to a featuregroup.
    *
-   * @param featuregroupName name of the feature group
-   * @return a lazy java object for the operation to get metadata attached to
-   * feature group. The operation can be started with write() on the object and
+   * @param name name of the featuregroup
+   * @return a lazy java object for the operation to remove tags attached to a featuregroup.
+   * The operation can be started with write() on the object and
    * parameters can be updated with setters.
    */
-  public static FeaturestoreRemoveMetadataFromFeaturegroup removeMetadata(
-      String featuregroupName) {
-    return new FeaturestoreRemoveMetadataFromFeaturegroup(featuregroupName);
+  public static FeaturestoreRemoveTagFromFeaturegroup removeTagFromFeaturegroup(
+      String name) {
+    return new FeaturestoreRemoveTagFromFeaturegroup(name);
+  }
+
+  /**
+   * Attach tag to a training dataset.
+   *
+   * @param name name of the training dataset
+   * @return a lazy java object for the operation to add tags to a training dataset.
+   * The operation can be started with write() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreSetTagForTrainingDataset setTagForTrainingDataset(
+      String name) {
+    return new FeaturestoreSetTagForTrainingDataset(name);
+  }
+
+  /**
+   * Get tags of a training dataset.
+   *
+   * @param name name of the training dataset
+   * @return a lazy java object for the operation to get tags attached to training dataset.
+   * The operation can be started with read() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreGetTagsForTrainingDataset getTagsForTrainingDataset(
+      String name) {
+    return new FeaturestoreGetTagsForTrainingDataset(name);
+  }
+
+  /**
+   * Remove tag attached to a training dataset.
+   *
+   * @param name name of the training dataset
+   * @return a lazy java object for the operation to get tags attached to a training dataset.
+   * The operation can be started with write() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreRemoveTagFromTrainingDataset removeTagFromTrainingDataset(
+      String name) {
+    return new FeaturestoreRemoveTagFromTrainingDataset(name);
+  }
+
+  /**
+   * Get a list of tags that can be attached to a featuregroup or training dataset.
+   *
+   * @return a lazy java object for the operation to get tags that
+   * can be attached to a featuregroup or training dataset.
+   * The operation can be started with read() on the object and
+   * parameters can be updated with setters.
+   */
+  public static FeaturestoreGetTags getFeaturestoreTags() {
+    return new FeaturestoreGetTags("");
   }
   
   /**

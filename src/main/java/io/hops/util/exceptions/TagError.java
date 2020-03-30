@@ -13,9 +13,9 @@
  */
 package io.hops.util.exceptions;
 
-public class FeaturegroupMetadataError extends Exception{
+public class TagError extends Exception{
   
-  public FeaturegroupMetadataError(String message){
+  public TagError(String message){
     super(message);
   }
 }

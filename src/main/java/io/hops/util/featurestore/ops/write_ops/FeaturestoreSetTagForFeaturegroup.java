@@ -13,19 +13,19 @@
  */
 package io.hops.util.featurestore.ops.write_ops;
 
+import io.hops.util.Constants;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
-import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.TagError;
+import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;
 
-public class FeaturestoreRemoveMetadataFromFeaturegroup extends FeaturestoreOp {
+public class FeaturestoreSetTagForFeaturegroup extends FeaturestoreOp {
   
-  private String[] keys;
-  
-  public FeaturestoreRemoveMetadataFromFeaturegroup(String name) {
+  public FeaturestoreSetTagForFeaturegroup(String name) {
     super(name);
   }
   
@@ -37,32 +37,33 @@ public class FeaturestoreRemoveMetadataFromFeaturegroup extends FeaturestoreOp {
   
   @Override
   public void write() throws JAXBException,
-      FeaturestoreNotFound,
-      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
-  
-    if (keys == null || keys.length == 0) {
-      throw new IllegalArgumentException("No keys are provided.");
-    }
-    
-    for (String key : keys) {
-      FeaturestoreRestClient.removeMetadata(getName(), getFeaturestore(),
-          getVersion(), key);
-    }
+      FeaturestoreNotFound, FeaturegroupDoesNotExistError, TagError {
+
+    int id = FeaturestoreHelper.getFeaturegroupId(featurestore, name, version);
+
+    FeaturestoreRestClient.addTag(getName(), getFeaturestore(), getTag(), getValue(),
+        Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE, id);
   }
   
-  public FeaturestoreRemoveMetadataFromFeaturegroup setFeaturestore(
+  public FeaturestoreSetTagForFeaturegroup setFeaturestore(
       String featurestore) {
     this.featurestore = featurestore;
     return this;
   }
   
-  public FeaturestoreRemoveMetadataFromFeaturegroup setVersion(int version) {
+  public FeaturestoreSetTagForFeaturegroup setVersion(int version) {
     this.version = version;
     return this;
   }
-  
-  public FeaturestoreRemoveMetadataFromFeaturegroup setKeys(String... keys) {
-    this.keys = keys;
+
+  public FeaturestoreSetTagForFeaturegroup setTag(String tag) {
+    this.tag = tag;
     return this;
   }
+
+  public FeaturestoreSetTagForFeaturegroup setValue(String value) {
+    this.value = value;
+    return this;
+  }
+
 }

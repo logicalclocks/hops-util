@@ -13,38 +13,29 @@
  */
 package io.hops.util.featurestore.ops.read_ops;
 
+import io.hops.util.Constants;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
-import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
+import io.hops.util.exceptions.TagError;
+import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;
-import java.util.HashMap;
-import java.util.Map;
 
-public class FeaturestoreGetMetadataForFeaturegroup extends FeaturestoreOp {
+public class FeaturestoreGetTagsForFeaturegroup extends FeaturestoreOp {
   
-  private String[] keys;
-  
-  public FeaturestoreGetMetadataForFeaturegroup(String name) {
+  public FeaturestoreGetTagsForFeaturegroup(String name) {
     super(name);
   }
   
   @Override
-  public Object read() throws FeaturestoreNotFound, JAXBException,
-      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
-    if (keys == null || keys.length == 0) {
-      return FeaturestoreRestClient.getMetadata(getName(), getFeaturestore(),
-          getVersion(), null);
-    } else {
-      Map<String, String> results = new HashMap<>();
-      for (String key : keys) {
-        results.putAll(FeaturestoreRestClient.getMetadata(getName(),
-            getFeaturestore(), getVersion(), key));
-      }
-      return results;
-    }
+  public Object read() throws FeaturestoreNotFound, JAXBException, FeaturegroupDoesNotExistError, TagError {
+
+    int id = FeaturestoreHelper.getFeaturegroupId(featurestore, name, version);
+
+    return FeaturestoreRestClient.getTags(getName(), getFeaturestore(),
+        Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE, id);
   }
   
   @Override
@@ -53,19 +44,14 @@ public class FeaturestoreGetMetadataForFeaturegroup extends FeaturestoreOp {
         "write() is not supported on a read operation");
   }
   
-  public FeaturestoreGetMetadataForFeaturegroup setFeaturestore(
+  public FeaturestoreGetTagsForFeaturegroup setFeaturestore(
       String featurestore) {
     this.featurestore = featurestore;
     return this;
   }
   
-  public FeaturestoreGetMetadataForFeaturegroup setVersion(int version) {
+  public FeaturestoreGetTagsForFeaturegroup setVersion(int version) {
     this.version = version;
-    return this;
-  }
-  
-  public FeaturestoreGetMetadataForFeaturegroup setKeys(String... keys) {
-    this.keys = keys;
     return this;
   }
 }
