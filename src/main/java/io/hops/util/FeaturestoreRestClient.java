@@ -5,12 +5,12 @@ import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDisableOnlineError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
-import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.TagError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
@@ -24,7 +24,9 @@ import org.json.JSONObject;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -462,90 +464,78 @@ public class FeaturestoreRestClient {
   }
   
   /**
-   * Makes a REST call to Hopsworks to attach extended metadata to a
-   * featuregroup
+   * Makes a REST call to Hopsworks to attach tag to a featuregroup or training dataset
    *
-   * @param featuregroupName    the feature group name
-   * @param featurestore        the feature store
-   * @param featuregroupVersion the feature group version
-   * @param name                the extended attribute name
-   * @param value               the extended attribute value
+   * @param name the featuregroup or training dataset name
+   * @param featurestore the feature store
+   * @param tag name of the tag to attach
+   * @param value value of the tag
+   * @param resource featuregroup or training dataset resource
+   * @param id the id of the featuregroup or training dataset
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
-   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
-   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
+   * @throws TagError TagsError
    */
-  public static void addMetadata(String featuregroupName, String featurestore,
-      Integer featuregroupVersion, String name, String value)
-      throws FeaturestoreNotFound, JAXBException,
-      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
-    LOG.log(Level.FINE,
-        "Adding metadata to featuregroup: " + featuregroupName);
-    
-    JSONObject jsonObject = new JSONObject();
-    jsonObject.put(name, value);
+  public static void addTag(String name, String featurestore, String tag, String value, String resource, Integer id)
+      throws FeaturestoreNotFound, JAXBException, TagError {
+    LOG.log(Level.FINE,"Adding tag " + tag + " to " + name);
     
     Response response;
     try {
       int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
-      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore,
-          featuregroupName, featuregroupVersion);
+      Map<String, Object> queryParams = new HashMap<>();
+      if(value != null) {
+        queryParams.put(Constants.JSON_TAGS_VALUE_QUERY_PARAM, value);
+      }
       response =
-          Hops.clientWrapper(jsonObject,
-              Constants.SLASH_DELIMITER +
+          Hops.clientWrapper(Constants.SLASH_DELIMITER +
                   Constants.HOPSWORKS_REST_PROJECT_RESOURCE
                   + Constants.SLASH_DELIMITER + Hops.getProjectId()
                   + Constants.SLASH_DELIMITER
                   + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE +
                   Constants.SLASH_DELIMITER +
                   featurestoreId + Constants.SLASH_DELIMITER +
-                  Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE +
-                  Constants.SLASH_DELIMITER + featuregroupId +
+                  resource +
                   Constants.SLASH_DELIMITER +
-                  Constants.HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE +
-                  Constants.SLASH_DELIMITER + name,
-              HttpMethod.PUT, null);
+                  id +
+                  Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_FEATURESTORE_TAGS_RESOURCE +
+                  Constants.SLASH_DELIMITER +
+                  tag,
+              HttpMethod.PUT, queryParams);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
     }
-    LOG.log(Level.INFO,
-        "******* response.getStatusInfo():" + response.getStatusInfo());
+    LOG.log(Level.INFO,"******* response.getStatusInfo():" + response.getStatusInfo());
     if (response.getStatusInfo().getStatusCode() !=
         Response.Status.OK.getStatusCode()
         && response.getStatusInfo().getStatusCode() !=
         Response.Status.CREATED.getStatusCode()) {
-      throw new FeaturegroupMetadataError("Error while attaching metadata to " +
-          "featuregroup " + featuregroupName + ", Http Code: " +
+      throw new TagError("Error while attaching tags to " + name + ", Http Code: " +
           response.getStatus());
     }
   }
   
   /**
-   * Makes a REST call to Hopsworks to get extended metadata attached to a
-   * featuregroup
+   * Makes a REST call to Hopsworks to get tags attached to a
+   * featuregroup or training dataset
    *
-   * @param featuregroupName    the feature group name
-   * @param featurestore        the feature store
-   * @param featuregroupVersion the feature group version
-   * @param name                the extended attribute name
-   * @return extended metadata as map
+   * @param name the featuregroup or training dataset name
+   * @param featurestore the feature store
+   * @param resource featuregroup or training dataset resource
+   * @param id the id of the featuregroup or training dataset
+   * @return tags as map
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
-   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
-   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
+   * @throws TagError TagsError
    */
-  public static Map<String, String> getMetadata(String featuregroupName,
-      String featurestore, Integer featuregroupVersion, String name)
-      throws FeaturestoreNotFound, JAXBException,
-      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
-    LOG.log(Level.FINE,
-        "getting metadata for featuregroup: " + featuregroupName);
+  public static Map<String, String> getTags(String name, String featurestore, String resource, Integer id)
+      throws FeaturestoreNotFound, JAXBException, TagError {
+    LOG.log(Level.FINE,"Getting tags for " + name);
     
     Response response;
     try {
       int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
-      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore,
-          featuregroupName, featuregroupVersion);
       String path =
           Constants.SLASH_DELIMITER + Constants.HOPSWORKS_REST_PROJECT_RESOURCE
               + Constants.SLASH_DELIMITER + Hops.getProjectId()
@@ -553,13 +543,11 @@ public class FeaturestoreRestClient {
               + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE +
               Constants.SLASH_DELIMITER +
               featurestoreId + Constants.SLASH_DELIMITER +
-              Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE +
-              Constants.SLASH_DELIMITER + featuregroupId +
+              resource +
               Constants.SLASH_DELIMITER +
-              Constants.HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE;
-      if (name != null) {
-        path += Constants.SLASH_DELIMITER + name;
-      }
+              id +
+              Constants.SLASH_DELIMITER +
+              Constants.HOPSWORKS_FEATURESTORE_TAGS_RESOURCE;
       response = Hops.clientWrapper(path, HttpMethod.GET, null);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
@@ -567,47 +555,43 @@ public class FeaturestoreRestClient {
     LOG.log(Level.INFO,
         "******* response.getStatusInfo():" + response.getStatusInfo());
     if (response.getStatusInfo().getStatusCode() !=
-        Response.Status.ACCEPTED.getStatusCode()) {
-      throw new FeaturegroupMetadataError("Error while getting metadata for " +
-          "featuregroup " + featuregroupName + ", Http Code: " +
+        Response.Status.OK.getStatusCode()) {
+      throw new TagError("Error while getting tags for " + name + ", Http Code: " +
           response.getStatus());
     }
     final String responseEntity = response.readEntity(String.class);
-    JSONObject metadata = new JSONObject(responseEntity);
-    JSONArray items = metadata.getJSONArray("items");
+    JSONObject tags = new JSONObject(responseEntity);
     Map<String, String> result = new HashMap<>();
-    for (int i = 0; i < items.length(); i++) {
-      JSONObject jsonObject = items.getJSONObject(i);
-      result.put(jsonObject.getString("name"), jsonObject.getString("value"));
+    if(tags.has("items")) {
+      JSONArray items = tags.getJSONArray("items");
+      for (int i = 0; i < items.length(); i++) {
+        JSONObject jsonObject = items.getJSONObject(i);
+        result.put(jsonObject.getString("name"), jsonObject.getString("value"));
+      }
     }
     return result;
   }
   
   /**
-   * Makes a REST call to Hopsworks to attach extended metadata to a
-   * featuregroup
+   * Makes a REST call to Hopsworks to remove tag attached to a
+   * featuregroup or training dataset
    *
-   * @param featuregroupName    the feature group name
-   * @param featurestore        the feature store
-   * @param featuregroupVersion the feature group version
-   * @param name                the extended attribute name
+   * @param name the featuregroup or training dataset name
+   * @param tag the name of the tag
+   * @param featurestore the feature store
+   * @param resource featuregroup or training dataset resource
+   * @param id the id of the featuregroup or training dataset
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws JAXBException JAXBException
-   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
-   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
+   * @throws TagError TagsError
    */
-  public static void removeMetadata(String featuregroupName,
-      String featurestore, Integer featuregroupVersion, String name)
-      throws FeaturestoreNotFound, JAXBException,
-      FeaturegroupDoesNotExistError, FeaturegroupMetadataError {
-    LOG.log(Level.FINE,
-        "Removing metadata from featuregroup: " + featuregroupName);
+  public static void removeTag(String name, String tag, String featurestore, String resource, Integer id)
+      throws FeaturestoreNotFound, JAXBException, TagError {
+    LOG.log(Level.FINE,"Removing tag " + tag + " from " + name);
     
     Response response;
     try {
       int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featurestore);
-      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featurestore,
-          featuregroupName, featuregroupVersion);
       response =
           Hops.clientWrapper(
               Constants.SLASH_DELIMITER +
@@ -617,11 +601,13 @@ public class FeaturestoreRestClient {
                   + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE +
                   Constants.SLASH_DELIMITER +
                   featurestoreId + Constants.SLASH_DELIMITER +
-                  Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE +
-                  Constants.SLASH_DELIMITER + featuregroupId +
+                  resource +
                   Constants.SLASH_DELIMITER +
-                  Constants.HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE +
-                  Constants.SLASH_DELIMITER + name,
+                  id +
+                  Constants.SLASH_DELIMITER +
+                  Constants.HOPSWORKS_FEATURESTORE_TAGS_RESOURCE +
+                  Constants.SLASH_DELIMITER +
+                  tag,
               HttpMethod.DELETE, null);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
@@ -630,10 +616,45 @@ public class FeaturestoreRestClient {
         "******* response.getStatusInfo():" + response.getStatusInfo());
     if (response.getStatusInfo().getStatusCode() !=
         Response.Status.NO_CONTENT.getStatusCode()) {
-      throw new FeaturegroupMetadataError("Error while removing metadata from" +
-          " featuregroup " + featuregroupName + ", Http Code: " +
+      throw new TagError("Error while removing tags from " + name
+          + ", Http Code: " + response.getStatus());
+    }
+  }
+
+  /**
+   * Makes a REST call to Hopsworks to get tags that can be attached to a featuregroup or training dataset
+   *
+   * @return tags as list
+   * @throws TagError TagsError
+   */
+  public static List<String> getFsTags() throws TagError {
+    LOG.log(Level.FINE,"Getting featurestore tags");
+
+    Response response;
+    try {
+      String path = Constants.SLASH_DELIMITER + Constants.HOPSWORKS_FEATURESTORE_TAGS_RESOURCE;
+      response = Hops.clientWrapper(path, HttpMethod.GET, null);
+    } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
+      throw new TagError(e.getMessage());
+    }
+    LOG.log(Level.INFO,
+        "******* response.getStatusInfo():" + response.getStatusInfo());
+    if (response.getStatusInfo().getStatusCode() !=
+        Response.Status.OK.getStatusCode()) {
+      throw new TagError("Error while getting featurestore tags, Http Code: " +
           response.getStatus());
     }
+    final String responseEntity = response.readEntity(String.class);
+    JSONObject tags = new JSONObject(responseEntity);
+    List<String> tagsList = new ArrayList<>();
+    if(tags.has("items")) {
+      JSONArray items = tags.getJSONArray("items");
+      for (int i = 0; i < items.length(); i++) {
+        JSONObject tag = items.getJSONObject(i);
+        tagsList.add(tag.getString("name"));
+      }
+    }
+    return tagsList;
   }
 }
 

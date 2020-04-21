@@ -11,7 +11,6 @@ import io.hops.util.exceptions.FeaturegroupDeletionError;
 import io.hops.util.exceptions.FeaturegroupDisableOnlineError;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturegroupEnableOnlineError;
-import io.hops.util.exceptions.FeaturegroupMetadataError;
 import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.FeaturestoresNotFound;
@@ -25,6 +24,7 @@ import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.StorageConnectorNotFound;
 import io.hops.util.exceptions.StorageConnectorTypeNotSupportedForFeatureImport;
+import io.hops.util.exceptions.TagError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -83,6 +83,9 @@ public abstract class FeaturestoreOp {
   protected Boolean online = false;
   protected Boolean offline = true;
   protected Map<String, String> onlineTypes;
+  protected String tag;
+  protected String value;
+
 
 
   /**
@@ -385,6 +388,20 @@ public abstract class FeaturestoreOp {
   public Map<String, String> getOnlineTypes() {
     return onlineTypes;
   }
+
+  /**
+   * @return name of the tag attached to a featuregroup or training dataset
+   */
+  public String getTag() {
+    return tag;
+  }
+
+  /**
+   * @return value for the tag attached to a featuregroup or training dataset
+   */
+  public String getValue() {
+    return value;
+  }
   
   /**
    * Abstract read method, implemented by sub-classes for different feature store read-operations
@@ -406,14 +423,14 @@ public abstract class FeaturestoreOp {
    * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
    * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
-   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
+   * @throws TagError TagsError
    */
   public abstract Object read()
     throws FeaturestoreNotFound, JAXBException, TrainingDatasetFormatNotSupportedError,
     TrainingDatasetDoesNotExistError, IOException, FeaturestoresNotFound, JWTNotFoundException, HiveNotEnabled,
     StorageConnectorDoesNotExistError, FeaturegroupDoesNotExistError, CannotReadPartitionsOfOnDemandFeaturegroups,
     StorageConnectorNotFound, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreUserNotFound,
-    OnlineFeaturestoreNotEnabled, FeaturegroupMetadataError;
+    OnlineFeaturestoreNotEnabled, TagError;
 
   /**
    * Abstract write operation, implemented by sub-classes for different feature store write-operations.
@@ -444,7 +461,7 @@ public abstract class FeaturestoreOp {
    * @throws FeaturegroupEnableOnlineError FeaturegroupEnableOnlineError
    * @throws FeaturegroupDisableOnlineError FeaturegroupDisableOnlineError
    * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
-   * @throws FeaturegroupMetadataError FeaturegroupMetadataError
+   * @throws TagError TagsError
    */
   public abstract void write()
     throws FeaturegroupDeletionError, DataframeIsEmpty, SparkDataTypeNotRecognizedError,
@@ -455,5 +472,6 @@ public abstract class FeaturestoreOp {
     CannotInsertIntoOnDemandFeaturegroups, CannotUpdateStatsOfOnDemandFeaturegroups,
     StorageConnectorTypeNotSupportedForFeatureImport, OnlineFeaturestoreUserNotFound,
     OnlineFeaturestorePasswordNotFound, FeaturegroupEnableOnlineError, FeaturegroupDisableOnlineError,
-    OnlineFeaturestoreNotEnabled, FeaturegroupMetadataError;
+    OnlineFeaturestoreNotEnabled, TagError;
+
 }

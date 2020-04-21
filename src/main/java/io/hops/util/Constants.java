@@ -35,7 +35,7 @@ public class Constants {
   public static final String HOPSWORKS_REST_FEATUREGROUPS_SYNC_RESOURCE = "sync";
   public static final String HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE = "storageconnectors";
   public static final String HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE = "onlinefeaturestore";
-  public static final String HOPSWORKS_FEATUREGROUPS_XATTRS_RESOURCE = "xattrs";
+  public static final String HOPSWORKS_FEATURESTORE_TAGS_RESOURCE = "tags";
   
   public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
@@ -110,6 +110,8 @@ public class Constants {
   public static final String JSON_TRAINING_DATASET_UPDATE_METADATA = "updateMetadata";
   public static final String JSON_TRAINING_DATASET_TYPE =  "trainingDatasetType";
   public static final String JSON_TRAINING_DATASET_CONNECTOR_ID = "connectorId";
+
+  public static final String JSON_TAGS_VALUE_QUERY_PARAM = "value";
 
   public static final String JSON_ERROR_CODE = "errorCode";
   public static final String JSON_ERROR_MSG = "errorMsg";
