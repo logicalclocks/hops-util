@@ -39,7 +39,7 @@ and the following repository under your repositories list,
 <repository>
   <id>Hops</id>
   <name>Hops Repo</name>
-  <url>https://bbc1.sics.se/archiva/repository/Hops/</url>
+  <url>https://archiva.hops.works/repository/Hops/</url>
   <releases>
     <enabled>true</enabled>
   </releases>
