@@ -7,8 +7,8 @@ import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
+import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -73,7 +73,7 @@ public class FeaturestoreSyncHiveTable extends FeaturestoreOp {
       featurestoreJobDTO.setJobName(jobName);
       return featurestoreJobDTO;
     }).collect(Collectors.toList());
-    FeaturegroupDTO featuregroupDTO = new FeaturegroupDTO();
+    FeaturegroupDTO featuregroupDTO = new CachedFeaturegroupDTO();
     featuregroupDTO.setFeaturestoreName(featurestore);
     featuregroupDTO.setName(name);
     featuregroupDTO.setVersion(version);
@@ -85,7 +85,6 @@ public class FeaturestoreSyncHiveTable extends FeaturestoreOp {
       featuregroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
       featuregroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
     }
-    featuregroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
     return featuregroupDTO;
   }
   

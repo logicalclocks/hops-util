@@ -219,9 +219,7 @@ public class Constants {
       
     }
   };
-  public static final String HUDI_INPUT_FORMAT_PACKAGE = "org.apache.hudi";
-  
-  
+
   public static final List<String> MYSQL_DATA_TYPES = Arrays.asList(new String[]{
     "None", "INT(11)", "TINYINT(1)", "SMALLINT(5)", "MEDIUMINT(7)", "BIGINT(20)", "FLOAT", "DOUBLE", "DECIMAL",
     "DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR", "CHAR", "VARCHAR(25)", "VARCHAR(125)", "VARCHAR(225)",

@@ -37,7 +37,6 @@ import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.app.SQLJoinDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.settings.FeaturestoreClientSettingsDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
@@ -825,7 +824,7 @@ public class FeaturestoreHelper {
     OnlineFeaturestoreNotEnabled {
     useFeaturestore(sparkSession, featurestore);
     FeaturegroupDTO matchedFeaturegroup = findFeature(feature, featurestore, featuregroupDTOS);
-    if(matchedFeaturegroup.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+    if(matchedFeaturegroup instanceof OnDemandFeaturegroupDTO){
       List<FeaturegroupDTO> onDemandFeaturegroups = new ArrayList<>();
       onDemandFeaturegroups.add(matchedFeaturegroup);
       Map<String, Map<String, String>> onDemandFeaturegroupsJdbcArguments = new HashMap<>();
@@ -875,7 +874,7 @@ public class FeaturestoreHelper {
     OnlineFeaturestorePasswordNotFound, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound, JAXBException,
     OnlineFeaturestoreNotEnabled {
     FeaturegroupDTO featuregroupDTO = findFeaturegroup(featuregroupDTOs, featuregroup, featuregroupVersion);
-    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+    if(featuregroupDTO instanceof OnDemandFeaturegroupDTO){
       List<FeaturegroupDTO> onDemandFeaturegroups = new ArrayList<>();
       onDemandFeaturegroups.add(featuregroupDTO);
       Map<String, Map<String, String>> onDemandFeaturegroupsJdbcArguments = new HashMap<>();
@@ -1057,10 +1056,8 @@ public class FeaturestoreHelper {
       featuregroupDTOS.add(findFeaturegroup(featuregroupsMetadata, entry.getKey(), entry.getValue()));
     }
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
-    List<FeaturegroupDTO> onDemandFeaturegroups =
-        featuregroupDTOS.stream()
-            .filter(fg -> fg.getFeaturegroupType() ==
-                FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
+    List<FeaturegroupDTO> onDemandFeaturegroups = featuregroupDTOS.stream()
+            .filter(fg -> fg instanceof OnDemandFeaturegroupDTO).collect(Collectors.toList());
     registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     if (featuregroupsAndVersions.size() == 1) {
       Map<String, String> featureToFeaturegroupMapping =
@@ -1192,8 +1189,7 @@ public class FeaturestoreHelper {
             .map(fg -> getTableName(fg.getName(), fg.getVersion())).collect(Collectors.toList());
     List<FeaturegroupDTO> onDemandFeaturegroups =
         featuregroupsMetadata.stream()
-            .filter(fg -> fg.getFeaturegroupType() ==
-                FeaturegroupType.ON_DEMAND_FEATURE_GROUP).collect(Collectors.toList());
+            .filter(fg -> fg instanceof OnDemandFeaturegroupDTO).collect(Collectors.toList());
     registerOnDemandFeaturegroupsAsTempTables(onDemandFeaturegroups, featurestore, jdbcArguments);
     String featuregroupStr = StringUtils.join(featuregroupStrings, ", ");
     if (featuregroupsMetadata.size() == 1) {
@@ -2659,20 +2655,6 @@ public class FeaturestoreHelper {
       return featurestoreClientSettingsDTO.getOnDemandFeaturegroupDtoType();
     } else {
       return featurestoreClientSettingsDTO.getCachedFeaturegroupDtoType();
-    }
-  }
-
-  /**
-   * Returns the feature group type string
-   *
-   * @param onDemand boolean flag whether it is an on-demand feature group or not
-   * @return the feature group type string
-   */
-  public static String getFeaturegroupTypeStr(Boolean onDemand) {
-    if(onDemand) {
-      return FeaturegroupType.ON_DEMAND_FEATURE_GROUP.name();
-    } else {
-      return FeaturegroupType.CACHED_FEATURE_GROUP.name();
     }
   }
 

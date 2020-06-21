@@ -10,7 +10,6 @@ import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -55,7 +54,7 @@ public class FeaturestoreReadFeaturegroup extends FeaturestoreOp {
         name, version);
     getSpark().sparkContext().setJobGroup("Fetching Feature Group",
         "Getting Feature group: " + name + " from the featurestore:" + featurestore, true);
-    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+    if(featuregroupDTO instanceof OnDemandFeaturegroupDTO){
       return readOnDemandFeaturegroup((OnDemandFeaturegroupDTO) featuregroupDTO, featurestoreMetadata);
     } else {
       return readCachedFeaturegroup();

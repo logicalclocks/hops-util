@@ -21,7 +21,7 @@ import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
@@ -86,7 +86,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
         name, version);
-    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP){
+    if(featuregroupDTO instanceof OnDemandFeaturegroupDTO){
       throw new CannotInsertIntoOnDemandFeaturegroups(
           "The insert operation is only supported for cached feature groups");
     }
@@ -195,15 +195,13 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadataDTO.getFeaturegroups(),name, version);
     }
     getSpark().sparkContext().setJobGroup("", "", true);
-    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.CACHED_FEATURE_GROUP &&
-      ((CachedFeaturegroupDTO) featuregroupDTO).getInputFormat().startsWith(Constants.HUDI_INPUT_FORMAT_PACKAGE)) {
+    if(featuregroupDTO instanceof CachedFeaturegroupDTO && ((CachedFeaturegroupDTO) featuregroupDTO).getHudiEnabled()) {
       Map<String, String> hudiWriteArgs = setupHudiArgs();
-      FeaturestoreHelper.writeHudiDataset(dataframe, getSpark(), name, featurestore, version,
-        hudiWriteArgs, ((CachedFeaturegroupDTO) featuregroupDTO).getHdfsStorePaths().get(0), mode);
+      FeaturestoreHelper.writeHudiDataset(dataframe, getSpark(), name, featurestore, version, hudiWriteArgs,
+          featuregroupDTO.getLocation(), mode);
       StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
-        featurestore, version,
-        descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
-        corrMethod);
+        featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns,
+          numBins, numClusters, corrMethod);
       new FeaturestoreSyncHiveTable(name).setFeaturestore(featurestore).setDescription(featuregroupDTO.getDescription())
         .setVersion(featuregroupDTO.getVersion()).setStatisticsDTO(statisticsDTO).setJobs(jobs).write();
     } else {
@@ -217,7 +215,7 @@ public class FeaturestoreInsertIntoFeaturegroup extends FeaturestoreOp {
       StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(name, getSpark(), dataframe,
         featurestore, version, descriptiveStats, featureCorr, featureHistograms, clusterAnalysis,
         statColumns, numBins, numClusters, corrMethod);
-      Boolean onDemand = featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP;
+      Boolean onDemand = featuregroupDTO instanceof OnDemandFeaturegroupDTO;
       FeaturestoreRestClient.updateFeaturegroupStatsRest(groupInputParamsIntoDTO(statisticsDTO),
         FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadataDTO.getSettings(), onDemand));
     }

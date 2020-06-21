@@ -4,7 +4,7 @@ import io.hops.util.Hops;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 
 import javax.xml.bind.JAXBException;
@@ -50,11 +50,11 @@ public class FeaturestoreReadFeaturesList extends FeaturestoreOp {
     if(online == null || !online) {
       return true;
     }
-    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP) {
+    if(featuregroupDTO instanceof OnDemandFeaturegroupDTO) {
       return false;
     } else {
       CachedFeaturegroupDTO cachedFeaturegroupDTO = (CachedFeaturegroupDTO) featuregroupDTO;
-      return cachedFeaturegroupDTO.getOnlineFeaturegroupEnabled();
+      return cachedFeaturegroupDTO.getOnlineEnabled();
     }
   }
   

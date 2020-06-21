@@ -24,7 +24,6 @@ import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
 import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
 import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
 import java.util.List;
@@ -37,13 +36,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CachedFeaturegroupDTO extends FeaturegroupDTO {
 
-  private Long hiveTableId;
-  private List<String> hdfsStorePaths;
-  private String inputFormat;
-  private HiveTableType hiveTableType;
-  private Long inodeId;
-  private OnlineFeaturegroupDTO onlineFeaturegroupDTO;
-  private Boolean onlineFeaturegroupEnabled = false;
+  private Boolean onlineEnabled = false;
+  private Boolean hudiEnabled = false;
 
   public CachedFeaturegroupDTO() {
     super();
@@ -57,97 +51,38 @@ public class CachedFeaturegroupDTO extends FeaturegroupDTO {
     ClusterAnalysisDTO clusterAnalysis, String name,
     Integer id, List<FeatureDTO> features, String location,
     List<FeaturestoreJobDTO> jobs,
-    FeaturegroupType featuregroupType, Long hiveTableId, List<String> hdfsStorePaths, String inputFormat,
-    HiveTableType hiveTableType, Long inodeId, OnlineFeaturegroupDTO onlineFeaturegroupDTO,
-    Boolean onlineFeaturegroupEnabled, Boolean clusterAnalysisEnabled, Boolean descStatsEnabled,
+    Boolean onlineEnabled, Boolean hudiEnabled, Boolean clusterAnalysisEnabled, Boolean descStatsEnabled,
     Boolean featCorrEnabled, Boolean featHistEnabled, List<String> statColumns, Integer numClusters, Integer numBins,
     String corrMethod) {
     super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
       featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs,
-      featuregroupType, clusterAnalysisEnabled, descStatsEnabled, featCorrEnabled, featHistEnabled, statColumns,
+      clusterAnalysisEnabled, descStatsEnabled, featCorrEnabled, featHistEnabled, statColumns,
       numClusters, numBins, corrMethod);
-    this.hiveTableId = hiveTableId;
-    this.hdfsStorePaths = hdfsStorePaths;
-    this.inputFormat = inputFormat;
-    this.hiveTableType = hiveTableType;
-    this.inodeId = inodeId;
-    this.onlineFeaturegroupDTO = onlineFeaturegroupDTO;
-    this.onlineFeaturegroupEnabled = onlineFeaturegroupEnabled;
-  }
-  
-  @XmlElement
-  public Long getHiveTableId() {
-    return hiveTableId;
+    this.onlineEnabled = onlineEnabled;
+    this.hudiEnabled = hudiEnabled;
   }
 
-  public void setHiveTableId(Long hiveTableId) {
-    this.hiveTableId = hiveTableId;
+  public Boolean getOnlineEnabled() {
+    return onlineEnabled;
   }
 
-  @XmlElement
-  public List<String> getHdfsStorePaths() {
-    return hdfsStorePaths;
+  public void setOnlineEnabled(Boolean onlineEnabled) {
+    this.onlineEnabled = onlineEnabled;
   }
 
-  public void setHdfsStorePaths(List<String> hdfsStorePaths) {
-    this.hdfsStorePaths = hdfsStorePaths;
+  public Boolean getHudiEnabled() {
+    return hudiEnabled;
   }
 
-  @XmlElement
-  public String getInputFormat() {
-    return inputFormat;
+  public void setHudiEnabled(Boolean hudiEnabled) {
+    this.hudiEnabled = hudiEnabled;
   }
 
-  public void setInputFormat(String inputFormat) {
-    this.inputFormat = inputFormat;
-  }
-
-  @XmlElement
-  public HiveTableType getHiveTableType() {
-    return hiveTableType;
-  }
-
-  public void setHiveTableType(HiveTableType hiveTableType) {
-    this.hiveTableType = hiveTableType;
-  }
-  
-  @XmlElement
-  public Long getInodeId() {
-    return inodeId;
-  }
-  
-  public void setInodeId(Long inodeId) {
-    this.inodeId = inodeId;
-  }
-  
-  @XmlElement
-  public OnlineFeaturegroupDTO getOnlineFeaturegroupDTO() {
-    return onlineFeaturegroupDTO;
-  }
-  
-  public void setOnlineFeaturegroupDTO(OnlineFeaturegroupDTO onlineFeaturegroupDTO) {
-    this.onlineFeaturegroupDTO = onlineFeaturegroupDTO;
-  }
-  
-  @XmlElement
-  public Boolean getOnlineFeaturegroupEnabled() {
-    return onlineFeaturegroupEnabled;
-  }
-  
-  public void setOnlineFeaturegroupEnabled(Boolean onlineFeaturegroupEnabled) {
-    this.onlineFeaturegroupEnabled = onlineFeaturegroupEnabled;
-  }
-  
   @Override
   public String toString() {
     return "CachedFeaturegroupDTO{" +
-      "hiveTableId=" + hiveTableId +
-      ", hdfsStorePaths=" + hdfsStorePaths +
-      ", inputFormat='" + inputFormat + '\'' +
-      ", hiveTableType=" + hiveTableType +
-      ", inodeId=" + inodeId +
-      ", onlineFeaturegroupDTO=" + onlineFeaturegroupDTO +
-      ", onlineFeaturegroupEnabled=" + onlineFeaturegroupEnabled +
-      '}';
+        "onlineEnabled=" + onlineEnabled +
+        ", hudiEnabled=" + hudiEnabled +
+        '}';
   }
 }
