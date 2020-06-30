@@ -16,7 +16,7 @@ import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
+import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.ops.FeaturestoreOp;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreReadFeaturegroup;
 import org.apache.spark.sql.Dataset;
@@ -71,7 +71,7 @@ public class FeaturestoreEnableFeaturegroupOnline extends FeaturestoreOp {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     FeaturegroupDTO featuregroupDTO = FeaturestoreHelper.findFeaturegroup(featurestoreMetadata.getFeaturegroups(),
       name, version);
-    if(featuregroupDTO.getFeaturegroupType() == FeaturegroupType.ON_DEMAND_FEATURE_GROUP) {
+    if(featuregroupDTO instanceof OnDemandFeaturegroupDTO) {
       throw new IllegalArgumentException("Cannot Enable Online Feature Serving on an on-demand " +
         "feature group, this operation is only supported for cached feature groups");
     }

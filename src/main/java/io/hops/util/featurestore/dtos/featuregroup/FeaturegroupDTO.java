@@ -46,7 +46,6 @@ import java.util.List;
     @JsonSubTypes.Type(value = OnDemandFeaturegroupDTO.class, name = "HopsfsTrainingDatasetDTO")})
 public class FeaturegroupDTO extends FeaturestoreEntityDTO {
 
-  private FeaturegroupType featuregroupType;
   @XmlElement
   private Boolean descStatsEnabled;
   @XmlElement
@@ -75,12 +74,10 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
     ClusterAnalysisDTO clusterAnalysis, String name,
     Integer id, List<FeatureDTO> features, String location,
     List<FeaturestoreJobDTO> jobs,
-    FeaturegroupType featuregroupType,
     Boolean clusterAnalysisEnabled, Boolean descStatsEnabled, Boolean featCorrEnabled, Boolean featHistEnabled,
     List<String> statColumns, Integer numClusters, Integer numBins, String corrMethod) {
     super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
       featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs);
-    this.featuregroupType = featuregroupType;
     this.clusterAnalysisEnabled = clusterAnalysisEnabled;
     this.descStatsEnabled = descStatsEnabled;
     this.featCorrEnabled = featCorrEnabled;
@@ -154,21 +151,11 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
   public void setCorrMethod(String corrMethod) {
     this.corrMethod = corrMethod;
   }
-  
-  @XmlElement
-  public FeaturegroupType getFeaturegroupType() {
-    return featuregroupType;
-  }
-  
-  public void setFeaturegroupType(FeaturegroupType featuregroupType) {
-    this.featuregroupType = featuregroupType;
-  }
 
   @Override
   public String toString() {
     return "FeaturegroupDTO{" +
-      "featuregroupType=" + featuregroupType +
-      ", descStatsEnabled=" + descStatsEnabled +
+      "descStatsEnabled=" + descStatsEnabled +
       ", featCorrEnabled=" + featCorrEnabled +
       ", featHistEnabled=" + featHistEnabled +
       ", clusterAnalysisEnabled=" + clusterAnalysisEnabled +

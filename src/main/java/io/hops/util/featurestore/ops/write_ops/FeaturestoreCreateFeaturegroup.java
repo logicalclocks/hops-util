@@ -19,7 +19,6 @@ import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.CachedFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
-import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupType;
 import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
@@ -215,7 +214,6 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     onDemandFeaturegroupDTO.setDescription(description);
     onDemandFeaturegroupDTO.setQuery(sqlQuery);
     onDemandFeaturegroupDTO.setJdbcConnectorId(jdbcConnectorId);
-    onDemandFeaturegroupDTO.setFeaturegroupType(FeaturegroupType.ON_DEMAND_FEATURE_GROUP);
     return onDemandFeaturegroupDTO;
   }
   
@@ -246,8 +244,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     cachedFeaturegroupDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
     cachedFeaturegroupDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
     cachedFeaturegroupDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
-    cachedFeaturegroupDTO.setFeaturegroupType(FeaturegroupType.CACHED_FEATURE_GROUP);
-    cachedFeaturegroupDTO.setOnlineFeaturegroupEnabled(online);
+    cachedFeaturegroupDTO.setOnlineEnabled(online);
     cachedFeaturegroupDTO.setClusterAnalysisEnabled(clusterAnalysis);
     cachedFeaturegroupDTO.setFeatCorrEnabled(featureCorr);
     cachedFeaturegroupDTO.setFeatHistEnabled(featureHistograms);
