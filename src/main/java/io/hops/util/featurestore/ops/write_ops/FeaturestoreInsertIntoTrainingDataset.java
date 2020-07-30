@@ -32,6 +32,7 @@ import org.json.JSONObject;
 
 import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -89,9 +90,11 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
     }
-    if (mode==null || !mode.equalsIgnoreCase("overwrite"))
+
+    List<String> supportedModes = Arrays.asList(Constants.SPARK_OVERWRITE_MODE, Constants.SPARK_APPEND_MODE);
+    if (mode==null || !supportedModes.stream().anyMatch(x -> x.equalsIgnoreCase(mode)))
       throw new IllegalArgumentException("The supplied write mode: " + mode +
-        " does not match any of the supported modes: overwrite (training datasets are immutable)");
+        " does not match any of the supported modes: overwrite or append");
     try {
       doInsertIntoTrainingDataset(getSpark(), dataframe, name, featurestore,
         Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version,
