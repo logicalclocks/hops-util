@@ -218,7 +218,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     String hdfsPath = FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     FeaturestoreHelper.writeTrainingDataset(getSpark(), dataframe, hdfsPath, dataFormat,
       Constants.SPARK_OVERWRITE_MODE);
-    if (dataFormat.equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
+    if (dataFormat.equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT) ||
+            dataFormat.equals(Constants.TRAINING_DATASET_TFRECORD_FORMAT)) {
       try {
         JSONObject tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(dataframe);
         FeaturestoreHelper.writeTfRecordSchemaJson(trainingDatasetDTO.getLocation()

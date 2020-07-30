@@ -194,7 +194,8 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
     String hdfsPath = FeaturestoreHelper.getHopsfsTrainingDatasetPath(trainingDatasetDTO);
     FeaturestoreHelper.writeTrainingDataset(sparkSession, sparkDf, hdfsPath,
       trainingDatasetDTO.getDataFormat(), writeMode);
-    if (trainingDatasetDTO.getDataFormat().equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT)) {
+    if (trainingDatasetDTO.getDataFormat().equals(Constants.TRAINING_DATASET_TFRECORDS_FORMAT) ||
+            trainingDatasetDTO.getDataFormat().equals(Constants.TRAINING_DATASET_TFRECORD_FORMAT)) {
       JSONObject tfRecordSchemaJson = null;
       try{
         tfRecordSchemaJson = FeaturestoreHelper.getDataframeTfRecordSchemaJson(sparkDf);

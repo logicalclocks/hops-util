@@ -122,6 +122,7 @@ public class Constants {
   public static final List<String> NUMERIC_SPARK_TYPES = Arrays.asList("bigint", "decimal", "integer", "int",
       "double", "long", "float", "short");
   public static final String SPARK_OVERWRITE_MODE = "overwrite";
+  public static final String SPARK_APPEND_MODE = "append";
   public static final String SPARK_WRITE_DELIMITER = "delimiter";
   public static final String SPARK_WRITE_HEADER = "header";
   public static final String SPARK_INFER_SCHEMA = "inferSchema";
@@ -145,6 +146,7 @@ public class Constants {
   public static final String TRAINING_DATASET_IMAGE_FORMAT = "image";
   public static final String TRAINING_DATASET_ORC_FORMAT = "orc";
   public static final String TRAINING_DATASET_TFRECORDS_FORMAT = "tfrecords";
+  public static final String TRAINING_DATASET_TFRECORD_FORMAT = "tfrecord";
   public static final String TRAINING_DATASET_CSV_SUFFIX = ".csv";
   public static final String TRAINING_DATASET_TSV_SUFFIX = ".tsv";
   public static final String TRAINING_DATASET_PARQUET_SUFFIX = ".parquet";

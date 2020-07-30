@@ -583,7 +583,7 @@ public class FeaturestoreHelper {
    * @param trainingDatasetType the type of the training dataset
    * @return a spark dataframe with the dataset
    * @throws TrainingDatasetFormatNotSupportedError if a unsupported data format is provided, supported modes are:
-   *                                                tfrecords, tsv, csv, avro, orc, image and parquet
+   *                                                tfrecords, tfrecord, tsv, csv, avro, orc, image and parquet
    * @throws IOException IOException IOException
    * @throws TrainingDatasetDoesNotExistError if the path is not found
    */
@@ -733,6 +733,7 @@ public class FeaturestoreHelper {
           return sparkSession.read().format(dataFormat).load(path);
         }
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
+      case Constants.TRAINING_DATASET_TFRECORD_FORMAT:
         if(trainingDatasetType == TrainingDatasetType.HOPSFS_TRAINING_DATASET) {
           filePath = new org.apache.hadoop.fs.Path(path);
           hdfs = filePath.getFileSystem(hdfsConf);
@@ -761,6 +762,7 @@ public class FeaturestoreHelper {
             Constants.TRAINING_DATASET_CSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TFRECORDS_FORMAT + "," +
+            Constants.TRAINING_DATASET_TFRECORD_FORMAT + "," +
             Constants.TRAINING_DATASET_PARQUET_FORMAT + "," +
             Constants.TRAINING_DATASET_AVRO_FORMAT + "," +
             Constants.TRAINING_DATASET_ORC_FORMAT + "," +
@@ -2070,7 +2072,7 @@ public class FeaturestoreHelper {
    * @param dataFormat   the format to serialize to
    * @param writeMode    the spark write mode (append/overwrite)
    * @throws TrainingDatasetFormatNotSupportedError if the provided dataframe format is not supported, supported formats
-   * are tfrecords, csv, tsv, avro, orc, image and parquet
+   * are tfrecords, tfrecord, csv, tsv, avro, orc, image and parquet
    * @throws CannotWriteImageDataFrameException if the user tries to save a dataframe in image format
    */
   public static void writeTrainingDataset(SparkSession sparkSession, Dataset<Row> sparkDf,
@@ -2105,6 +2107,7 @@ public class FeaturestoreHelper {
       case Constants.TRAINING_DATASET_IMAGE_FORMAT:
         throw new CannotWriteImageDataFrameException("Image Dataframes can only be read, not written");
       case Constants.TRAINING_DATASET_TFRECORDS_FORMAT:
+      case Constants.TRAINING_DATASET_TFRECORD_FORMAT:
         sparkDf.write().format(dataFormat).option(Constants.SPARK_TF_CONNECTOR_RECORD_TYPE,
             Constants.SPARK_TF_CONNECTOR_RECORD_TYPE_EXAMPLE).mode(writeMode).save(path);
         sparkSession.sparkContext().setJobGroup("", "", true);
@@ -2116,6 +2119,7 @@ public class FeaturestoreHelper {
             Constants.TRAINING_DATASET_CSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TSV_FORMAT + "," +
             Constants.TRAINING_DATASET_TFRECORDS_FORMAT + "," +
+            Constants.TRAINING_DATASET_TFRECORD_FORMAT + "," +
             Constants.TRAINING_DATASET_PARQUET_FORMAT + "," +
             Constants.TRAINING_DATASET_AVRO_FORMAT + "," +
             Constants.TRAINING_DATASET_ORC_FORMAT + "," +
