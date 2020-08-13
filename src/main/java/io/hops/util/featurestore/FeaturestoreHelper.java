@@ -2670,7 +2670,7 @@ public class FeaturestoreHelper {
    */
   public static String getHopsfsTrainingDatasetPath(TrainingDatasetDTO trainingDatasetDTO) {
     String trainingDatasetLocation = trainingDatasetDTO.getLocation()
-            .replace("hopsfs", "");
+            .replace(":hopsfs", "");
     return Constants.HDFS_DEFAULT + trainingDatasetLocation +
       Constants.SLASH_DELIMITER + trainingDatasetDTO.getName();
   }
