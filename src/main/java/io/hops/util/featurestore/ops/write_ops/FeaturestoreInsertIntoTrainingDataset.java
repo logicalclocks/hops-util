@@ -90,7 +90,7 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       throw new IllegalArgumentException("Dataframe to insert cannot be null, specify dataframe with " +
         ".setDataframe(df)");
     }
-    
+
     List<String> supportedModes = Arrays.asList(Constants.SPARK_OVERWRITE_MODE, Constants.SPARK_APPEND_MODE);
     if (mode==null || !supportedModes.stream().anyMatch(x -> x.equalsIgnoreCase(mode)))
       throw new IllegalArgumentException("The supplied write mode: " + mode +
