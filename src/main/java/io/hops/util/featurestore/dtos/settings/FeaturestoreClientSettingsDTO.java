@@ -27,7 +27,6 @@ import java.util.List;
 @XmlRootElement
 public class FeaturestoreClientSettingsDTO {
   
-  private int featurestoreStatisticsMaxCorrelations;
   private String featurestoreRegex;
   private int featurestoreEntityNameMaxLength;
   private int featurestoreEntityDescriptionMaxLength;
@@ -68,15 +67,6 @@ public class FeaturestoreClientSettingsDTO {
   
   public FeaturestoreClientSettingsDTO() {
     //For JAXB
-  }
-  
-  @XmlElement
-  public int getFeaturestoreStatisticsMaxCorrelations() {
-    return featurestoreStatisticsMaxCorrelations;
-  }
-  
-  public void setFeaturestoreStatisticsMaxCorrelations(int featurestoreStatisticsMaxCorrelations) {
-    this.featurestoreStatisticsMaxCorrelations = featurestoreStatisticsMaxCorrelations;
   }
   
   @XmlElement

@@ -1,7 +1,6 @@
 package io.hops.util.featurestore.ops.write_ops;
 
 import io.hops.util.Constants;
-import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
 import io.hops.util.exceptions.DataframeIsEmpty;
@@ -20,7 +19,6 @@ import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
-import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetType;
@@ -30,7 +28,6 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.json.JSONObject;
 
-import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBException;
 import java.util.Arrays;
 import java.util.List;
@@ -97,17 +94,11 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
         " does not match any of the supported modes: overwrite or append");
     try {
       doInsertIntoTrainingDataset(getSpark(), dataframe, name, featurestore,
-        Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version,
-        descriptiveStats, featureCorr,
-        featureHistograms, clusterAnalysis, statColumns, numBins, corrMethod, numClusters,
-        mode);
+        Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version, mode);
     } catch (Exception e) {
       Hops.updateFeaturestoreMetadataCache().setFeaturestore(featurestore).write();
       doInsertIntoTrainingDataset(getSpark(), dataframe, name, featurestore,
-        Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version,
-        descriptiveStats, featureCorr,
-        featureHistograms, clusterAnalysis, statColumns, numBins, corrMethod, numClusters,
-        mode);
+        Hops.getFeaturestoreMetadata().setFeaturestore(featurestore).read(), version, mode);
     }
   }
   
@@ -120,15 +111,6 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * @param featurestore           the name of the featurestore where the training dataset resides
    * @param featurestoreMetadata   metadata of the featurestore to query
    * @param trainingDatasetVersion the version of the training dataset
-   * @param descriptiveStats       a boolean flag whether to compute descriptive statistics of the new data
-   * @param featureCorr            a boolean flag whether to compute feature correlation analysis of the new data
-   * @param featureHistograms      a boolean flag whether to compute feature histograms of the new data
-   * @param clusterAnalysis        a boolean flag whether to compute cluster analysis of the new data
-   * @param statColumns            a list of columns to compute statistics for (defaults to all columns
-   *                               that are numeric)
-   * @param numBins                number of bins to use for computing histograms
-   * @param corrMethod             the method to compute feature correlation with (pearson or spearman)
-   * @param numClusters            number of clusters to use for cluster analysis
    * @param writeMode              the spark write mode (append/overwrite)
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
@@ -146,37 +128,20 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    */
   private void doInsertIntoTrainingDataset(
       SparkSession sparkSession, Dataset<Row> sparkDf, String trainingDataset,
-      String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion,
-      Boolean descriptiveStats, Boolean featureCorr,
-      Boolean featureHistograms, Boolean clusterAnalysis, List<String> statColumns, Integer numBins,
-      String corrMethod, Integer numClusters, String writeMode)
+      String featurestore, FeaturestoreMetadataDTO featurestoreMetadata, int trainingDatasetVersion, String writeMode)
     throws JAXBException, TrainingDatasetDoesNotExistError, DataframeIsEmpty, FeaturegroupUpdateStatsError,
     TrainingDatasetFormatNotSupportedError, FeaturestoreNotFound,
     CannotWriteImageDataFrameException, JWTNotFoundException, StorageConnectorDoesNotExistError, HiveNotEnabled,
     OnlineFeaturestoreUserNotFound, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled,
     FeaturegroupDoesNotExistError {
-    featurestore = FeaturestoreHelper.featurestoreGetOrDefault(featurestore);
     sparkSession = FeaturestoreHelper.sparkGetOrDefault(sparkSession);
-    corrMethod = FeaturestoreHelper.correlationMethodGetOrDefault(corrMethod);
-    numBins = FeaturestoreHelper.numBinsGetOrDefault(numBins);
-    numClusters = FeaturestoreHelper.numClustersGetOrDefault(numClusters);
     List<TrainingDatasetDTO> trainingDatasetDTOList = featurestoreMetadata.getTrainingDatasets();
     TrainingDatasetDTO trainingDatasetDTO = FeaturestoreHelper.findTrainingDataset(trainingDatasetDTOList,
       trainingDataset, trainingDatasetVersion);
-    StatisticsDTO statisticsDTO = FeaturestoreHelper.computeDataFrameStats(trainingDataset, sparkSession,
-      sparkDf,
-      featurestore, trainingDatasetVersion,
-      descriptiveStats, featureCorr, featureHistograms, clusterAnalysis, statColumns, numBins, numClusters,
-      corrMethod);
-    Response response =
-      FeaturestoreRestClient.updateTrainingDatasetStatsRest(groupInputParamsIntoDTO(trainingDatasetDTO, statisticsDTO));
-    String jsonStrResponse = response.readEntity(String.class);
-    JSONObject jsonObjResponse = new JSONObject(jsonStrResponse);
-    TrainingDatasetDTO updatedTrainingDatasetDTO = FeaturestoreHelper.parseTrainingDatasetJson(jsonObjResponse);
-    if(updatedTrainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
-      insertIntoHopsfsTrainingDataset(updatedTrainingDatasetDTO, sparkSession, sparkDf, writeMode);
+    if(trainingDatasetDTO.getTrainingDatasetType() == TrainingDatasetType.HOPSFS_TRAINING_DATASET){
+      insertIntoHopsfsTrainingDataset(trainingDatasetDTO, sparkSession, sparkDf, writeMode);
     } else {
-      insertIntoExternalTrainingDataset(updatedTrainingDatasetDTO, featurestoreMetadata, sparkSession, sparkDf,
+      insertIntoExternalTrainingDataset(trainingDatasetDTO, featurestoreMetadata, sparkSession, sparkDf,
         writeMode);
     }
   }
@@ -248,11 +213,9 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
    * Groups input parameters into a DTO
    *
    * @param trainingDatasetDTO DTO representation of the training dataset before updating the statistics
-   * @param statisticsDTO the newly computed statistics of the training dataset
    * @return training dataset DTO
    */
-  private TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO,
-    StatisticsDTO statisticsDTO) {
+  private TrainingDatasetDTO groupInputParamsIntoDTO(TrainingDatasetDTO trainingDatasetDTO) {
     if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
       jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
     }
@@ -261,10 +224,6 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
       featurestoreJobDTO.setJobName(jobName);
       return featurestoreJobDTO;
     }).collect(Collectors.toList());
-    trainingDatasetDTO.setClusterAnalysis(statisticsDTO.getClusterAnalysisDTO());
-    trainingDatasetDTO.setFeaturesHistogram(statisticsDTO.getFeatureDistributionsDTO());
-    trainingDatasetDTO.setDescriptiveStatistics(statisticsDTO.getDescriptiveStatsDTO());
-    trainingDatasetDTO.setFeatureCorrelationMatrix(statisticsDTO.getFeatureCorrelationMatrixDTO());
     trainingDatasetDTO.setJobs(jobsDTOs);
     return trainingDatasetDTO;
   }
@@ -286,21 +245,6 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
   
   public FeaturestoreInsertIntoTrainingDataset setVersion(int version) {
     this.version = version;
-    return this;
-  }
-  
-  public FeaturestoreInsertIntoTrainingDataset setCorrMethod(String corrMethod) {
-    this.corrMethod = corrMethod;
-    return this;
-  }
-  
-  public FeaturestoreInsertIntoTrainingDataset setNumBins(int numBins) {
-    this.numBins = numBins;
-    return this;
-  }
-  
-  public FeaturestoreInsertIntoTrainingDataset setNumClusters(int numClusters) {
-    this.numClusters = numClusters;
     return this;
   }
   
@@ -326,11 +270,6 @@ public class FeaturestoreInsertIntoTrainingDataset extends FeaturestoreOp {
   
   public FeaturestoreInsertIntoTrainingDataset setFeatureHistograms(Boolean featureHistograms) {
     this.featureHistograms = featureHistograms;
-    return this;
-  }
-  
-  public FeaturestoreInsertIntoTrainingDataset setClusterAnalysis(Boolean clusterAnalysis) {
-    this.clusterAnalysis = clusterAnalysis;
     return this;
   }
   

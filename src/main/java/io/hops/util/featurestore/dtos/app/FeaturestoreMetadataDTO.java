@@ -27,7 +27,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * DTO containing the metadata of a featurestore.
@@ -55,22 +54,8 @@ public class FeaturestoreMetadataDTO {
                                  FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO) {
     this.featurestore = featurestore;
     // We do not need to send all of the statistics information over the wire for the Python/Scala clients
-    this.featuregroups = featuregroups.stream().map(fg -> {
-        fg.setClusterAnalysis(null);
-        fg.setDescriptiveStatistics(null);
-        fg.setFeaturesHistogram(null);
-        fg.setFeatureCorrelationMatrix(null);
-        return fg;
-      }
-    ).collect(Collectors.toList());
-    this.trainingDatasets = trainingDatasets.stream().map(td -> {
-        td.setClusterAnalysis(null);
-        td.setDescriptiveStatistics(null);
-        td.setFeaturesHistogram(null);
-        td.setFeatureCorrelationMatrix(null);
-        return td;
-      }
-    ).collect(Collectors.toList());
+    this.featuregroups = featuregroups;
+    this.trainingDatasets = trainingDatasets;
     this.settings = featurestoreClientSettingsDTO;
     this.storageConnectors = storageConnectors;
   }

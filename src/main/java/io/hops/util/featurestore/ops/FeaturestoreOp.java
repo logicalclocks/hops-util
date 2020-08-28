@@ -29,7 +29,6 @@ import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
-import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -74,7 +73,6 @@ public abstract class FeaturestoreOp {
   protected String sqlQuery = "";
   protected Map<String, String> jdbcArguments;
   protected Map<String, Map<String, String>> onDemandFeaturegroupsjdbcArguments;
-  protected StatisticsDTO statisticsDTO;
   protected Boolean hudi = false;
   protected Map<String, String> hudiArgs = new HashMap<>();
   protected String hudiBasePath = "";
@@ -172,27 +170,6 @@ public abstract class FeaturestoreOp {
    */
   public String getJoinKey() {
     return joinKey;
-  }
-
-  /**
-   * @return the correlation method to use for feature correlation analysis (e.g pearson or spearman)
-   */
-  public String getCorrMethod() {
-    return corrMethod;
-  }
-
-  /**
-   * @return the number of bins to use for histogram statistics
-   */
-  public int getNumBins() {
-    return numBins;
-  }
-
-  /**
-   * @return the number of clusters to use for k-means clustering analysis
-   */
-  public int getNumClusters() {
-    return numClusters;
   }
 
   /**
@@ -321,13 +298,6 @@ public abstract class FeaturestoreOp {
    */
   public Map<String, Map<String, String>> getOnDemandFeaturegroupsjdbcArguments() {
     return onDemandFeaturegroupsjdbcArguments;
-  }
-
-  /**
-   * @return statistics provided by the user to set for a hive table to sync with the feature store
-   */
-  public StatisticsDTO getStatisticsDTO() {
-    return statisticsDTO;
   }
 
   /**
