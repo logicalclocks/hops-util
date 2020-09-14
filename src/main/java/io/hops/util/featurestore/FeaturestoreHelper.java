@@ -1417,16 +1417,17 @@ public class FeaturestoreHelper {
   private static void validateCommonMetadata(String name, String description) {
     if (!featurestoreRegex.matcher(name).matches()) {
       throw new IllegalArgumentException("Illegal feature store entity name, the provided name " + name + " is " +
-          "invalid. Entity names can only contain lower case characters, numbers and underscores and cannot be longer " +
-          "than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength() +
+          "invalid. Entity names can only contain lower case characters, numbers and underscores " +
+          "and cannot be longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength() +
           " characters or empty.");
     }
 
     if (!Strings.isNullOrEmpty(description) &&
         description.length() > featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength()) {
       throw new IllegalArgumentException("Illegal feature store entity description, the provided description for " +
-          "the entity " + name + " is too long with " + description.length() + " characters. Entity descriptions cannot" +
-          " be longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() +
+          "the entity " + name + " is too long with " + description.length() + " characters. " +
+          "Entity descriptions cannot be longer than " +
+          featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() +
           " characters.");
     }
   }
@@ -1478,9 +1479,9 @@ public class FeaturestoreHelper {
     for (TrainingDatasetFeatureDTO featureDTO : schema) {
       if (!featurestoreRegex.matcher(featureDTO.getName()).matches()) {
         throw new IllegalArgumentException("Illegal feature name, the provided feature name " + featureDTO.getName() +
-            " is invalid. Feature names can only contain lower case characters, numbers and underscores and cannot be " +
-            "longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength()  + " characters"
-            + " or empty.");
+            " is invalid. Feature names can only contain lower case characters, numbers and " +
+            "underscores and cannot be longer than " +
+            featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength()  + " characters or empty.");
       }
     }
   }
