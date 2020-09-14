@@ -5,6 +5,8 @@ public class TrainingDatasetFeatureDTO {
   private String type;
   private Integer index;
 
+  public TrainingDatasetFeatureDTO() {}
+
   public TrainingDatasetFeatureDTO(String name, String type, Integer index) {
     this.name = name;
     this.type = type;
