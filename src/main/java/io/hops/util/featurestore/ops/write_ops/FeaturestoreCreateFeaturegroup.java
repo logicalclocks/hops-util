@@ -145,7 +145,7 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), primaryKey,
       partitionBy, online, onlineTypes);
     FeaturestoreHelper.validatePrimaryKey(dataframe, primaryKey);
-    FeaturestoreHelper.validateMetadata(name, featuresSchema, description);
+    FeaturestoreHelper.validateFeatureGroupMetadata(name, featuresSchema, description);
     if(!hudi) {
       FeaturestoreRestClient.createFeaturegroupRest(groupInputParamsIntoDTO(featuresSchema),
         FeaturestoreHelper.getFeaturegroupDtoTypeStr(featurestoreMetadata.getSettings(), onDemand));

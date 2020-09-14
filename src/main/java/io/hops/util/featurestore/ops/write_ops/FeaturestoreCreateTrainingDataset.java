@@ -92,7 +92,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
     List<TrainingDatasetFeatureDTO> featuresSchema =
         FeaturestoreHelper.parseSparkTrainingDatasetSchema(dataframe.schema());
-    FeaturestoreHelper.validateMetadata(name, featuresSchema, description);
+    FeaturestoreHelper.validateTrainingDatasetMetadata(name, featuresSchema, description);
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
     if(storageConnector != null && !storageConnector.isEmpty()){
       storageConnectorDTO =

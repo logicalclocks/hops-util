@@ -1414,6 +1414,23 @@ public class FeaturestoreHelper {
     return true;
   }
 
+  private static void validateCommonMetadata(String name, String description) {
+    if (!featurestoreRegex.matcher(name).matches()) {
+      throw new IllegalArgumentException("Illegal feature store entity name, the provided name " + name + " is " +
+          "invalid. Entity names can only contain lower case characters, numbers and underscores and cannot be longer " +
+          "than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength() +
+          " characters or empty.");
+    }
+
+    if (!Strings.isNullOrEmpty(description) &&
+        description.length() > featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength()) {
+      throw new IllegalArgumentException("Illegal feature store entity description, the provided description for " +
+          "the entity " + name + " is too long with " + description.length() + " characters. Entity descriptions cannot" +
+          " be longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() +
+          " characters.");
+    }
+  }
+
   /**
    * Validates metadata provided by the user when creating new feature groups and training datasets
    *
@@ -1421,22 +1438,8 @@ public class FeaturestoreHelper {
    * @param schema the schema of the provided spark dataframe in terms of featureDTOs
    * @param description the description about the feature group/training dataset
    */
-  public static void validateMetadata(String name, List<FeatureDTO> schema, String description) {
-    if (!featurestoreRegex.matcher(name).matches()) {
-      throw new IllegalArgumentException("Illegal feature store entity name, the provided name " + name + " is " +
-        "invalid. Entity names can only contain lower case characters, numbers and underscores and cannot be longer " +
-        "than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength() +
-        " characters or empty.");
-    }
-
-    if (!Strings.isNullOrEmpty(description) &&
-      description.length() > featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength()) {
-      throw new IllegalArgumentException("Illegal feature store entity description, the provided description for " +
-        "the entity " + name + " is too long with " + description.length() + " characters. Entity descriptions cannot" +
-        " be longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() +
-        " characters.");
-    }
-  
+  public static void validateFeatureGroupMetadata(String name, List<FeatureDTO> schema, String description) {
+    validateCommonMetadata(name, description);
     if (schema.size() == 0) {
       throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
     }
@@ -1454,6 +1457,30 @@ public class FeaturestoreHelper {
           featureDTO.getName() + " is too long with " + featureDTO.getDescription().length() + " characters. Feature " +
           "descriptions cannot be longer than " +
           featurestoreMetadataCache.getSettings().getFeaturestoreEntityDescriptionMaxLength() + " characters.");
+      }
+    }
+  }
+
+  /**
+   * Validates metadata provided by the user when creating new feature groups and training datasets
+   *
+   * @param name the name of the feature group/training dataset
+   * @param schema the schema of the provided spark dataframe in terms of featureDTOs
+   * @param description the description about the feature group/training dataset
+   */
+  public static void validateTrainingDatasetMetadata(String name, List<TrainingDatasetFeatureDTO> schema,
+                                                     String description) {
+    validateCommonMetadata(name, description);
+    if (schema.size() == 0) {
+      throw new IllegalArgumentException("Cannot create a feature group from an empty spark dataframe");
+    }
+
+    for (TrainingDatasetFeatureDTO featureDTO : schema) {
+      if (!featurestoreRegex.matcher(featureDTO.getName()).matches()) {
+        throw new IllegalArgumentException("Illegal feature name, the provided feature name " + featureDTO.getName() +
+            " is invalid. Feature names can only contain lower case characters, numbers and underscores and cannot be " +
+            "longer than " + featurestoreMetadataCache.getSettings().getFeaturestoreEntityNameMaxLength()  + " characters"
+            + " or empty.");
       }
     }
   }
