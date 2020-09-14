@@ -19,10 +19,12 @@ package io.hops.util.featurestore.dtos.trainingdataset;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.hops.util.featurestore.dtos.FeaturestoreEntityDTO;
+import io.hops.util.featurestore.dtos.feature.TrainingDatasetFeatureDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
 /**
  * DTO containing the human-readable information of a trainingDataset, can be converted to JSON or XML representation
@@ -40,6 +42,8 @@ public class TrainingDatasetDTO extends FeaturestoreEntityDTO {
   private String storageConnectorName;
   private FeaturestoreStorageConnectorType storageConnectorType;
   private Long inodeId;
+
+  private List<TrainingDatasetFeatureDTO> features;
 
   public TrainingDatasetDTO() {
   }
@@ -98,6 +102,14 @@ public class TrainingDatasetDTO extends FeaturestoreEntityDTO {
 
   public void setInodeId(Long inodeId) {
     this.inodeId = inodeId;
+  }
+
+  public List<TrainingDatasetFeatureDTO> getFeatures() {
+    return features;
+  }
+
+  public void setFeatures(List<TrainingDatasetFeatureDTO> features) {
+    this.features = features;
   }
 
   @Override

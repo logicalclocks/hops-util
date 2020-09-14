@@ -34,6 +34,7 @@ import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.app.SQLJoinDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.feature.TrainingDatasetFeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.settings.FeaturestoreClientSettingsDTO;
@@ -1357,6 +1358,21 @@ public class FeaturestoreHelper {
     List<FeatureDTO> features = new ArrayList<>();
     for (int i = 0; i < fieldsList.length; i++) {
       features.add(convertFieldToFeature(fieldsList[i], primaryKey, partitionBy, online, onlineTypes));
+    }
+    return features;
+  }
+
+  /**
+   * Parses a spark schema into a list of TrainingDatasetFeatureDTOs
+   *
+   * @param sparkSchema the spark schema to parse
+   * @return a list of TrainingDatasetFeatureDTOs
+   */
+  public static List<TrainingDatasetFeatureDTO> parseSparkTrainingDatasetSchema(StructType sparkSchema) {
+    StructField[] fieldsList = sparkSchema.fields();
+    List<TrainingDatasetFeatureDTO> features = new ArrayList<>();
+    for (int i = 0; i < fieldsList.length; i++) {
+      features.add(new TrainingDatasetFeatureDTO(fieldsList[i].name(), fieldsList[i].dataType().catalogString(), i));
     }
     return features;
   }
