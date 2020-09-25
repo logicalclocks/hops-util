@@ -205,54 +205,6 @@ public class FeaturestoreRestClient {
   }
   
   /**
-   * Makes a REST call to Hopsworks for updating the statistics and the settings of a featuregroup
-   *
-   * @param featuregroupDTO        DTO of the feature group
-   * @param featuregroupDTOType    the DTO type
-   * @throws JWTNotFoundException JWTNotFoundException
-   * @throws JAXBException JAXBException
-   * @throws FeaturegroupUpdateStatsError FeaturegroupUpdateStatsError
-   * @throws FeaturestoreNotFound FeaturestoreNotFound
-   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
-   */
-  public static void updateFeaturegroupStatsRest(
-    FeaturegroupDTO featuregroupDTO, String featuregroupDTOType)
-    throws JWTNotFoundException,
-    JAXBException, FeaturegroupUpdateStatsError, FeaturestoreNotFound, FeaturegroupDoesNotExistError {
-    LOG.log(Level.FINE,
-      "Updating featuregroup stats for: " + featuregroupDTO.getName() +
-        " in featurestore: " + featuregroupDTO.getFeaturestoreName());
-    JSONObject json = FeaturestoreHelper.convertFeaturegroupDTOToJsonObject(featuregroupDTO);
-    json.put(Constants.JSON_FEATURESTORE_ENTITY_TYPE, featuregroupDTOType);
-    Response response;
-    try {
-      int featurestoreId = FeaturestoreHelper.getFeaturestoreId(featuregroupDTO.getFeaturestoreName());
-      int featuregroupId = FeaturestoreHelper.getFeaturegroupId(featuregroupDTO.getFeaturestoreName(),
-        featuregroupDTO.getName(), featuregroupDTO.getVersion());
-      Map<String, Object> queryParams = new HashMap<>();
-      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_QUERY_PARAM, true);
-      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_STATS_SETTINGS_QUERY_PARAM, true);
-      queryParams.put(Constants.JSON_FEATURESTORE_UPDATE_JOB_QUERY_PARAM, !featuregroupDTO.getJobs().isEmpty());
-      response = Hops.clientWrapper(json,
-        "/project/" + Hops.getProjectId() + "/" + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + "/" +
-          featurestoreId + "/" + Constants.HOPSWORKS_REST_FEATUREGROUPS_RESOURCE + "/" + featuregroupId,
-          HttpMethod.PUT, queryParams);
-    } catch (HTTPSClientInitializationException e) {
-      throw new FeaturegroupUpdateStatsError(e.getMessage());
-    }
-    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
-    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
-      HopsworksErrorResponseDTO hopsworksErrorResponseDTO = Hops.parseHopsworksErrorResponse(response);
-      LOG.severe("Could not update statistics and the settings for featuregroup:" + featuregroupDTO.getName() +
-          " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
-          + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
-      throw new FeaturegroupUpdateStatsError("Could not update statistics and the settings for featuregroup:" +
-        featuregroupDTO.getName() + " , error code: " + hopsworksErrorResponseDTO.getErrorCode() + " error message: "
-        + hopsworksErrorResponseDTO.getErrorMsg() + ", user message: " + hopsworksErrorResponseDTO.getUserMsg());
-    }
-  }
-  
-  /**
    * @param trainingDatasetDTO        DTO of the training dataset
    * @return the JSON response
    * @throws JWTNotFoundException JWTNotFoundException

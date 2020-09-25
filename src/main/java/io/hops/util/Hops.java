@@ -16,10 +16,12 @@ package io.hops.util;
 
 import io.hops.util.exceptions.ElasticAuthorizationTokenException;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
+import io.hops.util.exceptions.FeaturegroupUpdateStatsError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.SchemaNotFoundException;
+import io.hops.util.exceptions.TrainingDatasetUpdateStatsError;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetTags;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetTagsForFeaturegroup;
 import io.hops.util.featurestore.ops.read_ops.FeaturestoreGetTagsForTrainingDataset;
@@ -523,24 +525,32 @@ public class Hops {
   }
 
   /**
+   * @deprecated
    * Inserts a spark dataframe into a featuregroup
    *
    * @param featuregroup  the name of the featuregroup to insert into
    * @return a lazy java object for the operation of inserting into a featuregroup in the featurestore.
    * The operation can be started with write() on the object and parameters can be updated with setters
    */
+  @Deprecated
   public static FeaturestoreInsertIntoFeaturegroup insertIntoFeaturegroup(String featuregroup) {
+    LOG.log(Level.WARNING, "Statistics have been deprecated in `hops-util`. `insertIntoFeaturegroup` method will not " +
+      "compute statistics. Please switch to use the new `hsfs` Java client.");
     return new FeaturestoreInsertIntoFeaturegroup(featuregroup);
   }
 
   /**
+   * @deprecated
    * Inserts a spark dataframe into an existing training dataset
    *
    * @param trainingDataset        the name of the training dataset to insert into
    * @return a lazy java object for the operation of inserting into a training dataset in the featurestore.
    * The operation can be started with write() on the object and parameters can be updated with setters.
    */
+  @Deprecated
   public static FeaturestoreInsertIntoTrainingDataset insertIntoTrainingDataset(String trainingDataset) {
+    LOG.log(Level.WARNING, "Statistics have been deprecated in `hops-util`. `insertIntoTrainingDataset` method will " +
+      "not compute statistics. Please switch to use the new `hsfs` Java client.");
     return new FeaturestoreInsertIntoTrainingDataset(trainingDataset);
   }
 
@@ -589,6 +599,7 @@ public class Hops {
   }
 
   /**
+   * @deprecated
    * Method for updating the statistics of a featuregroup (recomputing the statistics)
    *
    * @param featuregroup        the name of the featuregroup to update statistics for
@@ -598,20 +609,26 @@ public class Hops {
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    */
+  @Deprecated
   public static FeaturestoreUpdateFeaturegroupStats updateFeaturegroupStats(String featuregroup)
-    throws FeaturegroupDoesNotExistError, JAXBException, FeaturestoreNotFound {
-    return new FeaturestoreUpdateFeaturegroupStats(featuregroup);
+    throws FeaturegroupDoesNotExistError, JAXBException, FeaturestoreNotFound, FeaturegroupUpdateStatsError {
+    throw new FeaturegroupUpdateStatsError("Statistics have been deprecated in `hops-util`. This method is not " +
+      "supported anymore. Please switch to use the new `hsfs` Java client.");
   }
 
   /**
+   * @deprecated
    * Method for updating the statistics of a training dataset (recomputing the statistics)
    *
    * @param trainingDataset        the name of the training dataset to update statistics for
    * @return a lazy java object for the operation of updating the stats of a training dataset.
    * The operation can be started with write() on the object and parameters can be updated with setters.
    */
-  public static FeaturestoreUpdateTrainingDatasetStats updateTrainingDatasetStats(String trainingDataset){
-    return new FeaturestoreUpdateTrainingDatasetStats(trainingDataset);
+  @Deprecated
+  public static FeaturestoreUpdateTrainingDatasetStats updateTrainingDatasetStats(String trainingDataset)
+    throws TrainingDatasetUpdateStatsError {
+    throw new TrainingDatasetUpdateStatsError("Statistics have been deprecated in `hops-util`. This method is not " +
+      "supported anymore. Please switch to use the new `hsfs` Java client.");
   }
 
   /**
@@ -727,18 +744,23 @@ public class Hops {
   }
 
   /**
+   * @deprecated
    * Creates a new featuregroup from a spark dataframe
    *
    * @param featuregroup        the name of the featuregroup
    * @return a lazy java object for the operation of creating a new featuregroup. The operation
    * can be started with write() on the object and parameters can be updated with setters.
    */
+  @Deprecated
   public static FeaturestoreCreateFeaturegroup createFeaturegroup(String featuregroup) {
+    LOG.log(Level.WARNING, "Statistics have been deprecated in `hops-util`. `createFeaturegroup` method will not " +
+      "compute statistics. Please switch to use the new `hsfs` Java client.");
     return new FeaturestoreCreateFeaturegroup(featuregroup);
   }
 
 
   /**
+   * @deprecated
    * Creates a new training dataset from a spark dataframe, saves metadata about the training dataset to the database
    * and saves the materialized dataset on hdfs
    *
@@ -746,7 +768,10 @@ public class Hops {
    * @return a lazy java object for the operation of creating a new training dataset.
    * The operation can be started with write() on the object and parameters can be updated with setters.
    */
+  @Deprecated
   public static FeaturestoreCreateTrainingDataset createTrainingDataset(String trainingDataset) {
+    LOG.log(Level.WARNING, "Statistics have been deprecated in `hops-util`. `createTrainingDataset` method will not " +
+      "compute statistics. Please switch to use the new `hsfs` Java client.");
     return new FeaturestoreCreateTrainingDataset(trainingDataset);
   }
 
@@ -775,18 +800,23 @@ public class Hops {
   }
 
   /**
+   * @deprecated
    * Synchronizes a Hive table with the Feature Store
    *
    * @param hiveTableName the name of the hive table to synchronize with the feature store
    * @return a lazy java object for the operation of getting synchronizing the hive table with the feature store
    * The operation can be started with write() on the object and parameters can be updated with setters.
    */
+  @Deprecated
   public static FeaturestoreSyncHiveTable syncHiveTableWithFeaturestore(String hiveTableName)
   {
+    LOG.log(Level.WARNING, "Statistics have been deprecated in `hops-util`. `syncHiveTableWithFeaturestore` method " +
+      "will not compute statistics. Please switch to use the new `hsfs` Java client.");
     return new FeaturestoreSyncHiveTable(hiveTableName);
   }
 
   /**
+   * @deprecated
    * Imports an external dataset of feature data as a Feature Group in the Hopsworks Feature Store. E.g if you have a
    * bucket on s3 containing feature data you can configure an S3 connector to that bucket in the Hopsworks Feature
    * Store and then use this method to import data from S3 into Hopsworks.
@@ -795,8 +825,11 @@ public class Hops {
    * @return a lazy java object for the operation of getting importing an external dataset into the Feature Store
    * The operation can be started with write() on the object and parameters can be updated with setters.
    */
+  @Deprecated
   public static FeaturestoreImportFeaturegroup importFeaturegroup(String featuregroupName)
   {
+    LOG.log(Level.WARNING, "Statistics have been deprecated in `hops-util`. `importFeaturegroup` method will not " +
+      "compute statistics. Please switch to use the new `hsfs` Java client.");
     return new FeaturestoreImportFeaturegroup(featuregroupName);
   }
   

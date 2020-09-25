@@ -22,10 +22,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.hops.util.featurestore.dtos.FeaturestoreEntityDTO;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
-import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
-import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
-import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
-import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -53,39 +49,20 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
   @XmlElement
   private Boolean featHistEnabled;
   @XmlElement
-  private Boolean clusterAnalysisEnabled;
-  @XmlElement
   private List<String> statisticColumns;
-  @XmlElement
-  private Integer numBins;
-  @XmlElement
-  private Integer numClusters;
-  @XmlElement
-  private String corrMethod;
 
   public FeaturegroupDTO() {
   }
   
   public FeaturegroupDTO(Integer featurestoreId, String featurestoreName, String description, Date created,
-    String creator, Integer version,
-    DescriptiveStatsDTO descriptiveStatistics,
-    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-    FeatureDistributionsDTO featuresHistogram,
-    ClusterAnalysisDTO clusterAnalysis, String name,
-    Integer id, List<FeatureDTO> features, String location,
-    List<FeaturestoreJobDTO> jobs,
-    Boolean clusterAnalysisEnabled, Boolean descStatsEnabled, Boolean featCorrEnabled, Boolean featHistEnabled,
-    List<String> statColumns, Integer numClusters, Integer numBins, String corrMethod) {
-    super(featurestoreId, featurestoreName, description, created, creator, version, descriptiveStatistics,
-      featureCorrelationMatrix, featuresHistogram, clusterAnalysis, name, id, features, location, jobs);
-    this.clusterAnalysisEnabled = clusterAnalysisEnabled;
+    String creator, Integer version, String name, Integer id, List<FeatureDTO> features, String location,
+    List<FeaturestoreJobDTO> jobs, Boolean descStatsEnabled, Boolean featCorrEnabled,
+    Boolean featHistEnabled, List<String> statColumns) {
+    super(featurestoreId, featurestoreName, description, created, creator, version, name, id, features, location, jobs);
     this.descStatsEnabled = descStatsEnabled;
     this.featCorrEnabled = featCorrEnabled;
     this.featHistEnabled = featHistEnabled;
     this.statisticColumns = statColumns;
-    this.numBins = numBins;
-    this.numClusters = numClusters;
-    this.corrMethod = corrMethod;
   }
   
   public Boolean isDescStatsEnabled() {
@@ -112,44 +89,12 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
     this.featHistEnabled = featHistEnabled;
   }
   
-  public Boolean isClusterAnalysisEnabled() {
-    return clusterAnalysisEnabled;
-  }
-  
-  public void setClusterAnalysisEnabled(boolean clusterAnalysisEnabled) {
-    this.clusterAnalysisEnabled = clusterAnalysisEnabled;
-  }
-  
   public List<String> getStatisticColumns() {
     return statisticColumns;
   }
   
   public void setStatisticColumns(List<String> statisticColumns) {
     this.statisticColumns = statisticColumns;
-  }
-  
-  public Integer getNumBins() {
-    return numBins;
-  }
-  
-  public void setNumBins(Integer numBins) {
-    this.numBins = numBins;
-  }
-  
-  public Integer getNumClusters() {
-    return numClusters;
-  }
-  
-  public void setNumClusters(Integer numClusters) {
-    this.numClusters = numClusters;
-  }
-  
-  public String getCorrMethod() {
-    return corrMethod;
-  }
-  
-  public void setCorrMethod(String corrMethod) {
-    this.corrMethod = corrMethod;
   }
 
   @Override
@@ -158,11 +103,7 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
       "descStatsEnabled=" + descStatsEnabled +
       ", featCorrEnabled=" + featCorrEnabled +
       ", featHistEnabled=" + featHistEnabled +
-      ", clusterAnalysisEnabled=" + clusterAnalysisEnabled +
-      ", statisticColumns=" + statisticColumns +
-      ", numBins=" + numBins +
-      ", numClusters=" + numClusters +
-      ", corrMethod='" + corrMethod + '\'' +
+      ", statisticColumns=" + statisticColumns + '\'' +
       '}';
   }
 

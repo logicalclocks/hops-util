@@ -20,7 +20,6 @@ import io.hops.util.Constants;
 import io.hops.util.FeaturestoreRestClient;
 import io.hops.util.Hops;
 import io.hops.util.exceptions.CannotWriteImageDataFrameException;
-import io.hops.util.exceptions.DataframeIsEmpty;
 import io.hops.util.exceptions.FeaturegroupDoesNotExistError;
 import io.hops.util.exceptions.FeaturestoreNotFound;
 import io.hops.util.exceptions.HiveNotEnabled;
@@ -29,7 +28,6 @@ import io.hops.util.exceptions.InvalidPrimaryKeyForFeaturegroup;
 import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
-import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
@@ -39,19 +37,6 @@ import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.featuregroup.OnDemandFeaturegroupDTO;
 import io.hops.util.featurestore.dtos.settings.FeaturestoreClientSettingsDTO;
-import io.hops.util.featurestore.dtos.stats.StatisticsDTO;
-import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
-import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterDTO;
-import io.hops.util.featurestore.dtos.stats.cluster_analysis.DatapointDTO;
-import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
-import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsMetricValueDTO;
-import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsMetricValuesDTO;
-import io.hops.util.featurestore.dtos.stats.feature_correlation.CorrelationValueDTO;
-import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationDTO;
-import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
-import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionDTO;
-import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
-import io.hops.util.featurestore.dtos.stats.feature_distributions.HistogramBinDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
@@ -65,13 +50,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkContext;
-import org.apache.spark.ml.clustering.KMeans;
-import org.apache.spark.ml.clustering.KMeansModel;
-import org.apache.spark.ml.feature.PCA;
-import org.apache.spark.ml.feature.PCAModel;
 import org.apache.spark.ml.feature.VectorAssembler;
-import org.apache.spark.ml.linalg.DenseMatrix;
-import org.apache.spark.ml.stat.Correlation;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
@@ -90,7 +69,6 @@ import org.apache.spark.sql.types.LongType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.NumericType;
-import org.apache.spark.sql.types.ShortType;
 import org.apache.spark.sql.types.StringType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -98,7 +76,6 @@ import org.eclipse.persistence.jaxb.JAXBContextFactory;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import scala.Tuple2;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
@@ -141,19 +118,11 @@ public class FeaturestoreHelper {
    */
   private static final Logger LOG = Logger.getLogger(FeaturestoreHelper.class.getName());
   private static JAXBContext featuregroupJAXBContext;
-  private static JAXBContext descriptiveStatsJAXBContext;
-  private static JAXBContext featureCorrelationJAXBContext;
-  private static JAXBContext featureHistogramsJAXBContext;
-  private static JAXBContext clusterAnalysisJAXBContext;
   private static JAXBContext featureJAXBContext;
   private static JAXBContext featurestoreMetadataJAXBContext;
   private static JAXBContext trainingDatasetJAXBContext;
   private static JAXBContext jdbcConnectorJAXBContext;
 
-  private static Marshaller descriptiveStatsMarshaller;
-  private static Marshaller featureCorrelationMarshaller;
-  private static Marshaller featureHistogramsMarshaller;
-  private static Marshaller clusteranalysisMarshaller;
   private static Marshaller featureMarshaller;
   private static Marshaller featurestoreMetadataMarshaller;
   private static Marshaller trainingDatasetMarshaller;
@@ -170,14 +139,6 @@ public class FeaturestoreHelper {
 
   static {
     try {
-      descriptiveStatsJAXBContext =
-          JAXBContextFactory.createContext(new Class[]{DescriptiveStatsDTO.class}, null);
-      featureCorrelationJAXBContext =
-          JAXBContextFactory.createContext(new Class[]{FeatureCorrelationMatrixDTO.class}, null);
-      featureHistogramsJAXBContext =
-          JAXBContextFactory.createContext(new Class[]{FeatureDistributionsDTO.class}, null);
-      clusterAnalysisJAXBContext =
-          JAXBContextFactory.createContext(new Class[]{ClusterAnalysisDTO.class}, null);
       featureJAXBContext =
           JAXBContextFactory.createContext(new Class[]{FeatureDTO.class}, null);
       featurestoreMetadataJAXBContext =
@@ -188,18 +149,6 @@ public class FeaturestoreHelper {
         JAXBContextFactory.createContext(new Class[]{FeaturegroupDTO.class}, null);
       jdbcConnectorJAXBContext =
         JAXBContextFactory.createContext(new Class[]{FeaturestoreJdbcConnectorDTO.class}, null);
-      descriptiveStatsMarshaller = descriptiveStatsJAXBContext.createMarshaller();
-      descriptiveStatsMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
-      descriptiveStatsMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-      featureCorrelationMarshaller = featureCorrelationJAXBContext.createMarshaller();
-      featureCorrelationMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
-      featureCorrelationMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-      clusteranalysisMarshaller = clusterAnalysisJAXBContext.createMarshaller();
-      clusteranalysisMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
-      clusteranalysisMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-      featureHistogramsMarshaller = featureHistogramsJAXBContext.createMarshaller();
-      featureHistogramsMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
-      featureHistogramsMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
       featureMarshaller = featureJAXBContext.createMarshaller();
       featureMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, false);
       featureMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
@@ -1561,54 +1510,6 @@ public class FeaturestoreHelper {
     TrainingDatasetDTO trainingDatasetDTO) throws JAXBException {
     return dtoToJson(trainingDatasetMarshaller, trainingDatasetDTO);
   }
-
-  /**
-   * Converts a FeatureCorrelationMatrixDTO into a JSONObject
-   *
-   * @param featureCorrelationMatrixDTO the DTO to convert
-   * @return the JSONObject
-   * @throws JAXBException JAXBException
-   */
-  public static JSONObject convertFeatureCorrelationMatrixDTOToJsonObject(
-      FeatureCorrelationMatrixDTO featureCorrelationMatrixDTO) throws JAXBException {
-    return dtoToJson(featureCorrelationMarshaller, featureCorrelationMatrixDTO);
-  }
-
-  /**
-   * Converts a DescriptiveStatsDTO into a JSONObject
-   *
-   * @param descriptiveStatsDTO the DTO to convert
-   * @return the JSON object
-   * @throws JAXBException JAXBException
-   */
-  public static JSONObject convertDescriptiveStatsDTOToJsonObject(
-      DescriptiveStatsDTO descriptiveStatsDTO) throws JAXBException {
-    return dtoToJson(descriptiveStatsMarshaller, descriptiveStatsDTO);
-  }
-
-  /**
-   * Converts a FeatureDistributionsDTO into a JSONObject
-   *
-   * @param featureDistributionsDTO the DTO to convert
-   * @return the JSON object
-   * @throws JAXBException JAXBException
-   */
-  public static JSONObject convertFeatureDistributionsDTOToJsonObject(
-      FeatureDistributionsDTO featureDistributionsDTO) throws JAXBException {
-    return dtoToJson(featureHistogramsMarshaller, featureDistributionsDTO);
-  }
-
-  /**
-   * Converts a ClusterAnalysisDTO into a JSONObject
-   *
-   * @param clusterAnalysisDTO the DTO to convert
-   * @return the JSON object
-   * @throws JAXBException JAXBException
-   */
-  public static JSONObject convertClusterAnalysisDTOToJsonObject(
-      ClusterAnalysisDTO clusterAnalysisDTO) throws JAXBException {
-    return dtoToJson(clusteranalysisMarshaller, clusterAnalysisDTO);
-  }
   
   /**
    * Parses JDBC Connector JSON into a DTO
@@ -1672,199 +1573,6 @@ public class FeaturestoreHelper {
   }
 
   /**
-   * Computes descriptive statistics for a spark dataframe using spark
-   *
-   * @param sparkDf the dataframe to compute statistics for
-   * @return the computed statistics
-   */
-  private static DescriptiveStatsDTO computeDescriptiveStatistics(Dataset<Row> sparkDf) {
-    String[] rawStatsArray = (String[]) sparkDf.describe().toJSON().collect();
-    List<JSONObject> rawStatsObjects = new ArrayList<>();
-    Set<String> columnNames = new HashSet<>();
-    for (int i = 0; i < rawStatsArray.length; i++) {
-      JSONObject rawStatObj = new JSONObject(rawStatsArray[i]);
-      rawStatsObjects.add(rawStatObj);
-      columnNames.addAll(rawStatObj.keySet());
-    }
-    List<DescriptiveStatsMetricValuesDTO> descriptiveStatsMetricValuesDTOList = new ArrayList<>();
-    for (String colName : columnNames) {
-      if (!colName.equals(Constants.DESCRIPTIVE_STATS_SUMMARY_COL)) {
-        DescriptiveStatsMetricValuesDTO descriptiveStatsMetricValuesDTO = new DescriptiveStatsMetricValuesDTO();
-        List<DescriptiveStatsMetricValueDTO> descriptiveStatsMetricValueDTOList = new ArrayList<>();
-        for (int i = 0; i < rawStatsObjects.size(); i++) {
-          JSONObject rawStatObj = rawStatsObjects.get(i);
-          if (rawStatObj.has(colName)) {
-            Float value;
-            try {
-              value = Float.parseFloat(rawStatObj.getString(colName));
-              if (value.isNaN() || value.isInfinite())
-                value = null;
-            } catch (NullPointerException | NumberFormatException e) {
-              value = null;
-            }
-            DescriptiveStatsMetricValueDTO descriptiveStatsMetricValueDTO = new DescriptiveStatsMetricValueDTO();
-            descriptiveStatsMetricValueDTO.setValue(value);
-            descriptiveStatsMetricValueDTO.setMetricName(rawStatObj.getString(Constants.DESCRIPTIVE_STATS_SUMMARY_COL));
-            descriptiveStatsMetricValueDTOList.add(descriptiveStatsMetricValueDTO);
-          }
-        }
-        descriptiveStatsMetricValuesDTO.setFeatureName(colName);
-        descriptiveStatsMetricValuesDTO.setMetricValues(descriptiveStatsMetricValueDTOList);
-        descriptiveStatsMetricValuesDTOList.add(descriptiveStatsMetricValuesDTO);
-      }
-    }
-    DescriptiveStatsDTO descriptiveStatsDTO = new DescriptiveStatsDTO();
-    descriptiveStatsDTO.setDescriptiveStats(descriptiveStatsMetricValuesDTOList);
-    return descriptiveStatsDTO;
-  }
-
-  /**
-   * Computes cluster analysis statistics for a spark dataframe
-   *
-   * @param sparkDf  the spark dataframe to compute statistics for
-   * @param clusters the number of clusters to use in the statistics
-   * @return the computed statistics
-   */
-  private static ClusterAnalysisDTO computeClusterAnalysis(Dataset<Row> sparkDf, int clusters) {
-    Dataset<Row> sparkDf1 = assembleColumnsIntoVector(sparkDf, Constants.CLUSTERING_ANALYSIS_INPUT_COLUMN);
-    KMeans kmeans = new KMeans();
-    kmeans.setK(clusters);
-    kmeans.setSeed(1L);
-    kmeans.setMaxIter(20);
-    kmeans.setFeaturesCol(Constants.CLUSTERING_ANALYSIS_INPUT_COLUMN);
-    kmeans.setPredictionCol(Constants.CLUSTERING_ANALYSIS_OUTPUT_COLUMN);
-    KMeansModel kMeansModel = kmeans.fit(sparkDf1.select(Constants.CLUSTERING_ANALYSIS_INPUT_COLUMN));
-    Dataset<Row> sparkDf2 = kMeansModel.transform(sparkDf1);
-    Column[] cols = new Column[2];
-    cols[0] = col(Constants.CLUSTERING_ANALYSIS_INPUT_COLUMN);
-    cols[1] = col(Constants.CLUSTERING_ANALYSIS_OUTPUT_COLUMN);
-    Dataset<Row> sparkDf3 = sparkDf2.select(cols);
-    Dataset<Row> sparkDf4;
-    Long count = sparkDf3.count();
-    if (count < Constants.CLUSTERING_ANALYSIS_SAMPLE_SIZE)
-      sparkDf4 = sparkDf3;
-    else
-      sparkDf4 = sparkDf3.sample(true,
-          ((float) Constants.CLUSTERING_ANALYSIS_SAMPLE_SIZE) / ((float) count));
-    PCA pca = new PCA();
-    pca.setK(2);
-    pca.setInputCol(Constants.CLUSTERING_ANALYSIS_INPUT_COLUMN);
-    pca.setOutputCol(Constants.CLUSTERING_ANALYSIS_PCA_COLUMN);
-    PCAModel pcaModel = pca.fit(sparkDf4);
-    cols[0] = col(Constants.CLUSTERING_ANALYSIS_PCA_COLUMN);
-    cols[1] = col(Constants.CLUSTERING_ANALYSIS_OUTPUT_COLUMN);
-    Dataset<Row> sparkDf5 = pcaModel.transform(sparkDf4).select(cols);
-    Dataset<Row> sparkDf6 = sparkDf5.withColumnRenamed(
-        Constants.CLUSTERING_ANALYSIS_PCA_COLUMN,
-        Constants.CLUSTERING_ANALYSIS_FEATURES_COLUMN
-    );
-    Dataset<Row> sparkDf7 = sparkDf6.withColumnRenamed(
-        Constants.CLUSTERING_ANALYSIS_OUTPUT_COLUMN,
-        Constants.CLUSTERING_ANALYSIS_CLUSTERS_OUTPUT_COLUMN);
-    String[] jsonStrResult = (String[]) sparkDf7.toJSON().collect();
-    ClusterAnalysisDTO clusterAnalysisDTO = new ClusterAnalysisDTO();
-    List<ClusterDTO> clusterDTOs = new ArrayList<>();
-    List<DatapointDTO> datapointDTOs = new ArrayList<>();
-    for (int i = 0; i < jsonStrResult.length; i++) {
-      JSONObject jsonObj = new JSONObject(jsonStrResult[i]);
-      JSONObject featuresObj = jsonObj.getJSONObject(Constants.CLUSTERING_ANALYSIS_FEATURES_COLUMN);
-      int cluster = jsonObj.getInt(Constants.CLUSTERING_ANALYSIS_CLUSTERS_OUTPUT_COLUMN);
-      JSONArray dimensions = featuresObj.getJSONArray(Constants.CLUSTERING_ANALYSIS_VALUES_COLUMN);
-      DatapointDTO datapointDTO = new DatapointDTO();
-      datapointDTO.setDatapointName(Integer.toString(i));
-      try {
-        Float firstDimension = (float) dimensions.getDouble(0);
-        Float secondDimension = (float) dimensions.getDouble(1);
-        if (firstDimension.isInfinite() || firstDimension.isNaN()) {
-          firstDimension = 0.0f;
-        }
-        if (secondDimension.isNaN() || secondDimension.isNaN()) {
-          secondDimension = 0.0f;
-        }
-        datapointDTO.setFirstDimension(firstDimension);
-        datapointDTO.setSecondDimension(secondDimension);
-      } catch (ClassCastException e) {
-        datapointDTO.setFirstDimension(0.0f);
-        datapointDTO.setSecondDimension(0.0f);
-      }
-      ClusterDTO clusterDTO = new ClusterDTO();
-      clusterDTO.setCluster(cluster);
-      clusterDTO.setDatapointName(Integer.toString(i));
-      datapointDTOs.add(datapointDTO);
-      clusterDTOs.add(clusterDTO);
-    }
-    clusterAnalysisDTO.setClusters(clusterDTOs);
-    clusterAnalysisDTO.setDataPoints(datapointDTOs);
-    return clusterAnalysisDTO;
-  }
-
-  /**
-   * Computes feature correlation statistics for a spark dataframe
-   *
-   * @param sparkDf           the spark dataframe to compute correlation statistics for
-   * @param correlationMethod the method to use for computing the correlations
-   * @return the computed statistics
-   */
-  private static FeatureCorrelationMatrixDTO computeCorrMatrix(Dataset<Row> sparkDf, String correlationMethod) {
-    int numberOfColumns = sparkDf.dtypes().length;
-    if (numberOfColumns == 0) {
-      throw new IllegalArgumentException(
-          "The provided spark dataframe does not contain any numeric columns.\n" +
-              "Cannot compute feature correlation on categorical columns. \n The numeric datatypes are:" +
-              StringUtils.join(Constants.NUMERIC_SPARK_TYPES, ",") + " \n " +
-              "The number of numeric datatypes in the provided dataframe is: " + numberOfColumns +
-              "(" + Arrays.toString(sparkDf.dtypes()) + ")");
-    }
-    if (numberOfColumns == 1) {
-      throw new IllegalArgumentException(
-          "The provided spark dataframe only contains one numeric column.\n" +
-              "Cannot compute feature correlation on just one column. \n The numeric datatypes are:" +
-              StringUtils.join(Constants.NUMERIC_SPARK_TYPES, ",") + " \n " +
-              "The number of numeric datatypes in the provided dataframe is: " + numberOfColumns +
-              "(" + Arrays.toString(sparkDf.dtypes()) + ")");
-    }
-    if (numberOfColumns > Constants.MAX_CORRELATION_MATRIX_COLUMNS) {
-      throw new IllegalArgumentException(
-          "The provided spark dataframe have " + numberOfColumns +
-              " columns, which exceeds the maximum number of columns: " + Constants.MAX_CORRELATION_MATRIX_COLUMNS +
-              ". This is due to scalability reasons (number of correlatons grows quadratically with the " +
-              "number of columns");
-    }
-    Dataset<Row> sparkDf1 = assembleColumnsIntoVector(sparkDf, Constants.CORRELATION_ANALYSIS_INPUT_COLUMN);
-    Row firstRow = Correlation.corr(sparkDf1, Constants.CORRELATION_ANALYSIS_INPUT_COLUMN, correlationMethod).head();
-    DenseMatrix correlationMatrix = (DenseMatrix) firstRow.get(0);
-    FeatureCorrelationMatrixDTO featureCorrelationMatrixDTO = new FeatureCorrelationMatrixDTO();
-    List<FeatureCorrelationDTO> featureCorrelationDTOList = new ArrayList<>();
-    int noCorrelationMatrixColumns = correlationMatrix.numCols();
-    int noCorrelationMatrixRows = correlationMatrix.numRows();
-    StructField[] fields = sparkDf1.schema().fields();
-    for (int i = 0; i < noCorrelationMatrixColumns; i++) {
-      String featureName = fields[i].name();
-      FeatureCorrelationDTO featureCorrelationDTO = new FeatureCorrelationDTO();
-      List<CorrelationValueDTO> correlationValueDTOList = new ArrayList<>();
-      featureCorrelationDTO.setFeatureName(featureName);
-      for (int j = 0; j < noCorrelationMatrixRows; j++) {
-        CorrelationValueDTO correlationValueDTO = new CorrelationValueDTO();
-        String featureName2 = fields[j].name();
-        correlationValueDTO.setFeatureName(featureName2);
-        try {
-          Float corr = (float) correlationMatrix.apply(i, j);
-          if (corr.isNaN() || corr.isInfinite())
-            corr = 0.0f;
-          correlationValueDTO.setCorrelation(corr);
-        } catch (ClassCastException e) {
-          correlationValueDTO.setCorrelation(0.0f);
-        }
-        correlationValueDTOList.add(correlationValueDTO);
-      }
-      featureCorrelationDTO.setCorrelationValues(correlationValueDTOList);
-      featureCorrelationDTOList.add(featureCorrelationDTO);
-    }
-    featureCorrelationMatrixDTO.setFeatureCorrelations(featureCorrelationDTOList);
-    return featureCorrelationMatrixDTO;
-  }
-
-  /**
    * A method for assembling all columns in a spark dataframe into a DenseVector
    *
    * @param sparkDf the sparkdataframe to assemble columns for
@@ -1882,184 +1590,6 @@ public class FeaturestoreHelper {
     vectorAssembler.setInputCols(numericColumnNamesArr);
     vectorAssembler.setOutputCol(colName);
     return vectorAssembler.transform(sparkDf);
-  }
-
-  /**
-   * Computes feature histogram statistics for all columns in a spark dataframe
-   *
-   * @param sparkDf the spark dataframe to compute statistics for
-   * @param numBins the number of bins to use for the histograms
-   * @return the computed statistics
-   * @throws SparkDataTypeNotRecognizedError if the spark datatype is not recognized
-   */
-  private static FeatureDistributionsDTO computeFeatureHistograms(Dataset<Row> sparkDf, int numBins)
-      throws SparkDataTypeNotRecognizedError {
-    List<FeatureDistributionDTO> featureDistributionDTOS = new ArrayList<>();
-    for (int i = 0; i < sparkDf.schema().fields().length; i++) {
-      Tuple2<double[], long[]> colHist = null;
-      if (sparkDf.schema().fields()[i].dataType() instanceof IntegerType) {
-        colHist = sparkDf.select(sparkDf.dtypes()[i]._1).
-            toJavaRDD().map(x -> Double.valueOf(x.getInt(0))).mapToDouble(x -> x).histogram(numBins);
-      }
-      if (sparkDf.schema().fields()[i].dataType() instanceof DecimalType) {
-        colHist = sparkDf.select(sparkDf.dtypes()[i]._1).
-            toJavaRDD().map(x -> x.getDecimal(0).doubleValue()).mapToDouble(x -> x).histogram(numBins);
-      }
-      if (sparkDf.schema().fields()[i].dataType() instanceof DoubleType) {
-        colHist = sparkDf.select(sparkDf.dtypes()[i]._1).
-            toJavaRDD().map(x -> x.getDouble(0)).mapToDouble(x -> x).histogram(numBins);
-      }
-      if (sparkDf.schema().fields()[i].dataType() instanceof FloatType) {
-        colHist = sparkDf.select(sparkDf.dtypes()[i]._1).
-            toJavaRDD().map(x -> (double) x.getFloat(0)).mapToDouble(x -> x).histogram(numBins);
-      }
-      if (sparkDf.schema().fields()[i].dataType() instanceof LongType) {
-        colHist = sparkDf.select(sparkDf.dtypes()[i]._1).
-            toJavaRDD().map(x -> (double) x.getLong(0)).mapToDouble(x -> x).histogram(numBins);
-      }
-      if (sparkDf.schema().fields()[i].dataType() instanceof ShortType) {
-        colHist = sparkDf.select(sparkDf.dtypes()[i]._1).
-            toJavaRDD().map(x -> (double) x.getShort(0)).mapToDouble(x -> x).histogram(numBins);
-      }
-      if (colHist == null)
-        throw new SparkDataTypeNotRecognizedError("Could not parse the spark datatypes to compute feature histograms");
-      double[] bins = colHist._1;
-      long[] frequencies = colHist._2;
-      FeatureDistributionDTO featureDistributionDTO = new FeatureDistributionDTO();
-      featureDistributionDTO.setFeatureName(sparkDf.dtypes()[i]._1);
-      List<HistogramBinDTO> histogramBinDTOList = new ArrayList<>();
-      for (int j = 0; j < frequencies.length; j++) {
-        HistogramBinDTO histogramBinDTO = new HistogramBinDTO();
-        histogramBinDTO.setFrequency((int) frequencies[j]);
-        double bin = bins[j + 1];
-        histogramBinDTO.setBin(Double.toString(bin));
-        histogramBinDTOList.add(histogramBinDTO);
-      }
-      featureDistributionDTO.setFrequencyDistribution(histogramBinDTOList);
-      featureDistributionDTOS.add(featureDistributionDTO);
-    }
-    FeatureDistributionsDTO featureDistributionsDTO = new FeatureDistributionsDTO();
-    featureDistributionsDTO.setFeatureDistributions(featureDistributionDTOS);
-    return featureDistributionsDTO;
-  }
-
-  /**
-   * Helper function that computes statistics of a featuregroup or training dataset using spark
-   *
-   * @param name                  the featuregroup or training dataset to update statistics for
-   * @param sparkSession          the spark session
-   * @param sparkDf               If a spark df is provided it will be used to compute statistics,
-   *                              otherwise the dataframe of the
-   *                              featuregroup will be fetched dynamically from the featurestore
-   * @param featurestore          the featurestore where the featuregroup or training dataset resides
-   * @param version               the version of the featuregroup/training dataset (defaults to 1)
-   * @param descriptiveStatistics a boolean flag whether to compute descriptive statistics (min,max,mean etc)
-   *                              for the featuregroup/training dataset
-   * @param featureCorrelation    a boolean flag whether to compute a feature correlation matrix for the numeric columns
-   *                              in the featuregroup/training dataset
-   * @param featureHistograms     a boolean flag whether to compute histograms for the numeric columns in the
-   *                              featuregroup/training dataset
-   * @param clusterAnalysis       a boolean flag whether to compute cluster analysis for the numeric columns in the
-   *                              featuregroup/training dataset
-   * @param statColumns           a list of columns to compute statistics for (defaults to all columns that are numeric)
-   * @param numBins               number of bins to use for computing histograms
-   * @param numClusters           the number of clusters to use for cluster analysis (k-means)
-   * @param correlationMethod     the method to compute feature correlation with (pearson or spearman)
-   * @return the computed statistics in a DTO
-   * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws FeaturestoreNotFound FeaturestoreNotFound
-   * @throws JAXBException JAXBException
-   * @throws FeaturestoreNotFound FeaturestoreNotFound
-   * @throws OnlineFeaturestoreUserNotFound OnlineFeaturestoreUserNotFound
-   * @throws OnlineFeaturestorePasswordNotFound OnlineFeaturestorePasswordNotFound
-   * @throws OnlineFeaturestoreNotEnabled OnlineFeaturestoreNotEnabled
-   * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
-   */
-  public static StatisticsDTO computeDataFrameStats(
-      String name, SparkSession sparkSession, Dataset<Row> sparkDf, String featurestore,
-      int version, Boolean descriptiveStatistics, Boolean featureCorrelation,
-      Boolean featureHistograms, Boolean clusterAnalysis,
-      List<String> statColumns, int numBins, int numClusters,
-      String correlationMethod)
-    throws DataframeIsEmpty, FeaturestoreNotFound, OnlineFeaturestoreUserNotFound,
-    JAXBException, OnlineFeaturestorePasswordNotFound, OnlineFeaturestoreNotEnabled, FeaturegroupDoesNotExistError {
-    if (sparkDf == null) {
-      sparkDf = getCachedFeaturegroup(sparkSession, name, featurestore, version, false);
-    }
-    if (statColumns != null && !statColumns.isEmpty()) {
-      List<Column> statSparkColumns = statColumns.stream().map(sc -> col(sc)).collect(Collectors.toList());
-      Column[] sparkColumnsArr = new Column[statSparkColumns.size()];
-      statSparkColumns.toArray(sparkColumnsArr);
-      sparkDf = sparkDf.select(sparkColumnsArr);
-    }
-
-    if (sparkDf.rdd().isEmpty()) {
-      throw new DataframeIsEmpty("The provided dataframe is empty, " +
-          "cannot compute feature statistics on an empty dataframe");
-    }
-    ClusterAnalysisDTO clusterAnalysisDTO = null;
-    DescriptiveStatsDTO descriptiveStatsDTO = null;
-    FeatureCorrelationMatrixDTO featureCorrelationMatrixDTO = null;
-    FeatureDistributionsDTO featureDistributionsDTO = null;
-
-    if (descriptiveStatistics) {
-      try {
-        LOG.log(Level.INFO, "computing descriptive statistics for: " + name);
-        sparkSession.sparkContext().setJobGroup("Descriptive Statistics Computation",
-            "Analyzing Dataframe Statistics for : " + name, true);
-        Dataset<Row> numericSparkDf = filterSparkDfNumeric(sparkDf);
-        descriptiveStatsDTO = computeDescriptiveStatistics(sparkDf);
-        sparkSession.sparkContext().setJobGroup("", "", true);
-      } catch (Exception e) {
-        LOG.log(Level.WARNING, "Could not compute descriptive statistics for:" + name +
-            "set the optional argument descriptive_statistics=False to skip this step. Error: " + e.getMessage());
-      }
-    }
-
-    if (featureCorrelation) {
-      try {
-        LOG.log(Level.INFO, "computing feature correlation for: " + name);
-        sparkSession.sparkContext().setJobGroup("Feature Correlation Computation",
-            "Analyzing Feature Correlations for: " + name, true);
-        Dataset<Row> numericSparkDf = filterSparkDfNumeric(sparkDf);
-        featureCorrelationMatrixDTO = computeCorrMatrix(numericSparkDf, correlationMethod);
-        sparkSession.sparkContext().setJobGroup("", "", true);
-      } catch (Exception e) {
-        LOG.log(Level.WARNING, "Could not compute feature correlation for:" + name +
-            "set the optional argument feature_correlation=False to skip this step. Error: " + e.getMessage());
-      }
-    }
-
-    if (featureHistograms) {
-      try {
-        LOG.log(Level.INFO, "computing feature histograms for: " + name);
-        sparkSession.sparkContext().setJobGroup("Feature Histogram Computation",
-            "Analyzing Feature Distributions for: " + name, true);
-        Dataset<Row> numericSparkDf = filterSparkDfNumeric(sparkDf);
-        featureDistributionsDTO = computeFeatureHistograms(numericSparkDf, numBins);
-        sparkSession.sparkContext().setJobGroup("", "", true);
-      } catch (Exception e) {
-        LOG.log(Level.WARNING, "Could not compute feature histograms for:" + name +
-            "set the optional argument feature_histograms=False to skip this step. Error: " + e.getMessage());
-      }
-    }
-
-    if (clusterAnalysis) {
-      try {
-        LOG.log(Level.INFO, "computing cluster analysis for: " + name);
-        sparkSession.sparkContext().setJobGroup("Feature Cluster Analysis",
-            "Analyzing Feature Clusters for: " + name, true);
-        Dataset<Row> numericSparkDf = filterSparkDfNumeric(sparkDf);
-        clusterAnalysisDTO = computeClusterAnalysis(numericSparkDf, numClusters);
-        sparkSession.sparkContext().setJobGroup("", "", true);
-      } catch (Exception e) {
-        LOG.log(Level.WARNING, "Could not compute cluster analysis for:" + name +
-            "set the optional argument cluster_analysis=False to skip this step. Error: " + e.getMessage());
-      }
-    }
-    return new StatisticsDTO(
-        descriptiveStatsDTO, clusterAnalysisDTO, featureCorrelationMatrixDTO, featureDistributionsDTO);
-
   }
 
   /**

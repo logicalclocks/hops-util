@@ -22,10 +22,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
-import io.hops.util.featurestore.dtos.stats.cluster_analysis.ClusterAnalysisDTO;
-import io.hops.util.featurestore.dtos.stats.desc_stats.DescriptiveStatsDTO;
-import io.hops.util.featurestore.dtos.stats.feature_correlation.FeatureCorrelationMatrixDTO;
-import io.hops.util.featurestore.dtos.stats.feature_distributions.FeatureDistributionsDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -52,10 +48,6 @@ public abstract class FeaturestoreEntityDTO {
   private Date created;
   private String creator;
   private Integer version;
-  private DescriptiveStatsDTO descriptiveStatistics;
-  private FeatureCorrelationMatrixDTO featureCorrelationMatrix;
-  private FeatureDistributionsDTO featuresHistogram;
-  private ClusterAnalysisDTO clusterAnalysis;
   private String name;
   private Integer id;
   private List<FeatureDTO> features;
@@ -66,11 +58,7 @@ public abstract class FeaturestoreEntityDTO {
   }
   
   public FeaturestoreEntityDTO(Integer featurestoreId, String featurestoreName, String description,
-    Date created, String creator, Integer version,
-    DescriptiveStatsDTO descriptiveStatistics,
-    FeatureCorrelationMatrixDTO featureCorrelationMatrix,
-    FeatureDistributionsDTO featuresHistogram,
-    ClusterAnalysisDTO clusterAnalysis, String name, Integer id,
+    Date created, String creator, Integer version, String name, Integer id,
     List<FeatureDTO> features, String location,
     List<FeaturestoreJobDTO> jobs) {
     this.featurestoreId = featurestoreId;
@@ -79,10 +67,6 @@ public abstract class FeaturestoreEntityDTO {
     this.created = created;
     this.creator = creator;
     this.version = version;
-    this.descriptiveStatistics = descriptiveStatistics;
-    this.featureCorrelationMatrix = featureCorrelationMatrix;
-    this.featuresHistogram = featuresHistogram;
-    this.clusterAnalysis = clusterAnalysis;
     this.name = name;
     this.id = id;
     this.features = features;
@@ -118,26 +102,6 @@ public abstract class FeaturestoreEntityDTO {
   @XmlElement
   public String getFeaturestoreName() {
     return featurestoreName;
-  }
-
-  @XmlElement(nillable = true)
-  public FeatureCorrelationMatrixDTO getFeatureCorrelationMatrix() {
-    return featureCorrelationMatrix;
-  }
-
-  @XmlElement(nillable = true)
-  public FeatureDistributionsDTO getFeaturesHistogram() {
-    return featuresHistogram;
-  }
-
-  @XmlElement(nillable = true)
-  public ClusterAnalysisDTO getClusterAnalysis() {
-    return clusterAnalysis;
-  }
-
-  @XmlElement(nillable = true)
-  public DescriptiveStatsDTO getDescriptiveStatistics() {
-    return descriptiveStatistics;
   }
 
   @XmlElement
@@ -184,26 +148,6 @@ public abstract class FeaturestoreEntityDTO {
   public void setName(String name) {
     this.name = name;
   }
-  
-  public void setDescriptiveStatistics(
-    DescriptiveStatsDTO descriptiveStatistics) {
-    this.descriptiveStatistics = descriptiveStatistics;
-  }
-  
-  public void setFeatureCorrelationMatrix(
-    FeatureCorrelationMatrixDTO featureCorrelationMatrix) {
-    this.featureCorrelationMatrix = featureCorrelationMatrix;
-  }
-  
-  public void setFeaturesHistogram(
-    FeatureDistributionsDTO featuresHistogram) {
-    this.featuresHistogram = featuresHistogram;
-  }
-  
-  public void setClusterAnalysis(
-    ClusterAnalysisDTO clusterAnalysis) {
-    this.clusterAnalysis = clusterAnalysis;
-  }
 
   public void setId(Integer id) {
     this.id = id;
@@ -238,10 +182,6 @@ public abstract class FeaturestoreEntityDTO {
         ", created='" + created + '\'' +
         ", creator='" + creator + '\'' +
         ", version=" + version +
-        ", descriptiveStatistics=" + descriptiveStatistics +
-        ", featureCorrelationMatrix=" + featureCorrelationMatrix +
-        ", featuresHistogram=" + featuresHistogram +
-        ", clusterAnalysis=" + clusterAnalysis +
         ", name='" + name + '\'' +
         ", id=" + id +
         '}';

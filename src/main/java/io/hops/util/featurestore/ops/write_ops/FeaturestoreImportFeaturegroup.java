@@ -85,9 +85,8 @@ public class FeaturestoreImportFeaturegroup extends FeaturestoreOp {
     Dataset<Row> sparkDf = doReadExternalFeaturegroup(featurestoreMetadataDTO, sparkSession);
     // Save external dataset as a new Feature Group
     new FeaturestoreCreateFeaturegroup(name).setFeaturestore(featurestore).setSpark(sparkSession).setVersion(version)
-      .setCorrMethod(corrMethod).setNumBins(numBins).setNumClusters(numClusters).setMode(mode).setDataframe(sparkDf)
-      .setDescriptiveStats(descriptiveStats).setFeatureCorr(featureCorr).setFeatureHistograms(featureHistograms)
-      .setClusterAnalysis(clusterAnalysis).setStatColumns(statColumns).setJobs(jobs).setDescription(description)
+      .setMode(mode).setDataframe(sparkDf).setDescriptiveStats(descriptiveStats).setFeatureCorr(featureCorr)
+      .setFeatureHistograms(featureHistograms).setStatColumns(statColumns).setJobs(jobs).setDescription(description)
       .setPartitionBy(partitionBy).write();
   }
   
@@ -168,21 +167,6 @@ public class FeaturestoreImportFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
-  public FeaturestoreImportFeaturegroup setCorrMethod(String corrMethod) {
-    this.corrMethod = corrMethod;
-    return this;
-  }
-  
-  public FeaturestoreImportFeaturegroup setNumBins(int numBins) {
-    this.numBins = numBins;
-    return this;
-  }
-  
-  public FeaturestoreImportFeaturegroup setNumClusters(int numClusters) {
-    this.numClusters = numClusters;
-    return this;
-  }
-  
   public FeaturestoreImportFeaturegroup setMode(String mode) {
     this.mode = mode;
     return this;
@@ -205,11 +189,6 @@ public class FeaturestoreImportFeaturegroup extends FeaturestoreOp {
   
   public FeaturestoreImportFeaturegroup setFeatureHistograms(Boolean featureHistograms) {
     this.featureHistograms = featureHistograms;
-    return this;
-  }
-  
-  public FeaturestoreImportFeaturegroup setClusterAnalysis(Boolean clusterAnalysis) {
-    this.clusterAnalysis = clusterAnalysis;
     return this;
   }
   
