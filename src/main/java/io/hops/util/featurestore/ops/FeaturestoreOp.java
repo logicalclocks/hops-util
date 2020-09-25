@@ -173,6 +173,27 @@ public abstract class FeaturestoreOp {
   }
 
   /**
+   * @return the correlation method to use for feature correlation analysis (e.g pearson or spearman)
+   */
+  public String getCorrMethod() {
+    return corrMethod;
+  }
+  
+  /**
+   * @return the number of bins to use for histogram statistics
+   */
+  public int getNumBins() {
+    return numBins;
+  }
+  
+  /**
+   * @return the number of clusters to use for k-means clustering analysis
+   */
+  public int getNumClusters() {
+    return numClusters;
+  }
+
+  /**
    * @return the write mode (append or overwrite)
    */
   public String getMode() {

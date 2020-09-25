@@ -263,6 +263,21 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     return this;
   }
   
+  public FeaturestoreCreateFeaturegroup setCorrMethod(String corrMethod) {
+    this.corrMethod = corrMethod;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setNumBins(int numBins) {
+    this.numBins = numBins;
+    return this;
+  }
+  
+  public FeaturestoreCreateFeaturegroup setNumClusters(int numClusters) {
+    this.numClusters = numClusters;
+    return this;
+  }
+
   public FeaturestoreCreateFeaturegroup setMode(String mode) {
     this.mode = mode;
     return this;
