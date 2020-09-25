@@ -618,7 +618,6 @@ public class Hops {
 
   /**
    * @deprecated
-   * @deprecated
    * Method for updating the statistics of a training dataset (recomputing the statistics)
    *
    * @param trainingDataset        the name of the training dataset to update statistics for
