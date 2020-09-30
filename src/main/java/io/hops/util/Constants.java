@@ -36,6 +36,18 @@ public class Constants {
   public static final String HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE = "storageconnectors";
   public static final String HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE = "onlinefeaturestore";
   public static final String HOPSWORKS_FEATURESTORE_TAGS_RESOURCE = "tags";
+  public static final String HOPSWORKS_CLOUD_RESOURCE = "cloud";
+  public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE = "session-token";
+  public static final String HOPSWORKS_CLOUD_ROLE_MAPPINGS_RESOURCE = "role-mappings";
+  public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_ROLE = "roleARN";
+  public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION = "roleSessionName";
+  public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION_DURATION = "durationSeconds";
+  
+  public static final String JSON_ACCESS_KEY_ID = "accessKeyId";
+  public static final String JSON_SECRET_ACCESS_KEY_ID = "secretAccessKey";
+  public static final String JSON_SESSION_TOKEN_ID = "sessionToken";
+  public static final String JSON_ARRAY_ITEMS = "items";
+  public static final String JSON_CLOUD_ROLE = "cloudRole";
   
   public static final String PROJECTID_ENV_VAR = "hopsworks.projectid";
   public static final String CRYPTO_MATERIAL_PASSWORD = "material_passwd";
@@ -194,6 +206,10 @@ public class Constants {
   public static final String S3_FILE_PREFIX = "s3a://";
   public static final String S3_ACCESS_KEY_ENV = "fs.s3a.access.key";
   public static final String S3_SECRET_KEY_ENV = "fs.s3a.secret.key";
+  public static final String S3_SESSION_KEY_ENV = "fs.s3a.session.token";
+  public static final String S3_CREDENTIAL_PROVIDER_ENV = "fs.s3a.aws.credentials.provider";
+  public static final String S3_TEMPORARY_CREDENTIAL_PROVIDER =
+    "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider";
   public static final String S3_TRAINING_DATASETS_FOLDER = "TRAINING_DATASETS";
   public static final String HUDI_SPARK_FORMAT = "org.apache.hudi";
   public static final String HUDI_TABLE_NAME = "hoodie.table.name";
