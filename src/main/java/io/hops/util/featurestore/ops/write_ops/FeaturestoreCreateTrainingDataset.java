@@ -12,13 +12,12 @@ import io.hops.util.exceptions.JWTNotFoundException;
 import io.hops.util.exceptions.OnlineFeaturestoreNotEnabled;
 import io.hops.util.exceptions.OnlineFeaturestorePasswordNotFound;
 import io.hops.util.exceptions.OnlineFeaturestoreUserNotFound;
-import io.hops.util.exceptions.SparkDataTypeNotRecognizedError;
 import io.hops.util.exceptions.StorageConnectorDoesNotExistError;
 import io.hops.util.exceptions.TrainingDatasetCreationError;
 import io.hops.util.exceptions.TrainingDatasetFormatNotSupportedError;
 import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
-import io.hops.util.featurestore.dtos.feature.FeatureDTO;
+import io.hops.util.featurestore.dtos.feature.TrainingDatasetFeatureDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreHopsfsConnectorDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreS3ConnectorDTO;
@@ -68,7 +67,6 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    *
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws DataframeIsEmpty DataframeIsEmpty
-   * @throws SparkDataTypeNotRecognizedError SparkDataTypeNotRecognizedError
    * @throws JAXBException JAXBException
    * @throws FeaturestoreNotFound FeaturestoreNotFound
    * @throws TrainingDatasetCreationError TrainingDatasetCreationError
@@ -82,7 +80,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws FeaturegroupDoesNotExistError FeaturegroupDoesNotExistError
    */
   public void write()
-    throws DataframeIsEmpty, SparkDataTypeNotRecognizedError,
+    throws DataframeIsEmpty,
     JAXBException, FeaturestoreNotFound,
     TrainingDatasetCreationError, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException,
     JWTNotFoundException, HiveNotEnabled, StorageConnectorDoesNotExistError, OnlineFeaturestoreUserNotFound,
@@ -92,9 +90,9 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
         "with .setDataframe(df)");
     }
     FeaturestoreMetadataDTO featurestoreMetadata = FeaturestoreHelper.getFeaturestoreMetadataCache();
-    List<FeatureDTO> featuresSchema = FeaturestoreHelper.parseSparkFeaturesSchema(dataframe.schema(), null,
-      null, false, null);
-    FeaturestoreHelper.validateMetadata(name, featuresSchema, description);
+    List<TrainingDatasetFeatureDTO> featuresSchema =
+        FeaturestoreHelper.parseSparkTrainingDatasetSchema(dataframe.schema());
+    FeaturestoreHelper.validateTrainingDatasetMetadata(name, featuresSchema, description);
     FeaturestoreStorageConnectorDTO storageConnectorDTO;
     if(storageConnector != null && !storageConnector.isEmpty()){
       storageConnectorDTO =
@@ -105,8 +103,7 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
         FeaturestoreHelper.getProjectTrainingDatasetsSink());
     }
     if(storageConnectorDTO.getStorageConnectorType() == FeaturestoreStorageConnectorType.S3) {
-      doCreateExternalTrainingDataset(featurestoreMetadata, featuresSchema,
-        (FeaturestoreS3ConnectorDTO) storageConnectorDTO);
+      doCreateExternalTrainingDataset(featuresSchema, (FeaturestoreS3ConnectorDTO) storageConnectorDTO);
     } else {
       doCreateHopsfsTrainingDataset(featuresSchema, (FeaturestoreHopsfsConnectorDTO) storageConnectorDTO);
     }
@@ -121,8 +118,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @param hopsfsStorageConnectorId id of the hopsfs storage connector linked to the training dataset
    * @return HopsfsTrainingDatasetDTO
    */
-  private TrainingDatasetDTO groupInputParamsIntoHopsfsDTO(List<FeatureDTO> features,
-    Integer hopsfsStorageConnectorId) {
+  private TrainingDatasetDTO groupInputParamsIntoHopsfsDTO(List<TrainingDatasetFeatureDTO> features,
+                                                           Integer hopsfsStorageConnectorId) {
     if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
       jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
     }
@@ -151,8 +148,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @param s3ConnectorId id of the s3 connector linked to the training dataset
    * @return ExternalTrainingDatasetDTO
    */
-  private TrainingDatasetDTO groupInputParamsIntoExternalDTO(List<FeatureDTO> features,
-    Integer s3ConnectorId){
+  private TrainingDatasetDTO groupInputParamsIntoExternalDTO(List<TrainingDatasetFeatureDTO> features,
+                                                             Integer s3ConnectorId){
     if(FeaturestoreHelper.jobNameGetOrDefault(null) != null){
       jobs.add(FeaturestoreHelper.jobNameGetOrDefault(null));
     }
@@ -189,9 +186,9 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
-  private void doCreateHopsfsTrainingDataset(List<FeatureDTO> featuresSchema,
-    FeaturestoreHopsfsConnectorDTO featurestoreHopsfsConnectorDTO)
-    throws JAXBException, FeaturestoreNotFound, TrainingDatasetCreationError,
+  private void doCreateHopsfsTrainingDataset(List<TrainingDatasetFeatureDTO> featuresSchema,
+                                             FeaturestoreHopsfsConnectorDTO featurestoreHopsfsConnectorDTO)
+      throws JAXBException, FeaturestoreNotFound, TrainingDatasetCreationError,
     JWTNotFoundException, HiveNotEnabled, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
 
     Response response = FeaturestoreRestClient.createTrainingDatasetRest(groupInputParamsIntoHopsfsDTO(featuresSchema,
@@ -219,7 +216,6 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * Creates a new external training dataset (synchronizes it with Hopsworks using the REST API and writes it to the
    * external store using Spark (e.g to S3))
    *
-   * @param featurestoreMetadataDTO metadata about the featurestore
    * @param featuresSchema schema of the training dataset
    * @param s3ConnectorDTO S3 connector
    * @throws FeaturestoreNotFound
@@ -230,9 +226,8 @@ public class FeaturestoreCreateTrainingDataset extends FeaturestoreOp {
    * @throws TrainingDatasetFormatNotSupportedError TrainingDatasetFormatNotSupportedError
    * @throws CannotWriteImageDataFrameException CannotWriteImageDataFrameException
    */
-  private void doCreateExternalTrainingDataset(FeaturestoreMetadataDTO featurestoreMetadataDTO,
-    List<FeatureDTO> featuresSchema,
-    FeaturestoreS3ConnectorDTO s3ConnectorDTO)
+  private void doCreateExternalTrainingDataset(List<TrainingDatasetFeatureDTO> featuresSchema,
+                                               FeaturestoreS3ConnectorDTO s3ConnectorDTO)
     throws FeaturestoreNotFound, JWTNotFoundException, TrainingDatasetCreationError,
     JAXBException, HiveNotEnabled, TrainingDatasetFormatNotSupportedError, CannotWriteImageDataFrameException {
     String path = FeaturestoreHelper.getExternalTrainingDatasetPath(name, version, s3ConnectorDTO.getBucket(),

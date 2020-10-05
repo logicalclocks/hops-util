@@ -51,6 +51,9 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
   @XmlElement
   private List<String> statisticColumns;
 
+  private List<FeatureDTO> features;
+
+
   public FeaturegroupDTO() {
   }
   
@@ -58,11 +61,12 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
     String creator, Integer version, String name, Integer id, List<FeatureDTO> features, String location,
     List<FeaturestoreJobDTO> jobs, Boolean descStatsEnabled, Boolean featCorrEnabled,
     Boolean featHistEnabled, List<String> statColumns) {
-    super(featurestoreId, featurestoreName, description, created, creator, version, name, id, features, location, jobs);
+    super(featurestoreId, featurestoreName, description, created, creator, version, name, id, location, jobs);
     this.descStatsEnabled = descStatsEnabled;
     this.featCorrEnabled = featCorrEnabled;
     this.featHistEnabled = featHistEnabled;
     this.statisticColumns = statColumns;
+    this.features = features;
   }
   
   public Boolean isDescStatsEnabled() {
@@ -95,6 +99,14 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
   
   public void setStatisticColumns(List<String> statisticColumns) {
     this.statisticColumns = statisticColumns;
+  }
+
+  public List<FeatureDTO> getFeatures() {
+    return features;
+  }
+
+  public void setFeatures(List<FeatureDTO> features) {
+    this.features = features;
   }
 
   @Override

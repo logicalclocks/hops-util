@@ -19,7 +19,6 @@ package io.hops.util.featurestore.dtos;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.hops.util.featurestore.dtos.feature.FeatureDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.jobs.FeaturestoreJobDTO;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
@@ -50,7 +49,6 @@ public abstract class FeaturestoreEntityDTO {
   private Integer version;
   private String name;
   private Integer id;
-  private List<FeatureDTO> features;
   private String location;
   private List<FeaturestoreJobDTO> jobs;
 
@@ -58,9 +56,8 @@ public abstract class FeaturestoreEntityDTO {
   }
   
   public FeaturestoreEntityDTO(Integer featurestoreId, String featurestoreName, String description,
-    Date created, String creator, Integer version, String name, Integer id,
-    List<FeatureDTO> features, String location,
-    List<FeaturestoreJobDTO> jobs) {
+    Date created, String creator, Integer version,
+    String name, Integer id, String location, List<FeaturestoreJobDTO> jobs) {
     this.featurestoreId = featurestoreId;
     this.featurestoreName = featurestoreName;
     this.description = description;
@@ -69,7 +66,6 @@ public abstract class FeaturestoreEntityDTO {
     this.version = version;
     this.name = name;
     this.id = id;
-    this.features = features;
     this.location = location;
     this.jobs = jobs;
   }
@@ -115,11 +111,6 @@ public abstract class FeaturestoreEntityDTO {
   }
 
   @XmlElement
-  public List<FeatureDTO> getFeatures() {
-    return features;
-  }
-  
-  @XmlElement
   public String getLocation() {
     return location;
   }
@@ -133,10 +124,6 @@ public abstract class FeaturestoreEntityDTO {
     this.location = location;
   }
   
-  public void setFeatures(List<FeatureDTO> features) {
-    this.features = features;
-  }
-
   public void setFeaturestoreName(String featurestoreName) {
     this.featurestoreName = featurestoreName;
   }
