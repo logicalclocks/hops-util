@@ -181,6 +181,7 @@ public class Constants {
   public static final String SPARK_JDBC_DBTABLE = "dbtable";
   public static final String SPARK_JDBC_USER = "user";
   public static final String SPARK_JDBC_PW = "password";
+  public static final String ONLINE_JDBC_CONNECTOR_SUFFIX = "_onlinefeaturestore";
   
   public static final String JDBC_CONNECTION_STRING_DELIMITER = ";";
   public static final String JDBC_CONNECTION_STRING_VALUE_DELIMITER = "=";

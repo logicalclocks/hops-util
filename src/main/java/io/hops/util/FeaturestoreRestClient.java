@@ -17,6 +17,7 @@ import io.hops.util.featurestore.FeaturestoreHelper;
 import io.hops.util.featurestore.dtos.app.FeaturestoreMetadataDTO;
 import io.hops.util.featurestore.dtos.featuregroup.FeaturegroupDTO;
 import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreJdbcConnectorDTO;
+import io.hops.util.featurestore.dtos.storageconnector.FeaturestoreStorageConnectorType;
 import io.hops.util.featurestore.dtos.trainingdataset.TrainingDatasetDTO;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -399,8 +400,7 @@ public class FeaturestoreRestClient {
             + Constants.SLASH_DELIMITER + Hops.getProjectId()
             + Constants.SLASH_DELIMITER
             + Constants.HOPSWORKS_REST_FEATURESTORES_RESOURCE + Constants.SLASH_DELIMITER +
-            featurestoreId + Constants.SLASH_DELIMITER + Constants.HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE +
-            Constants.SLASH_DELIMITER + Constants.HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE,
+            featurestoreId + Constants.SLASH_DELIMITER + Constants.HOPSWORKS_REST_STORAGE_CONNECTORS_RESOURCE,
           HttpMethod.GET, null);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new FeaturestoreNotFound(e.getMessage());
@@ -410,9 +410,21 @@ public class FeaturestoreRestClient {
       throw new FeaturestoreNotFound("Could not get JDBC Connector for online featurestore:" + featurestore);
     }
     final String responseEntity = response.readEntity(String.class);
-    
-    JSONObject onlineFeaturestoreConnector = new JSONObject(responseEntity);
-    return FeaturestoreHelper.parseJdbcConnectorJson(onlineFeaturestoreConnector);
+
+    JSONArray connectors = new JSONArray(responseEntity);
+    FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO = null;
+    for (int i = 0; i < connectors.length(); i++) {
+      FeaturestoreJdbcConnectorDTO dto = FeaturestoreHelper.parseJdbcConnectorJson(connectors.getJSONObject(i));
+      if(dto.getName().contains(Constants.ONLINE_JDBC_CONNECTOR_SUFFIX) &&
+              dto.getStorageConnectorType() == FeaturestoreStorageConnectorType.JDBC) {
+        featurestoreJdbcConnectorDTO = dto;
+        break;
+      }
+    }
+    if(featurestoreJdbcConnectorDTO == null) {
+      throw new FeaturestoreNotFound("Could not find the online featurestore JDBC connector");
+    }
+    return featurestoreJdbcConnectorDTO;
   }
   
   /**
