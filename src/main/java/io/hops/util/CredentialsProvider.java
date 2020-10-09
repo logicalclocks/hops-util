@@ -43,7 +43,7 @@ public class CredentialsProvider {
   /**
    * Get temporary credentials and set spark context hadoop configuration
    * @param role
-   * @return
+   * @return Credentials
    * @throws CloudCredentialException
    */
   public static Credentials assumeRole(String role) throws CloudCredentialException {
@@ -54,7 +54,7 @@ public class CredentialsProvider {
    * Get temporary credentials and set spark context hadoop configuration
    * @param role
    * @param durationSeconds
-   * @return
+   * @return Credentials
    * @throws CloudCredentialException
    */
   public static Credentials assumeRole(String role, int durationSeconds) throws CloudCredentialException {
@@ -67,7 +67,7 @@ public class CredentialsProvider {
    * @param role
    * @param roleSessionName
    * @param durationSeconds
-   * @return
+   * @return Credentials
    * @throws CloudCredentialException
    */
   public static Credentials assumeRole(String role, String roleSessionName, int durationSeconds)
@@ -100,7 +100,7 @@ public class CredentialsProvider {
   
   /**
    * Get all roles mapped to the current project
-   * @return
+   * @return list of roles
    * @throws CloudCredentialException
    */
   public static String[] getRoles() throws CloudCredentialException {
@@ -117,7 +117,7 @@ public class CredentialsProvider {
   /**
    * Get a role arn mapped to the current project by id
    * @param id
-   * @return
+   * @return role
    * @throws CloudCredentialException
    */
   public static String getRole(Integer id) throws CloudCredentialException {
