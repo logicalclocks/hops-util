@@ -19,6 +19,7 @@ import io.hops.util.cloud.Credentials;
 import io.hops.util.exceptions.CloudCredentialException;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
+import org.apache.spark.sql.SparkSession;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -63,7 +64,7 @@ public class CredentialsProvider {
   }
   
   /**
-   * Get temporary credentials and set spark context hadoop configuration
+   * Get temporary credentials and set spark context hadoop configuration and system properties.
    * @param role
    * @param roleSessionName
    * @param durationSeconds
@@ -87,14 +88,8 @@ public class CredentialsProvider {
     LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
     JSONObject jsonObject = getResponse(response);
     Credentials credentials = getCredentialsFromJson(jsonObject);
-    Hops.findSpark().sparkContext().hadoopConfiguration().set(Constants.S3_CREDENTIAL_PROVIDER_ENV,
-      Constants.S3_TEMPORARY_CREDENTIAL_PROVIDER);
-    Hops.findSpark().sparkContext().hadoopConfiguration().set(Constants.S3_ACCESS_KEY_ENV,
-      credentials.getAccessKeyId());
-    Hops.findSpark().sparkContext().hadoopConfiguration().set(Constants.S3_SECRET_KEY_ENV,
-      credentials.getSecretAccessKey());
-    Hops.findSpark().sparkContext().hadoopConfiguration().set(Constants.S3_SESSION_KEY_ENV,
-      credentials.getSessionToken());
+    setSparkHadoopConf(credentials);
+    setSystemProperties(credentials);
     return credentials;
   }
   
@@ -136,6 +131,24 @@ public class CredentialsProvider {
     }
     LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
     return getResponse(response);
+  }
+  
+  private static void setSparkHadoopConf(Credentials credentials) {
+    if (!System.getenv().containsKey("IS_HOPS_DRIVER")) {
+      return;
+    }
+    SparkSession spark = Hops.findSpark();
+    spark.sparkContext().hadoopConfiguration().set(Constants.S3_CREDENTIAL_PROVIDER_ENV,
+      Constants.S3_TEMPORARY_CREDENTIAL_PROVIDER);
+    spark.sparkContext().hadoopConfiguration().set(Constants.S3_ACCESS_KEY_ENV, credentials.getAccessKeyId());
+    spark.sparkContext().hadoopConfiguration().set(Constants.S3_SECRET_KEY_ENV, credentials.getSecretAccessKey());
+    spark.sparkContext().hadoopConfiguration().set(Constants.S3_SESSION_KEY_ENV, credentials.getSessionToken());
+  }
+  
+  private static void setSystemProperties(Credentials credentials) {
+    Hops.setEnv(Constants.AWS_ACCESS_KEY_ID_ENV, credentials.getAccessKeyId());
+    Hops.setEnv(Constants.AWS_SECRET_ACCESS_KEY_ENV, credentials.getSecretAccessKey());
+    Hops.setEnv(Constants.AWS_SESSION_TOKEN_ENV, credentials.getSessionToken());
   }
   
   private static Credentials getCredentialsFromJson(JSONObject jsonObject) {

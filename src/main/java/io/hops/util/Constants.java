@@ -210,6 +210,9 @@ public class Constants {
   public static final String S3_CREDENTIAL_PROVIDER_ENV = "fs.s3a.aws.credentials.provider";
   public static final String S3_TEMPORARY_CREDENTIAL_PROVIDER =
     "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider";
+  public static final String AWS_ACCESS_KEY_ID_ENV = "AWS_ACCESS_KEY_ID";
+  public static final String AWS_SECRET_ACCESS_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
+  public static final String AWS_SESSION_TOKEN_ENV = "AWS_SESSION_TOKEN";
   public static final String S3_TRAINING_DATASETS_FOLDER = "TRAINING_DATASETS";
   public static final String HUDI_SPARK_FORMAT = "org.apache.hudi";
   public static final String HUDI_TABLE_NAME = "hoodie.table.name";
