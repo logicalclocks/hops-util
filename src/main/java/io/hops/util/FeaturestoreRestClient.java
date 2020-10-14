@@ -412,19 +412,14 @@ public class FeaturestoreRestClient {
     final String responseEntity = response.readEntity(String.class);
 
     JSONArray connectors = new JSONArray(responseEntity);
-    FeaturestoreJdbcConnectorDTO featurestoreJdbcConnectorDTO = null;
     for (int i = 0; i < connectors.length(); i++) {
       FeaturestoreJdbcConnectorDTO dto = FeaturestoreHelper.parseJdbcConnectorJson(connectors.getJSONObject(i));
       if(dto.getName().contains(Constants.ONLINE_JDBC_CONNECTOR_SUFFIX) &&
               dto.getStorageConnectorType() == FeaturestoreStorageConnectorType.JDBC) {
-        featurestoreJdbcConnectorDTO = dto;
-        break;
+        return dto;
       }
     }
-    if(featurestoreJdbcConnectorDTO == null) {
-      throw new FeaturestoreNotFound("Could not find the online featurestore JDBC connector");
-    }
-    return featurestoreJdbcConnectorDTO;
+    throw new FeaturestoreNotFound("Could not find the online featurestore JDBC connector");
   }
   
   /**
