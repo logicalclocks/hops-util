@@ -134,7 +134,7 @@ public class CredentialsProvider {
   }
   
   private static void setSparkHadoopConf(Credentials credentials) {
-    if (!System.getenv().containsKey("IS_HOPS_DRIVER")) {
+    if (!System.getenv().containsKey(Constants.SPARK_IS_DRIVER_ENV)) {
       return;
     }
     SparkSession spark = Hops.findSpark();

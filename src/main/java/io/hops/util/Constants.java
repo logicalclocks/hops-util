@@ -210,6 +210,7 @@ public class Constants {
   public static final String S3_CREDENTIAL_PROVIDER_ENV = "fs.s3a.aws.credentials.provider";
   public static final String S3_TEMPORARY_CREDENTIAL_PROVIDER =
     "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider";
+  public static final String SPARK_IS_DRIVER_ENV = "IS_HOPS_DRIVER";
   public static final String AWS_ACCESS_KEY_ID_ENV = "AWS_ACCESS_KEY_ID";
   public static final String AWS_SECRET_ACCESS_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
   public static final String AWS_SESSION_TOKEN_ENV = "AWS_SESSION_TOKEN";
