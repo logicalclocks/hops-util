@@ -85,7 +85,7 @@ public class CredentialsProvider {
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new CloudCredentialException(e.getMessage());
     }
-    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    LOG.log(Level.FINE, "******* response.getStatusInfo():" + response.getStatusInfo());
     JSONObject jsonObject = getResponse(response);
     Credentials credentials = getCredentialsFromJson(jsonObject);
     setSparkHadoopConf(credentials);
@@ -129,7 +129,7 @@ public class CredentialsProvider {
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new CloudCredentialException(e.getMessage());
     }
-    LOG.log(Level.INFO, "******* response.getStatusInfo():" + response.getStatusInfo());
+    LOG.log(Level.FINE, "******* response.getStatusInfo():" + response.getStatusInfo());
     return getResponse(response);
   }
   
