@@ -37,7 +37,7 @@ public class Constants {
   public static final String HOPSWORKS_ONLINE_FEATURESTORE_STORAGE_CONNECTOR_RESOURCE = "onlinefeaturestore";
   public static final String HOPSWORKS_FEATURESTORE_TAGS_RESOURCE = "tags";
   public static final String HOPSWORKS_CLOUD_RESOURCE = "cloud";
-  public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE = "session-token";
+  public static final String HOPSWORKS_AWS_CLOUD_SESSION_TOKEN_RESOURCE = "aws/session-token";
   public static final String HOPSWORKS_CLOUD_ROLE_MAPPINGS_RESOURCE = "role-mappings";
   public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_ROLE = "roleARN";
   public static final String HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION = "roleSessionName";

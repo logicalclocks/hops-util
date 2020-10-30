@@ -28,7 +28,6 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.HashMap;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,25 +41,22 @@ public class CredentialsProvider {
   }
   
   /**
+   * Assume the default role if there exists a default role for the user in current project
+   * @return
+   * @throws CloudCredentialException
+   */
+  public static Credentials assumeRole() throws CloudCredentialException {
+    return assumeRole(null, null, 0);
+  }
+  
+  /**
    * Get temporary credentials and set spark context hadoop configuration
    * @param role
    * @return Credentials
    * @throws CloudCredentialException
    */
   public static Credentials assumeRole(String role) throws CloudCredentialException {
-    return assumeRole(role, 3600);
-  }
-  
-  /**
-   * Get temporary credentials and set spark context hadoop configuration
-   * @param role
-   * @param durationSeconds
-   * @return Credentials
-   * @throws CloudCredentialException
-   */
-  public static Credentials assumeRole(String role, int durationSeconds) throws CloudCredentialException {
-    String uniqueID = UUID.randomUUID().toString();
-    return assumeRole(role, "session_" + uniqueID, durationSeconds);
+    return assumeRole(role, null, 0);
   }
   
   /**
@@ -76,11 +72,17 @@ public class CredentialsProvider {
     Response response;
     try {
       HashMap<String, Object> queryParams = new HashMap<>();
-      queryParams.put(Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_ROLE, role);
-      queryParams.put(Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION, roleSessionName);
-      queryParams.put(Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION_DURATION, durationSeconds);
-      response = Hops.clientWrapper(
-          "/" + Constants.HOPSWORKS_CLOUD_RESOURCE + "/" + Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE,
+      if (role != null && !role.isEmpty()) {
+        queryParams.put(Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_ROLE, role);
+      }
+      if (roleSessionName != null && roleSessionName.isEmpty()) {
+        queryParams.put(Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION, roleSessionName);
+      }
+      if (durationSeconds > 0) {
+        queryParams.put(Constants.HOPSWORKS_CLOUD_SESSION_TOKEN_RESOURCE_QUERY_SESSION_DURATION, durationSeconds);
+      }
+      response = Hops.clientWrapper("/" + Constants.HOPSWORKS_REST_PROJECT_RESOURCE + "/" + Hops.getProjectId() + "/"
+          + Constants.HOPSWORKS_CLOUD_RESOURCE + "/" + Constants.HOPSWORKS_AWS_CLOUD_SESSION_TOKEN_RESOURCE,
           HttpMethod.GET, queryParams);
     } catch (HTTPSClientInitializationException | JWTNotFoundException e) {
       throw new CloudCredentialException(e.getMessage());
@@ -116,10 +118,19 @@ public class CredentialsProvider {
    * @throws CloudCredentialException
    */
   public static String getRole(Integer id) throws CloudCredentialException {
-    return getCloudRoles(id).getString(Constants.JSON_CLOUD_ROLE);
+    return getCloudRoles(id.toString()).getString(Constants.JSON_CLOUD_ROLE);
   }
   
-  private static JSONObject getCloudRoles(Integer id) throws CloudCredentialException {
+  /**
+   * Get the default role arn mapped to the current project
+   * @return
+   * @throws CloudCredentialException
+   */
+  public static String getRole() throws CloudCredentialException {
+    return getCloudRoles("default").getString(Constants.JSON_CLOUD_ROLE);
+  }
+  
+  private static JSONObject getCloudRoles(String id) throws CloudCredentialException {
     Response response;
     String byId = id == null? "": "/" + id;
     try {
@@ -184,6 +195,38 @@ public class CredentialsProvider {
       }
     } else {
       throw new CloudCredentialException("Cannot Connect To Server. Got status: " + response.getStatus());
+    }
+  }
+  
+  public static class AssumeRoleRequest {
+    private String roleArn;
+    private String roleSessionName;
+    private int durationSeconds;
+  
+    private AssumeRoleRequest() {
+    }
+    
+    public static AssumeRoleRequest builder() {
+      return new AssumeRoleRequest();
+    }
+    
+    public Credentials send() throws CloudCredentialException {
+      return CredentialsProvider.assumeRole(roleArn, roleSessionName, durationSeconds);
+    }
+  
+    public AssumeRoleRequest setRoleArn(String roleArn) {
+      this.roleArn = roleArn;
+      return this;
+    }
+  
+    public AssumeRoleRequest setRoleSessionName(String roleSessionName) {
+      this.roleSessionName = roleSessionName;
+      return this;
+    }
+  
+    public AssumeRoleRequest setDurationSeconds(int durationSeconds) {
+      this.durationSeconds = durationSeconds;
+      return this;
     }
   }
   
