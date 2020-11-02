@@ -1060,7 +1060,6 @@ public class Hops {
    * @param key
    * @param value
    */
-  // TODO: Ahmad: A hack to set env variable for debugging! Must be set somewhere in glassfish?
   public static void setEnv(String key, String value) {
     try {
       Map<String, String> env = System.getenv();
