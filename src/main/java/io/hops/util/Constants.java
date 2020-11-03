@@ -196,6 +196,8 @@ public class Constants {
   public static final String S3_SECRET_KEY_ENV = "fs.s3a.secret.key";
   public static final String S3_TRAINING_DATASETS_FOLDER = "TRAINING_DATASETS";
   public static final String HUDI_SPARK_FORMAT = "org.apache.hudi";
+  public static final String HUDI_KEY_GENERATOR_OPT_KEY = "hoodie.datasource.write.keygenerator.class";
+  public static final String HUDI_COMPLEX_KEY_GENERATOR_OPT_VAL = "org.apache.hudi.keygen.CustomKeyGenerator";
   public static final String HUDI_TABLE_NAME = "hoodie.table.name";
   public static final String HUDI_TABLE_STORAGE_TYPE = "hoodie.datasource.write.storage.type";
   public static final String HUDI_TABLE_OPERATION = "hoodie.datasource.write.operation";
