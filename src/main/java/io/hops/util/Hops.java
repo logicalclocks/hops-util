@@ -78,6 +78,7 @@ import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBException;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
@@ -1052,5 +1053,23 @@ public class Hops {
     configs.put("es.net.http.header.Authorization", getElasticAuthorizationToken());
     configs.put("es.resource", getElasticIndex(index));
     return configs;
+  }
+  
+  /**
+   * Set environment variables
+   * @param key
+   * @param value
+   */
+  public static void setEnv(String key, String value) {
+    try {
+      Map<String, String> env = System.getenv();
+      Class<?> cl = env.getClass();
+      Field field = cl.getDeclaredField("m");
+      field.setAccessible(true);
+      Map<String, String> writableEnv = (Map<String, String>) field.get(env);
+      writableEnv.put(key, value);
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to set environment variable", e);
+    }
   }
 }
