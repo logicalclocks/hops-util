@@ -53,6 +53,7 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
 
   private List<FeatureDTO> features;
 
+  private String timeTravelFormat = "NONE";
 
   public FeaturegroupDTO() {
   }
@@ -67,6 +68,7 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
     this.featHistEnabled = featHistEnabled;
     this.statisticColumns = statColumns;
     this.features = features;
+    this.timeTravelFormat = "NONE";
   }
   
   public Boolean isDescStatsEnabled() {
@@ -107,6 +109,14 @@ public class FeaturegroupDTO extends FeaturestoreEntityDTO {
 
   public void setFeatures(List<FeatureDTO> features) {
     this.features = features;
+  }
+
+  public void setTimeTravelFormat(String timeTravelFormat) {
+    this.timeTravelFormat = timeTravelFormat;
+  }
+
+  public String getTimeTravelFormat() {
+    return timeTravelFormat;
   }
 
   @Override

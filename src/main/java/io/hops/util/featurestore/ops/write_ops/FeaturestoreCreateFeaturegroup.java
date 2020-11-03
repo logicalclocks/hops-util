@@ -177,13 +177,14 @@ public class FeaturestoreCreateFeaturegroup extends FeaturestoreOp {
     //Add default args
     Map<String, String> hArgs = Constants.HUDI_DEFAULT_ARGS;
     hArgs.put(Constants.HUDI_TABLE_OPERATION, Constants.HUDI_BULK_INSERT);
+    hudiArgs.put(Constants.HUDI_KEY_GENERATOR_OPT_KEY, Constants.HUDI_COMPLEX_KEY_GENERATOR_OPT_VAL);
     hArgs.put(Constants.HUDI_TABLE_NAME, FeaturestoreHelper.getTableName(name, version));
     hArgs.put(Constants.HUDI_RECORD_KEY, primaryKey.get(0));
     hArgs.put(Constants.HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY,
       Constants.DEFAULT_HIVE_PARTITION_EXTRACTOR_CLASS_OPT_VAL);
     if(!partitionBy.isEmpty()) {
-      hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ","));
-      hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, StringUtils.join(partitionBy, ","));
+      hArgs.put(Constants.HUDI_PARTITION_FIELD, StringUtils.join(partitionBy, ":SIMPLE,") + ":SIMPLE");
+      hArgs.put(Constants.HUDI_PRECOMBINE_FIELD, primaryKey.get(0));
       hArgs.put(Constants.HUDI_HIVE_SYNC_PARTITION_FIELDS, StringUtils.join(partitionBy, ","));
     }
     hArgs = FeaturestoreHelper.setupHudiHiveArgs(hArgs, FeaturestoreHelper.getTableName(name, version));
