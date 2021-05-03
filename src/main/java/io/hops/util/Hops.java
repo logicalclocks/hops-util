@@ -14,14 +14,18 @@
 
 package io.hops.util;
 
+import com.google.common.base.Strings;
 import io.hops.util.exceptions.ElasticAuthorizationTokenException;
 import io.hops.util.exceptions.HTTPSClientInitializationException;
 import io.hops.util.exceptions.JWTNotFoundException;
+import io.hops.util.exceptions.ProjectException;
 import io.hops.util.exceptions.SchemaNotFoundException;
+import io.hops.util.exceptions.SecretException;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.spark.sql.SparkSession;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.net.ssl.HostnameVerifier;
@@ -184,6 +188,166 @@ public class Hops {
     properties.setProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, Hops.getKeystorePwd());
     properties.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
     return properties;
+  }
+
+  /**
+   * Get the project description by name
+   *
+   * @param projectName     Project name.
+   * @return Project description
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws ProjectException ProjectException
+   */
+  private static JSONObject getProjectInfo(String projectName) throws
+    JWTNotFoundException, ProjectException {
+    LOG.log(Level.FINE, "Getting project with name:{0}", new String[]{projectName});
+
+    Response response = null;
+    try {
+      response = clientWrapper(null, "/project/getProjectInfo/" + projectName,
+        HttpMethod.GET, null);
+    } catch (HTTPSClientInitializationException e) {
+      throw new ProjectException(e.getMessage());
+    }
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new ProjectException("No project found named " + projectName);
+    }
+    final String responseEntity = response.readEntity(String.class);
+    return new JSONObject(responseEntity);
+  }
+
+  /**
+   * Get the secret token given the name.
+   *
+   * @param name     Secret name.
+   * @return Secret token value
+   * @throws SecretException      SecretException
+   * @throws JWTNotFoundException JWTNotFoundException
+   */
+  public static String getSecret(String name) throws SecretException, JWTNotFoundException {
+    return getSecret(name, null);
+  }
+
+  /**
+   * Get the secret token given the name and optionally the owner if the secret is shared with the current project.
+   *
+   * @param name     Secret name.
+   * @param owner    Username of the user that shared the secret with the current project.
+   * @return Secret token value.
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws SecretException      SecretException
+   */
+  public static String getSecret(String name, String owner) throws
+    JWTNotFoundException, SecretException {
+    LOG.log(Level.FINE, "Getting secret with name:{0}", new String[]{name});
+
+    Response response = null;
+    try {
+      if(Strings.isNullOrEmpty(owner)) {
+        response = clientWrapper(null, "/users/secrets/" + name,
+          HttpMethod.GET, null);
+      } else {
+        Map<String, Object> queryParams = new HashMap<>();
+        queryParams.put("name", name);
+        queryParams.put("owner", owner);
+        response = clientWrapper(null, "/users/secrets/shared",
+          HttpMethod.GET, queryParams);
+      }
+    } catch (HTTPSClientInitializationException e) {
+      throw new SecretException(e.getMessage());
+    }
+    String responseEntity = response.readEntity(String.class);
+
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new SecretException(responseEntity);
+    }
+
+    JSONArray json = new JSONObject(responseEntity).getJSONArray("items");
+    return json.getJSONObject(0).getString("secret");
+  }
+
+  /**
+   * Create a secret given the name and value.
+   *
+   * @param name     Secret name.
+   * @param secret     Secret value.
+   * @return Secret token value
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws ProjectException ProjectException
+   * @throws SecretException SecretException
+   */
+  public static void createSecret(String name, String secret) throws
+    JWTNotFoundException, ProjectException, SecretException {
+    createSecret(name, secret, null);
+  }
+
+  /**
+   * Create a secret given the name and optionally the owner if the secret is shared with the current project.
+   *
+   * @param name     Secret name.
+   * @param secret     Secret value.
+   * @param projectName     Name of the project to share the secret with.
+   * @return Secret token value
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws ProjectException ProjectException
+   * @throws SecretException SecretException
+   */
+  public static void createSecret(String name, String secret, String projectName) throws
+    JWTNotFoundException, ProjectException, SecretException {
+    LOG.log(Level.FINE, "Creating secret with name:{0}", new String[]{name});
+
+    JSONObject payload = new JSONObject();
+
+    if(Strings.isNullOrEmpty(projectName)) {
+      payload.put("visibility", "PRIVATE");
+    } else {
+      JSONObject projectInfo = getProjectInfo(projectName);
+      payload.put("scope", projectInfo.getInt("projectId"));
+      payload.put("visibility", "PROJECT");
+    }
+
+    payload.put("name", name);
+    payload.put("secret", secret);
+
+    Response response = null;
+    try {
+      response = clientWrapper(payload, "/users/secrets",
+        HttpMethod.POST, null);
+    } catch (HTTPSClientInitializationException e) {
+      throw new SecretException(e.getMessage());
+    }
+
+    String responseEntity = response.readEntity(String.class);
+
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new SecretException(responseEntity);
+    }
+  }
+
+  /**
+   * Delete secret given a name.
+   *
+   * @param name     Secret name.
+   * @return Secret token value.
+   * @throws JWTNotFoundException JWTNotFoundException
+   * @throws SecretException      SecretException
+   */
+  public static void deleteSecret(String name) throws
+    JWTNotFoundException, SecretException {
+    LOG.log(Level.FINE, "Deleting secret with name:{0}", new String[]{name});
+
+    Response response = null;
+    try {
+      response = clientWrapper(null, "/users/secrets/" + name,
+        HttpMethod.DELETE, null);
+    } catch (HTTPSClientInitializationException e) {
+      throw new SecretException(e.getMessage());
+    }
+    String responseEntity = response.readEntity(String.class);
+
+    if (response.getStatusInfo().getStatusCode() != Response.Status.OK.getStatusCode()) {
+      throw new SecretException(responseEntity);
+    }
   }
 
   protected static Response clientWrapper(String path, String httpMethod, Map<String, Object> queryParams)
