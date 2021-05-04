@@ -271,7 +271,6 @@ public class Hops {
    *
    * @param name     Secret name.
    * @param secret     Secret value.
-   * @return Secret token value
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws ProjectException ProjectException
    * @throws SecretException SecretException
@@ -287,7 +286,6 @@ public class Hops {
    * @param name     Secret name.
    * @param secret     Secret value.
    * @param projectName     Name of the project to share the secret with.
-   * @return Secret token value
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws ProjectException ProjectException
    * @throws SecretException SecretException
@@ -328,7 +326,6 @@ public class Hops {
    * Delete secret given a name.
    *
    * @param name     Secret name.
-   * @return Secret token value.
    * @throws JWTNotFoundException JWTNotFoundException
    * @throws SecretException      SecretException
    */
