@@ -15,26 +15,26 @@
 package io.hops.util.exceptions;
 
 /**
- * Exception thrown when statistics for a feature group could not be updated
+ * Exception thrown when the schema for the topic cannot be retrieved.
  *
  */
-public class TrainingDatasetUpdateStatsError extends Exception {
-  
+public class SecretException extends Exception {
+
   Integer status;
-  
-  public TrainingDatasetUpdateStatsError(String message) {
+
+  public SecretException(String message) {
     super(message);
   }
-  
-  public TrainingDatasetUpdateStatsError(Integer status, String message) {
+
+  public SecretException(Integer status, String message) {
     super(message);
     this.status = status;
   }
-  
+
   public Integer getStatus() {
     return status;
   }
-  
+
   public void setStatus(Integer status) {
     this.status = status;
   }
