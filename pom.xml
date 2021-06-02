@@ -25,8 +25,9 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <hops.version>3.2.0.1-SNAPSHOT</hops.version>
-    <spark.version>2.4.3.2</spark.version>
+    <spark.version>3.1.1.0</spark.version>
     <kafka.version>2.3.0</kafka.version>
+    <scala.version>2.12</scala.version>
   </properties>
 
   <dependencies>
@@ -38,7 +39,7 @@
     <!-- Needed by hops-spark kafka examples-->
     <dependency>
       <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka_2.11</artifactId>
+      <artifactId>kafka_${scala.version}</artifactId>
       <version>${kafka.version}</version>
       <exclusions>
         <exclusion>
@@ -75,7 +76,7 @@
         </exclusion>
         <exclusion>
           <groupId>com.fasterxml.jackson.module</groupId>
-          <artifactId>jackson-module-scala_2.11</artifactId>
+          <artifactId>jackson-module-scala_${scala.version}</artifactId>
         </exclusion>
         <exclusion>
           <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -110,7 +111,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-streaming_2.11</artifactId>
+      <artifactId>spark-streaming_${scala.version}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
       <exclusions>
@@ -188,7 +189,7 @@
         </exclusion>
         <exclusion>
           <groupId>com.fasterxml.jackson.module</groupId>
-          <artifactId>jackson-module-scala_2.11</artifactId>
+          <artifactId>jackson-module-scala_${scala.version}</artifactId>
         </exclusion>
         <exclusion>
           <groupId>com.fasterxml.jackson.module</groupId>
@@ -206,7 +207,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-streaming-kafka-0-10_2.11</artifactId>
+      <artifactId>spark-streaming-kafka-0-10_${scala.version}</artifactId>
       <version>${spark.version}</version>
       <exclusions>
         <exclusion>
@@ -225,7 +226,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_2.11</artifactId>
+      <artifactId>spark-core_${scala.version}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
       <exclusions>
@@ -241,12 +242,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-sql-kafka-0-10_2.11</artifactId>
+      <artifactId>spark-sql-kafka-0-10_${scala.version}</artifactId>
       <version>${spark.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-sql_2.11</artifactId>
+      <artifactId>spark-sql_${scala.version}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
       <exclusions>
@@ -262,7 +263,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-mllib_2.11</artifactId>
+      <artifactId>spark-mllib_${scala.version}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
     </dependency>
