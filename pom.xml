@@ -17,7 +17,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.hops</groupId>
   <artifactId>hops-util</artifactId>
-  <version>3.1.0</version>
+  <version>3.1.1</version>
   <name>hops-util</name>
   <packaging>jar</packaging>
   <properties>
